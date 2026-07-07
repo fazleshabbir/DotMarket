@@ -1,0 +1,6 @@
+- [ ] Create `/trade` route and move the trading application there
+- [ ] Implement starry particle background component for landing page
+- [ ] Implement elegant 8-pointed star and hero section in `app/page.tsx`
+- [ ] Add navigation and links
+- [ ] Add smooth entry animations and hover effects in CSS
+- [ ] Compile and verify the build

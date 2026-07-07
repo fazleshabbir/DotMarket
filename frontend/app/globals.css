@@ -1,0 +1,280 @@
+@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600;700&display=swap');
+
+@import "tailwindcss";
+
+/* ── Design Tokens ───────────────────────────────────────────────────────── */
+:root {
+  --bg-primary: #000000;
+  --bg-secondary: #080808;
+  --bg-card: rgba(255, 255, 255, 0.02);
+  --bg-card-hover: rgba(255, 255, 255, 0.04);
+  --border-subtle: rgba(255, 255, 255, 0.06);
+  --border-accent: rgba(255, 255, 255, 0.15);
+
+  --up: #ffffff;
+  --up-dim: rgba(255, 255, 255, 0.06);
+  --up-glow: 0 0 20px rgba(255, 255, 255, 0.15);
+  --up-glow-strong: 0 0 30px rgba(255, 255, 255, 0.25);
+
+  --down: #525252;
+  --down-dim: rgba(82, 82, 82, 0.15);
+  --down-glow: 0 0 15px rgba(82, 82, 82, 0.15);
+  --down-glow-strong: 0 0 25px rgba(82, 82, 82, 0.25);
+
+  --accent: #a3a3a3;
+  --accent-dim: rgba(163, 163, 163, 0.1);
+  --accent-glow: 0 0 15px rgba(163, 163, 163, 0.15);
+
+  --text-primary: #ffffff;
+  --text-secondary: #a3a3a3;
+  --text-muted: #525252;
+
+  --font-mono: 'JetBrains Mono', monospace;
+}
+
+/* ── Base ────────────────────────────────────────────────────────────────── */
+* {
+  box-sizing: border-box;
+}
+
+html, body {
+  margin: 0;
+  padding: 0;
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  font-family: 'Inter', sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  overflow-x: hidden;
+}
+
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background:
+    radial-gradient(ellipse 80% 60% at 50% -10%, rgba(255, 255, 255, 0.05) 0%, transparent 60%),
+    radial-gradient(ellipse 60% 50% at 80% 100%, rgba(82, 82, 82, 0.05) 0%, transparent 50%),
+    radial-gradient(ellipse 60% 50% at 20% 100%, rgba(255, 255, 255, 0.03) 0%, transparent 50%);
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* ── Glass Card ──────────────────────────────────────────────────────────── */
+.glass-card {
+  background: var(--bg-card);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid var(--border-subtle);
+  border-radius: 16px;
+  transition: all 0.3s ease;
+}
+
+.glass-card:hover {
+  border-color: var(--border-accent);
+}
+
+/* ── Glow Effects ────────────────────────────────────────────────────────── */
+.glow-up {
+  box-shadow: var(--up-glow);
+}
+.glow-up:hover {
+  box-shadow: var(--up-glow-strong);
+}
+.glow-down {
+  box-shadow: var(--down-glow);
+}
+.glow-down:hover {
+  box-shadow: var(--down-glow-strong);
+}
+.glow-accent {
+  box-shadow: var(--accent-glow);
+}
+
+/* ── Buttons ─────────────────────────────────────────────────────────────── */
+.btn-up {
+  background: linear-gradient(135deg, #ffffff 0%, #d4d4d4 100%);
+  color: #000000;
+  font-weight: 700;
+  border: none;
+  border-radius: 12px;
+  padding: 14px 24px;
+  font-size: 16px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: var(--up-glow);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+.btn-up:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: var(--up-glow-strong);
+}
+.btn-up:active:not(:disabled) {
+  transform: translateY(0);
+}
+.btn-up:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+  box-shadow: none;
+}
+
+.btn-down {
+  background: linear-gradient(135deg, #404040 0%, #171717 100%);
+  color: #ffffff;
+  font-weight: 700;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  padding: 14px 24px;
+  font-size: 16px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: var(--down-glow);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+.btn-down:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: var(--down-glow-strong);
+  border-color: rgba(255, 255, 255, 0.2);
+}
+.btn-down:active:not(:disabled) {
+  transform: translateY(0);
+}
+.btn-down:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+  box-shadow: none;
+}
+
+/* ── Animations ──────────────────────────────────────────────────────────── */
+@keyframes pulse-live {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+.animate-pulse-live {
+  animation: pulse-live 2s ease-in-out infinite;
+}
+
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+.animate-shimmer {
+  background: linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.05) 50%, transparent 100%);
+  background-size: 200% 100%;
+  animation: shimmer 2s ease-in-out infinite;
+}
+
+@keyframes slide-up {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.animate-slide-up {
+  animation: slide-up 0.3s ease-out;
+}
+
+@keyframes glow-pulse {
+  0%, 100% { box-shadow: 0 0 5px rgba(68, 138, 255, 0.3); }
+  50% { box-shadow: 0 0 20px rgba(68, 138, 255, 0.6); }
+}
+.animate-glow-pulse {
+  animation: glow-pulse 2s ease-in-out infinite;
+}
+
+/* ── Pool Bars ───────────────────────────────────────────────────────────── */
+.pool-bar {
+  height: 8px;
+  border-radius: 4px;
+  transition: width 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* ── Scrollbar ───────────────────────────────────────────────────────────── */
+::-webkit-scrollbar {
+  width: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: var(--text-muted);
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--text-secondary);
+}
+
+/* ── Mono Numbers ────────────────────────────────────────────────────────── */
+.font-mono {
+  font-family: var(--font-mono);
+}
+
+/* ── Status Badges ───────────────────────────────────────────────────────── */
+.badge-open {
+  background: #ffffff;
+  color: #000000;
+  border: 1px solid #ffffff;
+}
+.badge-locked {
+  background: rgba(255, 255, 255, 0.15);
+  color: #ffffff;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+}
+.badge-resolving {
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--text-secondary);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+.badge-resolved {
+  background: rgba(255, 255, 255, 0.02);
+  color: var(--text-muted);
+  border: 1px solid var(--border-subtle);
+}
+
+/* ── Input ───────────────────────────────────────────────────────────────── */
+.input-amount {
+  background: rgba(15, 23, 42, 0.6);
+  border: 1px solid var(--border-subtle);
+  border-radius: 12px;
+  padding: 12px 16px;
+  color: var(--text-primary);
+  font-family: var(--font-mono);
+  font-size: 18px;
+  font-weight: 600;
+  width: 100%;
+  outline: none;
+  transition: all 0.3s ease;
+}
+.input-amount:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(68, 138, 255, 0.1);
+}
+.input-amount::placeholder {
+  color: var(--text-muted);
+}
+
+/* remove spinner from number input */
+.input-amount::-webkit-outer-spin-button,
+.input-amount::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+.input-amount[type=number] {
+  -moz-appearance: textfield;
+}
+
+/* ── Mechanic Card ───────────────────────────────────────────────────────── */
+.mechanic-card {
+  background: rgba(255, 255, 255, 0.01);
+  border: 1px solid rgba(255, 255, 255, 0.03);
+  padding: 32px;
+  border-radius: 16px;
+  transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.mechanic-card:hover {
+  background: rgba(255, 255, 255, 0.02);
+  border-color: rgba(255, 255, 255, 0.15);
+  transform: translateY(-6px);
+  box-shadow: 0 12px 30px rgba(255, 255, 255, 0.03);
+}
