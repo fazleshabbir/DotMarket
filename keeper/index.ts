@@ -323,10 +323,7 @@ async function main() {
           });
           log("📤", `openRound tx sent: ${hash}`);
           const receipt = await publicClient.waitForTransactionReceipt({ hash });
-          log(
-            "✅",
-            `Genesis round opened! Gas used: ${receipt.gasUsed} | Block: ${receipt.blockNumber}`
-          );
+          log("✅", `Genesis round opened! Gas used: ${receipt.gasUsed} | Block: ${receipt.blockNumber}`);
         });
         await sleep(2000);
         continue;
@@ -345,10 +342,58 @@ async function main() {
         `Round #${currentRound.roundId} | resolved=${currentRound.resolved} | canceled=${currentRound.canceled} | lockTimestamp=${currentRound.lockTimestamp} | endTimestamp=${currentRound.endTimestamp} | now=${nowSec}`
       );
 
-      // 4. Check if current round needs to be locked (and next opened)
-      if (nowSec >= currentRound.lockTimestamp && currentRound.startPrice === 0n && !currentRound.canceled) {
-        log("🔒", `Round #${currentRound.roundId} has reached lock time. Locking and opening next round...`);
-        await withRetry(`lockAndOpenRound #${currentRound.roundId}`, async () => {
+      // ── STEP A: Resolve + open next round if current round has ended ───────
+      // This handles the case where the current round has passed its endTimestamp
+      // but hasn't been resolved yet (e.g. keeper was down, or just restarted)
+      if (
+        !currentRound.resolved &&
+        !currentRound.canceled &&
+        nowSec >= currentRound.endTimestamp + BigInt(END_BUFFER_MS / 1000)
+      ) {
+        log("⏰", `Round #${currentRoundId} has ended (endTimestamp past). Resolving and opening next round...`);
+
+        // Resolve the current round
+        await withRetry(`resolveRound #${currentRoundId}`, async () => {
+          const price = await fetchPrice(pair);
+          const hash = await walletClient.writeContract({
+            address: config.marketAddress,
+            abi: ROUND_MARKET_ABI,
+            functionName: "resolveRound",
+            args: [currentRoundId, price],
+          });
+          log("📤", `resolveRound #${currentRoundId} tx sent: ${hash}`);
+          const receipt = await publicClient.waitForTransactionReceipt({ hash });
+          log("✅", `Round #${currentRoundId} resolved! Gas used: ${receipt.gasUsed} | Block: ${receipt.blockNumber}`);
+        });
+
+        await sleep(RESOLVE_TO_OPEN_DELAY_MS);
+
+        // Open the next round
+        await withRetry("openRound (after resolve)", async () => {
+          const hash = await walletClient.writeContract({
+            address: config.marketAddress,
+            abi: ROUND_MARKET_ABI,
+            functionName: "openRound",
+          });
+          log("📤", `openRound tx sent: ${hash}`);
+          const receipt = await publicClient.waitForTransactionReceipt({ hash });
+          log("✅", `New round opened! Gas used: ${receipt.gasUsed} | Block: ${receipt.blockNumber}`);
+        });
+
+        await sleep(2000);
+        continue;
+      }
+
+      // ── STEP B: Lock current round + open next if lock time has passed ─────
+      // startPrice === 0n means the round has NOT been locked yet
+      if (
+        !currentRound.resolved &&
+        !currentRound.canceled &&
+        currentRound.startPrice === 0n &&
+        nowSec >= currentRound.lockTimestamp
+      ) {
+        log("🔒", `Round #${currentRoundId} has reached lock time. Locking and opening next round...`);
+        await withRetry(`lockAndOpenRound #${currentRoundId}`, async () => {
           const price = await fetchPrice(pair);
           const hash = await walletClient.writeContract({
             address: config.marketAddress,
@@ -358,16 +403,13 @@ async function main() {
           });
           log("📤", `lockAndOpenRound tx sent: ${hash}`);
           const receipt = await publicClient.waitForTransactionReceipt({ hash });
-          log(
-            "✅",
-            `Round #${currentRound.roundId} locked & next opened! Gas used: ${receipt.gasUsed} | Block: ${receipt.blockNumber}`
-          );
+          log("✅", `Round #${currentRoundId} locked & next opened! Gas used: ${receipt.gasUsed} | Block: ${receipt.blockNumber}`);
         });
         await sleep(2000);
         continue;
       }
 
-      // 5. Check and resolve previous rounds
+      // ── STEP C: Check and resolve previous rounds that slipped through ─────
       for (let prevId = currentRoundId - 1n; prevId > 0n; prevId--) {
         const prevRound = (await publicClient.readContract({
           address: config.marketAddress,
@@ -376,11 +418,10 @@ async function main() {
           args: [prevId],
         })) as unknown as RoundData;
 
-        if (prevRound.resolved || prevRound.canceled) {
-          break; // Since rounds are sequential, we can stop scanning
-        }
+        // Stop scanning once we hit an already-settled round
+        if (prevRound.resolved || prevRound.canceled) break;
 
-        if (nowSec >= prevRound.endTimestamp) {
+        if (nowSec >= prevRound.endTimestamp + BigInt(END_BUFFER_MS / 1000)) {
           log("⏰", `Previous Round #${prevId} has ended. Resolving...`);
           await withRetry(`resolveRound #${prevId}`, async () => {
             const price = await fetchPrice(pair);
@@ -392,10 +433,7 @@ async function main() {
             });
             log("📤", `resolveRound #${prevId} tx sent: ${hash}`);
             const receipt = await publicClient.waitForTransactionReceipt({ hash });
-            log(
-              "✅",
-              `Round #${prevId} resolved! Gas used: ${receipt.gasUsed} | Block: ${receipt.blockNumber}`
-            );
+            log("✅", `Round #${prevId} resolved! Gas used: ${receipt.gasUsed} | Block: ${receipt.blockNumber}`);
           });
         }
       }
@@ -405,9 +443,7 @@ async function main() {
     } catch (err) {
       log(
         "❌",
-        `Unhandled error in main loop: ${
-          err instanceof Error ? err.message : String(err)
-        }`
+        `Unhandled error in main loop: ${err instanceof Error ? err.message : String(err)}`
       );
       if (err instanceof Error && err.stack) {
         console.error(err.stack);
