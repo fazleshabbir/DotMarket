@@ -230,7 +230,7 @@ export function BettingPanel({ currentBtcPrice }: BettingPanelProps) {
         {/* Header */}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
           <div style={{ fontSize: 13, fontWeight: 700, letterSpacing: '1px', textTransform: 'uppercase', color: 'var(--up)' }}>
-            🟢 Active Round
+            🟢 BTC PAIR
           </div>
           <span
             className="font-mono"
