@@ -230,7 +230,7 @@ export function BettingPanel({ currentBtcPrice }: BettingPanelProps) {
         {/* Header */}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
           <div style={{ fontSize: 13, fontWeight: 700, letterSpacing: '1px', textTransform: 'uppercase', color: 'var(--up)' }}>
-            🟢 Active Betting Round
+            🟢 Active Round
           </div>
           <span
             className="font-mono"
@@ -244,7 +244,7 @@ export function BettingPanel({ currentBtcPrice }: BettingPanelProps) {
               color: '#ffffff',
             }}
           >
-            #{activeRoundId.toString()}
+            Active Round
           </span>
         </div>
 
@@ -397,10 +397,10 @@ export function BettingPanel({ currentBtcPrice }: BettingPanelProps) {
 
         {/* UP / DOWN Buttons */}
         {!hasPlacedActiveBet && activeRound && (
-          <div style={{ display: 'flex', gap: 10 }}>
+          <div style={{ display: 'flex', gap: 8 }}>
             <button
               className="btn-up"
-              style={{ flex: 1, fontSize: 13, height: 36, borderRadius: 8 }}
+              style={{ flex: '1 1 0', minWidth: 0, fontSize: 13, height: 40, borderRadius: 8, fontWeight: 700 }}
               onClick={() => handlePlaceBet(0)}
               disabled={!canBet || !betAmount}
             >
@@ -408,7 +408,7 @@ export function BettingPanel({ currentBtcPrice }: BettingPanelProps) {
             </button>
             <button
               className="btn-down"
-              style={{ flex: 1, fontSize: 13, height: 36, borderRadius: 8 }}
+              style={{ flex: '1 1 0', minWidth: 0, fontSize: 13, height: 40, borderRadius: 8, fontWeight: 700 }}
               onClick={() => handlePlaceBet(1)}
               disabled={!canBet || !betAmount}
             >
@@ -427,11 +427,11 @@ export function BettingPanel({ currentBtcPrice }: BettingPanelProps) {
 
       {/* ─── PREVIOUS LOCKED ROUND ────────────────────────────────────────── */}
       {prevRoundId > 0n && prevRound && (
-        <div className="glass-card animate-slide-up" style={{ padding: 20, border: '1px solid rgba(255, 152, 0, 0.15)' }}>
+        <div className="glass-card animate-slide-up" style={{ padding: 20, border: '1px solid rgba(255, 255, 255, 0.08)' }}>
           {/* Header */}
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-            <div style={{ fontSize: 13, fontWeight: 700, letterSpacing: '1px', textTransform: 'uppercase', color: '#ff9800' }}>
-              🔒 Previous Locked Round
+            <div style={{ fontSize: 13, fontWeight: 700, letterSpacing: '1px', textTransform: 'uppercase', color: '#ffffff' }}>
+              🔒 Last Round
             </div>
             <span
               className="font-mono"
@@ -440,12 +440,12 @@ export function BettingPanel({ currentBtcPrice }: BettingPanelProps) {
                 borderRadius: 6,
                 fontSize: 11,
                 fontWeight: 600,
-                background: 'rgba(255, 152, 0, 0.05)',
-                border: '1px solid rgba(255, 152, 0, 0.15)',
-                color: '#ff9800',
+                background: 'rgba(255, 255, 255, 0.05)',
+                border: '1px solid rgba(255, 255, 255, 0.1)',
+                color: '#ffffff',
               }}
             >
-              #{prevRoundId.toString()}
+              Last Round
             </span>
           </div>
 
