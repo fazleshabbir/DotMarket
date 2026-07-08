@@ -3,12 +3,13 @@
 import React, { useState, useEffect } from 'react';
 
 interface RoundTimerProps {
+  startTimestamp: number;
   endTimestamp: number;
   lockTimestamp: number;
   resolved: boolean;
 }
 
-export function RoundTimer({ endTimestamp, lockTimestamp, resolved }: RoundTimerProps) {
+export function RoundTimer({ startTimestamp, endTimestamp, lockTimestamp, resolved }: RoundTimerProps) {
   const [now, setNow] = useState(Math.floor(Date.now() / 1000));
 
   useEffect(() => {
@@ -19,8 +20,8 @@ export function RoundTimer({ endTimestamp, lockTimestamp, resolved }: RoundTimer
   }, []);
 
   const timeLeft = Math.max(0, endTimestamp - now);
-  const totalDuration = endTimestamp - (lockTimestamp - (endTimestamp - lockTimestamp)); // approximate
-  const progress = totalDuration > 0 ? Math.min(1, (totalDuration - timeLeft) / totalDuration) : 0;
+  const totalDuration = endTimestamp - startTimestamp;
+  const progress = totalDuration > 0 ? Math.max(0, Math.min(1, timeLeft / totalDuration)) : 0;
   const isLocked = now >= lockTimestamp;
 
   const minutes = Math.floor(timeLeft / 60);

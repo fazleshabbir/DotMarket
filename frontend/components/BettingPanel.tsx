@@ -141,6 +141,7 @@ export function BettingPanel() {
       {/* Timer */}
       {round && roundId > 0n && (
         <RoundTimer
+          startTimestamp={Number(round.startTimestamp)}
           endTimestamp={Number(round.endTimestamp)}
           lockTimestamp={Number(round.lockTimestamp)}
           resolved={isResolved}
