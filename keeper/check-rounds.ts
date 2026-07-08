@@ -82,6 +82,7 @@ async function checkAddress(address: string) {
 }
 
 async function main() {
+  await checkAddress("0x31aeb323aee44e3ee5036f14bbd0d7f1429b4938");
   await checkAddress("0xaa2a723b5aca56e6085c76346c4f54a0b8424837");
 }
 
