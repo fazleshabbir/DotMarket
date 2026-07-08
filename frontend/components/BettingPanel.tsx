@@ -126,9 +126,6 @@ export function BettingPanel() {
       {/* Round Header */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
         <div>
-          <div style={{ fontSize: 12, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: 2 }}>
-            Round
-          </div>
           <div className="font-mono" style={{ fontSize: 24, fontWeight: 700 }}>
             #{roundId > 0n ? roundId.toString() : '—'}
           </div>
