@@ -268,7 +268,7 @@ function PositionRow({
           {isUp ? '▲ UP' : '▼ DOWN'}
         </span>
       </td>
-      <td style={{ padding: '12px 16px', fontFamily: 'var(--font-mono)' }}>{formatEther(bet.amount)} ETH</td>
+      <td style={{ padding: '12px 16px', fontFamily: 'var(--font-mono)' }}>{formatEther(bet.amount)} USDC</td>
       <td style={{ padding: '12px 16px', fontFamily: 'var(--font-mono)' }}>
         {startPriceScaled > 0 ? `$${startPriceScaled.toFixed(2)}` : '—'}
       </td>

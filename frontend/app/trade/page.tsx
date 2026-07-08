@@ -173,7 +173,7 @@ export default function TradePage() {
         <div>
           <span style={{ color: 'var(--text-muted)' }}>ROUND POOL:</span>{' '}
           <strong style={{ color: '#ffffff', fontFamily: 'var(--font-mono)' }}>
-            {round ? `${(Number(round.totalUpAmount + round.totalDownAmount) / 1e18).toFixed(4)} ETH` : '0.00 ETH'}
+            {round ? `${(Number(round.totalUpAmount + round.totalDownAmount) / 1e18).toFixed(2)} USDC` : '0.00 USDC'}
           </strong>
         </div>
       </div>
