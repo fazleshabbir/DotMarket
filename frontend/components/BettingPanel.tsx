@@ -339,8 +339,8 @@ export function BettingPanel({ currentBtcPrice }: BettingPanelProps) {
           </div>
         )}
 
-        {/* Bet Input */}
-        {!hasPlacedActiveBet && activeRound && (
+        {/* Bet Input - only when betting is open */}
+        {!hasPlacedActiveBet && activeRound && !isActiveLocked && (
           <div style={{ marginBottom: 12 }}>
             <div style={{ position: 'relative' }}>
               <input
@@ -395,8 +395,8 @@ export function BettingPanel({ currentBtcPrice }: BettingPanelProps) {
           </div>
         )}
 
-        {/* UP / DOWN Buttons */}
-        {!hasPlacedActiveBet && activeRound && (
+        {/* UP / DOWN Buttons - only when betting is open */}
+        {!hasPlacedActiveBet && activeRound && !isActiveLocked && (
           <div style={{ display: 'flex', gap: 8 }}>
             <button
               className="btn-up"
@@ -414,6 +414,13 @@ export function BettingPanel({ currentBtcPrice }: BettingPanelProps) {
             >
               ▼ DOWN
             </button>
+          </div>
+        )}
+
+        {/* Locked notice - show when betting is closed and user hasn't bet */}
+        {!hasPlacedActiveBet && activeRound && isActiveLocked && (
+          <div style={{ textAlign: 'center', padding: '12px 0', fontSize: 12, color: 'var(--text-muted)' }}>
+            Next round opens soon
           </div>
         )}
 
