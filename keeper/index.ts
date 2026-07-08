@@ -1,4 +1,5 @@
 import "dotenv/config";
+import httpModule from "http";
 import {
   createPublicClient,
   createWalletClient,
@@ -430,11 +431,24 @@ async function main() {
   log("👋", "Keeper bot shut down gracefully.");
 }
 
+// ─── Dummy Web Server ───────────────────────────────────────────────────────
+const PORT = process.env.PORT || 10000;
+const server = httpModule.createServer((req, res) => {
+  res.writeHead(200, { "Content-Type": "text/plain" });
+  res.end("Keeper is healthy and running\n");
+});
+server.listen(PORT, () => {
+  log("🌐", `Dummy health-check server listening on port ${PORT}`);
+});
+
 // ─── Graceful Shutdown ──────────────────────────────────────────────────────
 
 function shutdown(signal: string) {
   log("🛑", `Received ${signal}. Shutting down...`);
   isRunning = false;
+  server.close(() => {
+    log("🌐", "Dummy health-check server closed.");
+  });
 }
 
 process.on("SIGINT", () => shutdown("SIGINT"));
