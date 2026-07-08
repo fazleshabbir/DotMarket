@@ -116,14 +116,14 @@ function log(emoji: string, message: string): void {
 
 function loadConfig() {
   const rpc = process.env.ARC_TESTNET_RPC ?? "https://5042002.rpc.thirdweb.com";
-  const privateKey = process.env.KEEPER_PRIVATE_KEY;
-  const marketAddress = process.env.MARKET_ADDRESS;
+  const privateKey = process.env.KEEPER_PRIVATE_KEY || process.env.DEPLOYER_PRIVATE_KEY;
+  const marketAddress = process.env.MARKET_ADDRESS || process.env.MARKET_CONTRACT_ADDRESS || process.env.NEXT_PUBLIC_MARKET_ADDRESS;
 
   if (!privateKey) {
-    throw new Error("KEEPER_PRIVATE_KEY is required. Set it in .env");
+    throw new Error("KEEPER_PRIVATE_KEY or DEPLOYER_PRIVATE_KEY is required. Set it in .env");
   }
   if (!marketAddress) {
-    throw new Error("MARKET_ADDRESS is required. Set it in .env");
+    throw new Error("MARKET_ADDRESS or MARKET_CONTRACT_ADDRESS is required. Set it in .env");
   }
 
   return {
