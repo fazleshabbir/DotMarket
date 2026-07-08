@@ -430,8 +430,8 @@ export function BettingPanel({ currentBtcPrice }: BettingPanelProps) {
         <div className="glass-card animate-slide-up" style={{ padding: 20, border: '1px solid rgba(255, 255, 255, 0.08)' }}>
           {/* Header */}
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-            <div style={{ fontSize: 13, fontWeight: 700, letterSpacing: '1px', textTransform: 'uppercase', color: '#ffffff' }}>
-              🔒 Last Round
+            <div style={{ fontSize: 13, fontWeight: 700, letterSpacing: '1px', textTransform: 'uppercase', color: 'var(--up)' }}>
+              🟢 BTC PAIR
             </div>
             <span
               className="font-mono"
