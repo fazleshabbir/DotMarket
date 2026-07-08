@@ -191,10 +191,57 @@ async function withRetry<T>(
 /**
  * Fetch price from Binance API and format to 8 decimals (as standard oracle representation).
  */
+/**
+ * Fetch price using Pyth Hermes API as primary source (rate-limit friendly and doesn't block cloud IPs like Render/AWS).
+ * Falls back to Binance and then CoinGecko if Hermes is down.
+ * Formats price to 8 decimals as standard oracle representation.
+ */
 async function fetchPrice(pairName: string): Promise<bigint> {
-  log("🔮", `Fetching price for ${pairName} from Binance API...`);
-  
-  // Map standard symbols to Binance symbols (e.g. BTC/USD -> BTCUSDT)
+  log("🔮", `Fetching price for ${pairName}...`);
+
+  // 1. Try Pyth Hermes API first (Highly reliable, no cloud IP blocks)
+  try {
+    let feedId = "e62df6c8b4a85fe1a67db44dc12de5db330f7ac66b72dc658afedf0f4a415b43"; // Default BTC/USD
+    const envFeedId = process.env.PRICE_FEED_ID;
+    if (envFeedId) {
+      feedId = envFeedId.startsWith("0x") ? envFeedId.substring(2) : envFeedId;
+    } else {
+      const pairUpper = pairName.toUpperCase();
+      if (pairUpper === "ETH/USD") {
+        feedId = "ff6d0bb2e285473e5311d9d3caacb525ae3538a8";
+      } else if (pairUpper === "SOL/USD") {
+        feedId = "ef0d8b6ffd224f8d5c02b18169902bd6f1214e3057ab65d83a1045509287ec50";
+      }
+    }
+
+    log("🔮", `Querying Pyth Hermes Feed: ${feedId}...`);
+    const res = await fetch(`https://hermes.pyth.network/v2/updates/price/latest?ids[]=${feedId}`);
+    if (!res.ok) {
+      throw new Error(`Hermes API returned status ${res.status}`);
+    }
+    const data = await res.json() as any;
+    const priceStr = data.parsed[0].price.price;
+    const expo = data.parsed[0].price.expo; // e.g. -8
+    
+    let priceVal = BigInt(priceStr);
+    
+    // Scale to standard 8 decimals if needed
+    const targetDecimals = 8;
+    const currentDecimals = -expo;
+    if (currentDecimals > targetDecimals) {
+      priceVal = priceVal / BigInt(10 ** (currentDecimals - targetDecimals));
+    } else if (currentDecimals < targetDecimals) {
+      priceVal = priceVal * BigInt(10 ** (targetDecimals - currentDecimals));
+    }
+    
+    const floatPrice = Number(priceVal) / 1e8;
+    log("📈", `Pyth Hermes Price: $${floatPrice} (Scaled: ${priceVal})`);
+    return priceVal;
+  } catch (err) {
+    log("⚠️", `Pyth Hermes fetch failed: ${err instanceof Error ? err.message : String(err)}. Trying Binance...`);
+  }
+
+  // 2. Fallback to Binance (Might block AWS/Render hosting IPs)
   let symbol = "BTCUSDT";
   if (pairName.toUpperCase() === "ETH/USD") {
     symbol = "ETHUSDT";
@@ -209,15 +256,15 @@ async function fetchPrice(pairName: string): Promise<bigint> {
     }
     const data = await res.json() as { price: string };
     const floatPrice = parseFloat(data.price);
-    
-    // Scale by 10^8 for 8-decimal precision representation
-    const priceWithDecimals = BigInt(Math.round(floatPrice * 1e8));
-    log("📈", `Binance Price: $${floatPrice} (Scaled: ${priceWithDecimals})`);
-    return priceWithDecimals;
+    const priceVal = BigInt(Math.round(floatPrice * 1e8));
+    log("📈", `Binance Price: $${floatPrice} (Scaled: ${priceVal})`);
+    return priceVal;
   } catch (err) {
-    log("❌", `Failed to fetch price from Binance: ${err instanceof Error ? err.message : String(err)}`);
-    // Fallback to CoinGecko if Binance is down
-    log("🔄", "Attempting fallback to CoinGecko...");
+    log("⚠️", `Binance fetch failed: ${err instanceof Error ? err.message : String(err)}. Trying CoinGecko...`);
+  }
+
+  // 3. Fallback to CoinGecko (Has strict rate limit for free tier)
+  try {
     let cgId = "bitcoin";
     if (pairName.toUpperCase() === "ETH/USD") {
       cgId = "ethereum";
@@ -225,11 +272,17 @@ async function fetchPrice(pairName: string): Promise<bigint> {
       cgId = "solana";
     }
     const res = await fetch(`https://api.coingecko.com/api/v3/simple/price?ids=${cgId}&vs_currencies=usd`);
+    if (!res.ok) {
+      throw new Error(`CoinGecko API returned status ${res.status}`);
+    }
     const data = await res.json() as any;
     const floatPrice = data[cgId].usd;
-    const priceWithDecimals = BigInt(Math.round(floatPrice * 1e8));
-    log("📈", `CoinGecko Price: $${floatPrice} (Scaled: ${priceWithDecimals})`);
-    return priceWithDecimals;
+    const priceVal = BigInt(Math.round(floatPrice * 1e8));
+    log("📈", `CoinGecko Price: $${floatPrice} (Scaled: ${priceVal})`);
+    return priceVal;
+  } catch (err) {
+    log("❌", `All price sources failed: ${err instanceof Error ? err.message : String(err)}`);
+    throw err;
   }
 }
 
