@@ -137,7 +137,7 @@ function log(emoji: string, message: string): void {
 function loadConfig() {
   const rpc = process.env.ARC_TESTNET_RPC ?? "https://5042002.rpc.thirdweb.com";
   const privateKey = process.env.KEEPER_PRIVATE_KEY || process.env.DEPLOYER_PRIVATE_KEY;
-  const marketAddress = "0xaa2a723B5ACA56E6085C76346C4f54A0b8424837";
+  const marketAddress = "0x31Aeb323aEE44e3EE5036F14bBD0D7f1429B4938";
 
   if (!privateKey) {
     throw new Error("KEEPER_PRIVATE_KEY or DEPLOYER_PRIVATE_KEY is required. Set it in .env");

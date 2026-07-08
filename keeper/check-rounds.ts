@@ -6,6 +6,8 @@ const ROUND_MARKET_ABI = [
   { type: "function", name: "keeperAddress", inputs: [], outputs: [{ type: "address" }], stateMutability: "view" },
   { type: "function", name: "owner", inputs: [], outputs: [{ type: "address" }], stateMutability: "view" },
   { type: "function", name: "paused", inputs: [], outputs: [{ type: "bool" }], stateMutability: "view" },
+  { type: "function", name: "roundDuration", inputs: [], outputs: [{ type: "uint256" }], stateMutability: "view" },
+  { type: "function", name: "lockBuffer", inputs: [], outputs: [{ type: "uint256" }], stateMutability: "view" },
   {
     type: "function",
     name: "getRound",
@@ -59,7 +61,17 @@ async function checkAddress(address: string) {
       abi: ROUND_MARKET_ABI,
       functionName: "paused",
     });
-    console.log(`Address: ${address} | Current Round ID: ${currentRoundId.toString()} | Keeper: ${keeper} | Owner: ${owner} | Paused: ${paused}`);
+    const roundDuration = await client.readContract({
+      address: address as `0x${string}`,
+      abi: ROUND_MARKET_ABI,
+      functionName: "roundDuration",
+    });
+    const lockBuffer = await client.readContract({
+      address: address as `0x${string}`,
+      abi: ROUND_MARKET_ABI,
+      functionName: "lockBuffer",
+    });
+    console.log(`Address: ${address} | Current Round ID: ${currentRoundId.toString()} | Keeper: ${keeper} | Owner: ${owner} | Paused: ${paused} | Duration: ${roundDuration}s | Buffer: ${lockBuffer}s`);
     
     if (currentRoundId > 0n) {
       const round = await client.readContract({
