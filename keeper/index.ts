@@ -358,10 +358,11 @@ async function main() {
 
       // ── STEP A: Resolve + open next round if current round has ended ───────
       // This handles the case where the current round has passed its endTimestamp
-      // but hasn't been resolved yet (e.g. keeper was down, or just restarted)
+      // but hasn't been resolved yet. It requires startPrice > 0 (already locked).
       if (
         !currentRound.resolved &&
         !currentRound.canceled &&
+        currentRound.startPrice > 0n &&
         nowSec >= currentRound.endTimestamp + BigInt(END_BUFFER_MS / 1000)
       ) {
         log("⏰", `Round #${currentRoundId} has ended (endTimestamp past). Resolving and opening next round...`);
@@ -425,7 +426,7 @@ async function main() {
 
       // ── STEP C: Check and resolve previous rounds that slipped through ─────
       for (let prevId = currentRoundId - 1n; prevId > 0n; prevId--) {
-        const prevRound = (await publicClient.readContract({
+        let prevRound = (await publicClient.readContract({
           address: config.marketAddress,
           abi: ROUND_MARKET_ABI,
           functionName: "getRound",
@@ -436,6 +437,30 @@ async function main() {
         if (prevRound.resolved || prevRound.canceled) break;
 
         if (nowSec >= prevRound.endTimestamp + BigInt(END_BUFFER_MS / 1000)) {
+          // If the previous round was never locked, lock it first!
+          if (prevRound.startPrice === 0n) {
+            log("🔒", `Previous Round #${prevId} was never locked. Locking now before resolution...`);
+            await withRetry(`lockRound #${prevId}`, async () => {
+              const price = await fetchPrice(pair);
+              const hash = await walletClient.writeContract({
+                address: config.marketAddress,
+                abi: ROUND_MARKET_ABI,
+                functionName: "lockRound",
+                args: [prevId, price],
+              });
+              log("📤", `lockRound #${prevId} tx sent: ${hash}`);
+              const receipt = await publicClient.waitForTransactionReceipt({ hash });
+              log("✅", `Round #${prevId} locked! Gas used: ${receipt.gasUsed} | Block: ${receipt.blockNumber}`);
+            });
+            // Refresh round details
+            prevRound = (await publicClient.readContract({
+              address: config.marketAddress,
+              abi: ROUND_MARKET_ABI,
+              functionName: "getRound",
+              args: [prevId],
+            })) as unknown as RoundData;
+          }
+
           log("⏰", `Previous Round #${prevId} has ended. Resolving...`);
           await withRetry(`resolveRound #${prevId}`, async () => {
             const price = await fetchPrice(pair);

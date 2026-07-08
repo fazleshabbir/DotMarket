@@ -80,12 +80,18 @@ async function checkAddress(address: string) {
         functionName: "getRound",
         args: [currentRoundId],
       });
+      const nowBlock = (await client.getBlock()).timestamp;
       console.log(`Address: ${address} | Current Round Details:`, {
         roundId: round.roundId.toString(),
         startPrice: round.startPrice.toString(),
         closePrice: round.closePrice.toString(),
         resolved: round.resolved,
         canceled: round.canceled,
+        startTimestamp: round.startTimestamp.toString(),
+        lockTimestamp: round.lockTimestamp.toString(),
+        endTimestamp: round.endTimestamp.toString(),
+        nowBlock: nowBlock.toString(),
+        nowUnix: Math.floor(Date.now() / 1000).toString(),
       });
     }
   } catch (e: any) {
