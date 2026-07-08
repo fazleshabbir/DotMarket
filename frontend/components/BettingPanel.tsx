@@ -126,8 +126,8 @@ export function BettingPanel() {
       {/* Round Header */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
         <div>
-          <div className="font-mono" style={{ fontSize: 24, fontWeight: 700 }}>
-            #{roundId > 0n ? roundId.toString() : '—'}
+          <div style={{ fontSize: 16, fontWeight: 700, letterSpacing: '0.5px', textTransform: 'uppercase', color: '#ffffff' }}>
+            BTC Pair
           </div>
         </div>
         <span
