@@ -27,7 +27,7 @@ interface RoundData {
 
 export default function TradePage() {
   const { isConnected } = useAccount();
-  const [btcPrice, setBtcPrice] = useState(63787.8);
+  const [btcPrice, setBtcPrice] = useState(62000.0);
 
   // Read current round ID to show in sub-header
   const { data: currentRoundId } = useReadContract({
@@ -50,14 +50,25 @@ export default function TradePage() {
 
   const round = roundData as unknown as RoundData | undefined;
 
-  // Simulate slight price fluctuation for ticker bar
+  // Fetch live price from Pyth Hermes API
   useEffect(() => {
-    const interval = setInterval(() => {
-      setBtcPrice((prev) => {
-        const delta = (Math.random() - 0.5) * 5;
-        return Math.round((prev + delta) * 10) / 10;
-      });
-    }, 3000);
+    const fetchPythPrice = async () => {
+      try {
+        const feedId = '0xe62df6c8b4a85fe1a67db44dc12de5db330f7ac66b72dc658afedf0f4a415b43';
+        const res = await fetch(`https://hermes.pyth.network/v2/updates/price/latest?ids[]=${feedId}`);
+        const data = await res.json();
+        if (data && data.parsed && data.parsed[0]) {
+          const priceObj = data.parsed[0].price;
+          const realPrice = Number(priceObj.price) * Math.pow(10, priceObj.expo);
+          setBtcPrice(realPrice);
+        }
+      } catch (err) {
+        console.error('Error fetching Pyth price:', err);
+      }
+    };
+
+    fetchPythPrice(); // Initial fetch
+    const interval = setInterval(fetchPythPrice, 3000); // Fetch every 3 seconds
     return () => clearInterval(interval);
   }, []);
 
