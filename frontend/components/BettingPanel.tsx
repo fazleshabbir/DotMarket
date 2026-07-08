@@ -156,9 +156,11 @@ export function BettingPanel({ currentBtcPrice }: BettingPanelProps) {
 
   // Calculations for Active Round
   const activeNow = Math.floor(Date.now() / 1000);
-  const isActiveLocked = activeRound ? activeNow >= Number(activeRound.lockTimestamp) : false;
+  // A round is only valid if it has a non-zero lockTimestamp (initialized on-chain)
+  const hasValidActiveRound = activeRound && Number(activeRound.lockTimestamp) > 0;
+  const isActiveLocked = hasValidActiveRound ? activeNow >= Number(activeRound!.lockTimestamp) : true;
   const isActiveResolved = activeRound?.resolved || activeRound?.canceled || false;
-  const canBet = isConnected && activeRoundId > 0n && !isActiveLocked && !isActiveResolved && !hasPlacedActiveBet && !isPending && !isConfirming;
+  const canBet = isConnected && activeRoundId > 0n && hasValidActiveRound && !isActiveLocked && !isActiveResolved && !hasPlacedActiveBet && !isPending && !isConfirming;
 
   const activeTotalPool = activeRound ? activeRound.totalUpAmount + activeRound.totalDownAmount : 0n;
   const activeUpPercent = activeTotalPool > 0n ? Number((activeRound!.totalUpAmount * 10000n) / activeTotalPool) / 100 : 50;
@@ -249,11 +251,11 @@ export function BettingPanel({ currentBtcPrice }: BettingPanelProps) {
         </div>
 
         {/* Timer */}
-        {activeRound && activeRoundId > 0n ? (
+        {hasValidActiveRound ? (
           <RoundTimer
-            startTimestamp={Number(activeRound.startTimestamp)}
-            endTimestamp={Number(activeRound.endTimestamp)}
-            lockTimestamp={Number(activeRound.lockTimestamp)}
+            startTimestamp={Number(activeRound!.startTimestamp)}
+            endTimestamp={Number(activeRound!.endTimestamp)}
+            lockTimestamp={Number(activeRound!.lockTimestamp)}
             resolved={isActiveResolved}
             targetMode="lock"
           />
