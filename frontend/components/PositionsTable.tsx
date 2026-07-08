@@ -27,9 +27,14 @@ interface BetData {
 }
 
 export function PositionsTable() {
+  const [mounted, setMounted] = useState(false);
   const { address, isConnected } = useAccount();
   const [activeTab, setActiveTab] = useState<'positions' | 'history'>('positions');
   const [claimStatus, setClaimStatus] = useState<string | null>(null);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   // Read user's round IDs
   const { data: userRoundIds } = useReadContract({
@@ -64,6 +69,14 @@ export function PositionsTable() {
       args: [roundId],
     });
   };
+
+  if (!mounted) {
+    return (
+      <div className="glass-card" style={{ padding: '24px', textAlign: 'center', minHeight: '180px', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#050505' }}>
+        <p style={{ color: 'var(--text-muted)', fontSize: 13 }}>Loading positions...</p>
+      </div>
+    );
+  }
 
   if (!isConnected) {
     return (

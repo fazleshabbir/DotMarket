@@ -26,9 +26,14 @@ interface BettingPanelProps {
 }
 
 export function BettingPanel({ currentBtcPrice }: BettingPanelProps) {
+  const [mounted, setMounted] = useState(false);
   const { address, isConnected } = useAccount();
   const [betAmount, setBetAmount] = useState('');
   const [txStatus, setTxStatus] = useState<string | null>(null);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   // 1. Read current round ID
   const { data: currentRoundId } = useReadContract({
@@ -209,6 +214,14 @@ export function BettingPanel({ currentBtcPrice }: BettingPanelProps) {
   };
 
   const outcome = getPrevOutcome();
+
+  if (!mounted) {
+    return (
+      <div className="glass-card" style={{ padding: 20, textAlign: 'center', color: 'var(--text-muted)' }}>
+        Loading Panel...
+      </div>
+    );
+  }
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 20, flex: 1 }}>

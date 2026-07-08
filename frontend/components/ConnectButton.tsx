@@ -1,13 +1,39 @@
 'use client';
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAccount, useConnect, useDisconnect } from 'wagmi';
 import { injected } from 'wagmi/connectors';
 
 export function ConnectButton() {
+  const [mounted, setMounted] = useState(false);
   const { address, isConnected } = useAccount();
   const { connect, isPending } = useConnect();
   const { disconnect } = useDisconnect();
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  if (!mounted) {
+    return (
+      <button
+        disabled
+        style={{
+          padding: '10px 20px',
+          borderRadius: 10,
+          fontSize: 14,
+          fontWeight: 600,
+          color: '#555',
+          background: 'rgba(255, 255, 255, 0.05)',
+          border: 'none',
+          opacity: 0.5,
+          cursor: 'not-allowed',
+        }}
+      >
+        Loading...
+      </button>
+    );
+  }
 
   if (isConnected && address) {
     return (
