@@ -50,25 +50,22 @@ export default function TradePage() {
 
   const round = roundData as unknown as RoundData | undefined;
 
-  // Fetch live price from Pyth Hermes API
+  // Fetch live price from Binance API to match chart exactly
   useEffect(() => {
-    const fetchPythPrice = async () => {
+    const fetchBtcPrice = async () => {
       try {
-        const feedId = '0xe62df6c8b4a85fe1a67db44dc12de5db330f7ac66b72dc658afedf0f4a415b43';
-        const res = await fetch(`https://hermes.pyth.network/v2/updates/price/latest?ids[]=${feedId}`);
+        const res = await fetch('https://api.binance.com/api/v3/ticker/price?symbol=BTCUSDT');
         const data = await res.json();
-        if (data && data.parsed && data.parsed[0]) {
-          const priceObj = data.parsed[0].price;
-          const realPrice = Number(priceObj.price) * Math.pow(10, priceObj.expo);
-          setBtcPrice(realPrice);
+        if (data && data.price) {
+          setBtcPrice(parseFloat(data.price));
         }
       } catch (err) {
-        console.error('Error fetching Pyth price:', err);
+        console.error('Error fetching Binance price:', err);
       }
     };
 
-    fetchPythPrice(); // Initial fetch
-    const interval = setInterval(fetchPythPrice, 3000); // Fetch every 3 seconds
+    fetchBtcPrice(); // Initial fetch
+    const interval = setInterval(fetchBtcPrice, 1000); // Fetch every 1 second
     return () => clearInterval(interval);
   }, []);
 
@@ -169,12 +166,7 @@ export default function TradePage() {
           <strong style={{ color: '#ffffff', fontFamily: 'var(--font-mono)' }}>${btcPrice.toFixed(2)}</strong>
         </div>
 
-        <div style={{ width: 1, height: 12, background: 'rgba(255,255,255,0.1)' }} />
 
-        <div>
-          <span style={{ color: 'var(--text-muted)' }}>ACTIVE ROUND:</span>{' '}
-          <strong style={{ color: '#ffffff' }}>#{roundId.toString()}</strong>
-        </div>
 
         <div style={{ width: 1, height: 12, background: 'rgba(255,255,255,0.1)' }} />
 
