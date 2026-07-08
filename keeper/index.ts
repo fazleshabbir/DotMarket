@@ -342,6 +342,23 @@ async function main() {
         `Round #${currentRound.roundId} | resolved=${currentRound.resolved} | canceled=${currentRound.canceled} | lockTimestamp=${currentRound.lockTimestamp} | endTimestamp=${currentRound.endTimestamp} | now=${nowSec}`
       );
 
+      // ── STEP 0: If current round is already resolved or canceled, open next round ──
+      if (currentRound.resolved || currentRound.canceled) {
+        log("🔄", `Current round #${currentRoundId} is already settled/resolved. Opening the next round...`);
+        await withRetry("openRound (after current resolved)", async () => {
+          const hash = await walletClient.writeContract({
+            address: config.marketAddress,
+            abi: ROUND_MARKET_ABI,
+            functionName: "openRound",
+          });
+          log("📤", `openRound tx sent: ${hash}`);
+          const receipt = await publicClient.waitForTransactionReceipt({ hash });
+          log("✅", `New round opened! Gas used: ${receipt.gasUsed} | Block: ${receipt.blockNumber}`);
+        });
+        await sleep(2000);
+        continue;
+      }
+
       // ── STEP A: Resolve + open next round if current round has ended ───────
       // This handles the case where the current round has passed its endTimestamp
       // but hasn't been resolved yet (e.g. keeper was down, or just restarted)
