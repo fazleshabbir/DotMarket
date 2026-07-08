@@ -200,7 +200,7 @@ export default function TradePage() {
 
           {/* Right Panel: Betting Controller & Round Stats (30% width) */}
           <div style={{ flex: '0 0 350px', display: 'flex', flexDirection: 'column', gap: 16 }}>
-            <BettingPanel />
+            <BettingPanel currentBtcPrice={btcPrice} />
           </div>
         </main>
       </ScrollFade>

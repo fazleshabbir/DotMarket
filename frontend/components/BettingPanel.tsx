@@ -21,7 +21,11 @@ interface RoundData {
   canceled: boolean;
 }
 
-export function BettingPanel() {
+interface BettingPanelProps {
+  currentBtcPrice: number;
+}
+
+export function BettingPanel({ currentBtcPrice }: BettingPanelProps) {
   const { address, isConnected } = useAccount();
   const [betAmount, setBetAmount] = useState('');
   const [txStatus, setTxStatus] = useState<string | null>(null);
@@ -185,6 +189,37 @@ export function BettingPanel() {
           <div className="font-mono" style={{ fontSize: 20, fontWeight: 700, color: 'var(--down)' }}>
             {downMultiplier > 0 ? `${downMultiplier.toFixed(2)}x` : '—'}
           </div>
+        </div>
+      </div>
+
+      {/* Price Details Tab */}
+      <div 
+        style={{ 
+          display: 'flex', 
+          justifyContent: 'space-between', 
+          alignItems: 'center', 
+          background: 'rgba(255, 255, 255, 0.02)', 
+          border: '1px solid rgba(255, 255, 255, 0.05)', 
+          borderRadius: 10, 
+          padding: '10px 14px', 
+          marginBottom: 20,
+          fontSize: 12
+        }}
+      >
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+          <span style={{ color: 'var(--text-muted)', fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Locked Price</span>
+          <strong className="font-mono" style={{ color: '#ffffff', fontSize: 13 }}>
+            {round && round.startPrice > 0n 
+              ? `$${(Number(round.startPrice) / 1e8).toFixed(2)}` 
+              : 'LIVE TRACKING'}
+          </strong>
+        </div>
+        <div style={{ width: 1, height: 24, background: 'rgba(255, 255, 255, 0.08)' }} />
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 2 }}>
+          <span style={{ color: 'var(--text-muted)', fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Live Price</span>
+          <strong className="font-mono" style={{ color: '#ffffff', fontSize: 13 }}>
+            ${currentBtcPrice.toFixed(2)}
+          </strong>
         </div>
       </div>
 
