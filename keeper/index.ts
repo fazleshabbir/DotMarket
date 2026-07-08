@@ -49,7 +49,27 @@ const ROUND_MARKET_ABI = [
   {
     type: "function",
     name: "openRound",
-    inputs: [{ name: "startPrice", type: "int256" }],
+    inputs: [],
+    outputs: [],
+    stateMutability: "nonpayable",
+  },
+  {
+    type: "function",
+    name: "lockRound",
+    inputs: [
+      { name: "roundId", type: "uint256" },
+      { name: "lockPrice", type: "int256" },
+    ],
+    outputs: [],
+    stateMutability: "nonpayable",
+  },
+  {
+    type: "function",
+    name: "lockAndOpenRound",
+    inputs: [
+      { name: "roundToLock", type: "uint256" },
+      { name: "lockPrice", type: "int256" },
+    ],
     outputs: [],
     stateMutability: "nonpayable",
   },
@@ -290,129 +310,98 @@ async function main() {
 
       log("📊", `Current round ID: ${currentRoundId}`);
 
+      const nowSec = BigInt(Math.floor(Date.now() / 1000));
+
       // 2. If no round exists (id == 0) → open the first round
       if (currentRoundId === 0n) {
         log("🆕", "No active round found. Opening the first round...");
         await withRetry("openRound (genesis)", async () => {
-          const price = await fetchPrice(pair);
           const hash = await walletClient.writeContract({
             address: config.marketAddress,
             abi: ROUND_MARKET_ABI,
             functionName: "openRound",
-            args: [price],
           });
           log("📤", `openRound tx sent: ${hash}`);
           const receipt = await publicClient.waitForTransactionReceipt({ hash });
           log(
             "✅",
-            `Round opened! Gas used: ${receipt.gasUsed} | Block: ${receipt.blockNumber}`
+            `Genesis round opened! Gas used: ${receipt.gasUsed} | Block: ${receipt.blockNumber}`
           );
         });
+        await sleep(2000);
         continue;
       }
 
       // 3. Fetch current round data
-      const round = (await publicClient.readContract({
+      const currentRound = (await publicClient.readContract({
         address: config.marketAddress,
         abi: ROUND_MARKET_ABI,
         functionName: "getRound",
         args: [currentRoundId],
       })) as unknown as RoundData;
 
-      const nowSec = BigInt(Math.floor(Date.now() / 1000));
-
       log(
         "📋",
-        `Round #${round.roundId} | resolved=${round.resolved} | canceled=${round.canceled} | endTimestamp=${round.endTimestamp} | now=${nowSec}`
+        `Round #${currentRound.roundId} | resolved=${currentRound.resolved} | canceled=${currentRound.canceled} | lockTimestamp=${currentRound.lockTimestamp} | endTimestamp=${currentRound.endTimestamp} | now=${nowSec}`
       );
 
-      // 4. If the current round is already resolved or canceled → open a new one
-      if (round.resolved || round.canceled) {
-        log("🔄", `Round #${round.roundId} already ${round.resolved ? "resolved" : "canceled"}. Opening next round...`);
-        await withRetry("openRound (after resolved/canceled)", async () => {
+      // 4. Check if current round needs to be locked (and next opened)
+      if (nowSec >= currentRound.lockTimestamp && currentRound.startPrice === 0n && !currentRound.canceled) {
+        log("🔒", `Round #${currentRound.roundId} has reached lock time. Locking and opening next round...`);
+        await withRetry(`lockAndOpenRound #${currentRound.roundId}`, async () => {
           const price = await fetchPrice(pair);
           const hash = await walletClient.writeContract({
             address: config.marketAddress,
             abi: ROUND_MARKET_ABI,
-            functionName: "openRound",
-            args: [price],
-          });
-          log("📤", `openRound tx sent: ${hash}`);
-          const receipt = await publicClient.waitForTransactionReceipt({ hash });
-          log(
-            "✅",
-            `New round opened! Gas used: ${receipt.gasUsed} | Block: ${receipt.blockNumber}`
-          );
-        });
-        continue;
-      }
-
-      // 5. If endTimestamp has passed → resolve then open
-      if (nowSec >= round.endTimestamp) {
-        log("⏰", `Round #${round.roundId} has ended. Resolving...`);
-
-        // Resolve
-        await withRetry(`resolveRound #${round.roundId}`, async () => {
-          const price = await fetchPrice(pair);
-          const hash = await walletClient.writeContract({
-            address: config.marketAddress,
-            abi: ROUND_MARKET_ABI,
-            functionName: "resolveRound",
+            functionName: "lockAndOpenRound",
             args: [currentRoundId, price],
           });
-          log("📤", `resolveRound tx sent: ${hash}`);
+          log("📤", `lockAndOpenRound tx sent: ${hash}`);
           const receipt = await publicClient.waitForTransactionReceipt({ hash });
           log(
             "✅",
-            `Round #${round.roundId} resolved! Gas used: ${receipt.gasUsed} | Block: ${receipt.blockNumber}`
+            `Round #${currentRound.roundId} locked & next opened! Gas used: ${receipt.gasUsed} | Block: ${receipt.blockNumber}`
           );
         });
-
-        // Wait a bit before opening next round
-        log("⏳", `Waiting ${RESOLVE_TO_OPEN_DELAY_MS / 1000}s before opening next round...`);
-        await sleep(RESOLVE_TO_OPEN_DELAY_MS);
-
-        // Open next round
-        log("🆕", "Opening next round...");
-        await withRetry("openRound (after resolve)", async () => {
-          const price = await fetchPrice(pair);
-          const hash = await walletClient.writeContract({
-            address: config.marketAddress,
-            abi: ROUND_MARKET_ABI,
-            functionName: "openRound",
-            args: [price],
-          });
-          log("📤", `openRound tx sent: ${hash}`);
-          const receipt = await publicClient.waitForTransactionReceipt({ hash });
-          log(
-            "✅",
-            `Next round opened! Gas used: ${receipt.gasUsed} | Block: ${receipt.blockNumber}`
-          );
-        });
-
-        // Check balance after operations
-        const postBalance = await publicClient.getBalance({ address: account.address });
-        const postBalanceEth = parseFloat(formatEther(postBalance));
-        log("💎", `Keeper balance: ${formatEther(postBalance)} ETH`);
-        if (postBalanceEth < LOW_BALANCE_THRESHOLD) {
-          log(
-            "🚨",
-            `WARNING: Balance is below ${LOW_BALANCE_THRESHOLD} ETH! Fund the keeper wallet soon.`
-          );
-        }
-
+        await sleep(2000);
         continue;
       }
 
-      // 6. Round is still active → sleep until endTimestamp + buffer
-      const sleepMs =
-        Number(round.endTimestamp - nowSec) * 1000 + END_BUFFER_MS;
-      const sleepSec = (sleepMs / 1000).toFixed(1);
-      log(
-        "😴",
-        `Round #${round.roundId} is still active. Sleeping ${sleepSec}s until end + buffer...`
-      );
-      await sleep(sleepMs);
+      // 5. Check and resolve previous rounds
+      for (let prevId = currentRoundId - 1n; prevId > 0n; prevId--) {
+        const prevRound = (await publicClient.readContract({
+          address: config.marketAddress,
+          abi: ROUND_MARKET_ABI,
+          functionName: "getRound",
+          args: [prevId],
+        })) as unknown as RoundData;
+
+        if (prevRound.resolved || prevRound.canceled) {
+          break; // Since rounds are sequential, we can stop scanning
+        }
+
+        if (nowSec >= prevRound.endTimestamp) {
+          log("⏰", `Previous Round #${prevId} has ended. Resolving...`);
+          await withRetry(`resolveRound #${prevId}`, async () => {
+            const price = await fetchPrice(pair);
+            const hash = await walletClient.writeContract({
+              address: config.marketAddress,
+              abi: ROUND_MARKET_ABI,
+              functionName: "resolveRound",
+              args: [prevId, price],
+            });
+            log("📤", `resolveRound #${prevId} tx sent: ${hash}`);
+            const receipt = await publicClient.waitForTransactionReceipt({ hash });
+            log(
+              "✅",
+              `Round #${prevId} resolved! Gas used: ${receipt.gasUsed} | Block: ${receipt.blockNumber}`
+            );
+          });
+        }
+      }
+
+      // 6. Sleep for a short polling interval
+      await sleep(2000);
     } catch (err) {
       log(
         "❌",

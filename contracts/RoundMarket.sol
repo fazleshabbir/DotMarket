@@ -83,6 +83,7 @@ contract RoundMarket is ReentrancyGuard, Ownable {
     event RoundCanceled(uint256 indexed roundId);
     event KeeperUpdated(address indexed oldKeeper, address indexed newKeeper);
     event Paused(bool isPaused);
+    event RoundLocked(uint256 indexed roundId, int256 lockPrice);
 
     // ─── Modifiers ────────────────────────────────────────────────────
     modifier onlyKeeper() {
@@ -129,21 +130,17 @@ contract RoundMarket is ReentrancyGuard, Ownable {
     // ═══════════════════════════════════════════════════════════════════
 
     /**
-     * @notice Opens a new round with the keeper-provided start price.
-     * @param  startPrice  Current price from CoinGecko/Binance (8 decimals)
-     *                     e.g. BTC at $65,000 => 6500000000000
+     * @notice Opens a new round (without setting start price immediately).
      */
-    function openRound(int256 startPrice) external onlyKeeper whenNotPaused {
-        // Ensure previous round is settled
+    function openRound() public onlyKeeper whenNotPaused {
+        // Ensure the previous round is locked or canceled before starting a new one
         if (currentRoundId > 0) {
             Round storage prev = rounds[currentRoundId];
             require(
-                prev.resolved || prev.canceled,
-                "RM: previous round still active"
+                prev.startPrice > 0 || prev.canceled,
+                "RM: previous round not locked"
             );
         }
-
-        require(startPrice > 0, "RM: invalid start price");
 
         currentRoundId++;
         uint256 startTs = block.timestamp;
@@ -152,7 +149,7 @@ contract RoundMarket is ReentrancyGuard, Ownable {
 
         rounds[currentRoundId] = Round({
             roundId:             currentRoundId,
-            startPrice:          startPrice,
+            startPrice:          0,
             closePrice:          0,
             totalUpAmount:       0,
             totalDownAmount:     0,
@@ -165,7 +162,59 @@ contract RoundMarket is ReentrancyGuard, Ownable {
             canceled:            false
         });
 
-        emit RoundOpened(currentRoundId, startTs, lockTs, endTs, startPrice);
+        emit RoundOpened(currentRoundId, startTs, lockTs, endTs, 0);
+    }
+
+    /**
+     * @notice Record the official lock price for a round at its lock time.
+     * @param  roundId    The round to lock
+     * @param  lockPrice  The price of the asset at lock time
+     */
+    function lockRound(uint256 roundId, int256 lockPrice) public onlyKeeper {
+        Round storage round = rounds[roundId];
+
+        require(round.startTimestamp != 0, "RM: round does not exist");
+        require(block.timestamp >= round.lockTimestamp, "RM: not lockable yet");
+        require(round.startPrice == 0, "RM: already locked");
+        require(lockPrice > 0, "RM: invalid lock price");
+
+        round.startPrice = lockPrice;
+        emit RoundLocked(roundId, lockPrice);
+    }
+
+    /**
+     * @notice Lock current round and open the next round in a single atomic transaction.
+     * @param  roundToLock  The round ID to lock
+     * @param  lockPrice    The price of the asset at lock time
+     */
+    function lockAndOpenRound(uint256 roundToLock, int256 lockPrice) external onlyKeeper whenNotPaused {
+        require(roundToLock == currentRoundId, "RM: lock target must be current round");
+
+        // 1. Lock the specified round
+        lockRound(roundToLock, lockPrice);
+
+        // 2. Open the next round
+        currentRoundId++;
+        uint256 startTs = block.timestamp;
+        uint256 lockTs  = startTs + roundDuration - lockBuffer;
+        uint256 endTs   = startTs + roundDuration;
+
+        rounds[currentRoundId] = Round({
+            roundId:             currentRoundId,
+            startPrice:          0,
+            closePrice:          0,
+            totalUpAmount:       0,
+            totalDownAmount:     0,
+            startTimestamp:      startTs,
+            lockTimestamp:       lockTs,
+            endTimestamp:        endTs,
+            rewardBaseCalAmount: 0,
+            rewardAmount:        0,
+            resolved:            false,
+            canceled:            false
+        });
+
+        emit RoundOpened(currentRoundId, startTs, lockTs, endTs, 0);
     }
 
     /**
@@ -182,6 +231,7 @@ contract RoundMarket is ReentrancyGuard, Ownable {
         require(round.startTimestamp != 0, "RM: round does not exist");
         require(block.timestamp >= round.endTimestamp, "RM: round not ended");
         require(!round.resolved && !round.canceled, "RM: already settled");
+        require(round.startPrice > 0, "RM: round not locked");
         require(closePrice > 0, "RM: invalid close price");
 
         round.closePrice = closePrice;

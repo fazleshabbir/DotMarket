@@ -7,9 +7,10 @@ interface RoundTimerProps {
   endTimestamp: number;
   lockTimestamp: number;
   resolved: boolean;
+  targetMode?: 'lock' | 'end';
 }
 
-export function RoundTimer({ startTimestamp, endTimestamp, lockTimestamp, resolved }: RoundTimerProps) {
+export function RoundTimer({ startTimestamp, endTimestamp, lockTimestamp, resolved, targetMode = 'end' }: RoundTimerProps) {
   const [now, setNow] = useState(Math.floor(Date.now() / 1000));
 
   useEffect(() => {
@@ -19,37 +20,57 @@ export function RoundTimer({ startTimestamp, endTimestamp, lockTimestamp, resolv
     return () => clearInterval(interval);
   }, []);
 
-  const timeLeft = Math.max(0, endTimestamp - now);
-  const totalDuration = endTimestamp - startTimestamp;
+  const isLockMode = targetMode === 'lock';
+  const targetTime = isLockMode ? lockTimestamp : endTimestamp;
+  const totalStart = isLockMode ? startTimestamp : lockTimestamp;
+  
+  const timeLeft = Math.max(0, targetTime - now);
+  const totalDuration = targetTime - totalStart;
   const progress = totalDuration > 0 ? Math.max(0, Math.min(1, timeLeft / totalDuration)) : 0;
-  const isLocked = now >= lockTimestamp;
 
   const minutes = Math.floor(timeLeft / 60);
   const seconds = timeLeft % 60;
 
-  // Determine color based on state
+  // Determine color and labels based on state and target mode
   let color = 'var(--up)';
-  let label = 'OPEN';
-  if (resolved) {
-    color = 'var(--text-muted)';
-    label = 'RESOLVED';
-  } else if (timeLeft === 0) {
-    color = 'var(--accent)';
-    label = 'RESOLVING';
-  } else if (isLocked) {
-    color = '#ffc107';
-    label = 'LOCKED';
+  let label = 'BETTING OPEN';
+  let desc = 'Place your bets';
+
+  if (isLockMode) {
+    if (timeLeft === 0) {
+      color = '#ffc107';
+      label = 'BETTING CLOSED';
+      desc = 'Awaiting next round';
+    } else {
+      color = 'var(--up)';
+      label = 'BETTING OPEN';
+      desc = 'Place bets now';
+    }
+  } else {
+    if (resolved) {
+      color = 'var(--text-muted)';
+      label = 'RESOLVED';
+      desc = 'Winnings claimable';
+    } else if (timeLeft === 0) {
+      color = 'var(--accent)';
+      label = 'SETTLING';
+      desc = 'Waiting for keeper...';
+    } else {
+      color = '#ff9800';
+      label = 'PRICE MOVEMENT';
+      desc = 'Waiting for close price';
+    }
   }
 
   // Circle SVG parameters
-  const size = 80;
-  const strokeWidth = 4;
+  const size = 64;
+  const strokeWidth = 3;
   const radius = (size - strokeWidth) / 2;
   const circumference = 2 * Math.PI * radius;
   const offset = circumference * (1 - progress);
 
   return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+    <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
       {/* Circular Progress */}
       <div style={{ position: 'relative', width: size, height: size, flexShrink: 0 }}>
         <svg width={size} height={size} style={{ transform: 'rotate(-90deg)' }}>
@@ -59,7 +80,7 @@ export function RoundTimer({ startTimestamp, endTimestamp, lockTimestamp, resolv
             cy={size / 2}
             r={radius}
             fill="none"
-            stroke="rgba(148, 163, 184, 0.1)"
+            stroke="rgba(255, 255, 255, 0.05)"
             strokeWidth={strokeWidth}
           />
           {/* Progress circle */}
@@ -82,14 +103,13 @@ export function RoundTimer({ startTimestamp, endTimestamp, lockTimestamp, resolv
             position: 'absolute',
             inset: 0,
             display: 'flex',
-            flexDirection: 'column',
             alignItems: 'center',
             justifyContent: 'center',
           }}
         >
           <span
             className="font-mono"
-            style={{ fontSize: 18, fontWeight: 700, color, lineHeight: 1 }}
+            style={{ fontSize: 13, fontWeight: 700, color, lineHeight: 1 }}
           >
             {resolved ? '✓' : `${minutes}:${seconds.toString().padStart(2, '0')}`}
           </span>
@@ -100,7 +120,7 @@ export function RoundTimer({ startTimestamp, endTimestamp, lockTimestamp, resolv
       <div>
         <div
           style={{
-            fontSize: 11,
+            fontSize: 9,
             fontWeight: 700,
             color,
             textTransform: 'uppercase',
@@ -110,14 +130,8 @@ export function RoundTimer({ startTimestamp, endTimestamp, lockTimestamp, resolv
         >
           {label}
         </div>
-        <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>
-          {resolved
-            ? 'Awaiting next round'
-            : timeLeft === 0
-            ? 'Waiting for keeper...'
-            : isLocked
-            ? 'Bets are locked'
-            : 'Place your bets'}
+        <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>
+          {desc}
         </div>
       </div>
     </div>
