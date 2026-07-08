@@ -60,4 +60,4 @@ export const ROUND_MARKET_ABI = [
 ] as const;
 
 // ⚠️  Replace with your deployed contract address after running `npm run deploy:arc-testnet`
-export const MARKET_ADDRESS = (process.env.NEXT_PUBLIC_MARKET_ADDRESS || '0x0000000000000000000000000000000000000000') as `0x${string}`;
+export const MARKET_ADDRESS = '0xaa2a723B5ACA56E6085C76346C4f54A0b8424837' as `0x${string}`;
