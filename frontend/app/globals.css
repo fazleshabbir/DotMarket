@@ -278,3 +278,32 @@ body::before {
   transform: translateY(-6px);
   box-shadow: 0 12px 30px rgba(255, 255, 255, 0.03);
 }
+
+/* ── Mobile Layout Custom Adjustments ────────────────────────────────────── */
+@keyframes slide-in-right {
+  from { transform: translateX(100%); }
+  to { transform: translateX(0); }
+}
+
+.animate-slide-in-right {
+  animation: slide-in-right 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes float-laptop {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-6px); }
+}
+
+.animate-float-laptop {
+  animation: float-laptop 4s ease-in-out infinite;
+}
+
+/* Glass panel glow for lock screen */
+.glass-glow-panel {
+  background: rgba(255, 255, 255, 0.01);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+}
+
