@@ -10,6 +10,7 @@ import { StarryBackground } from '@/components/StarryBackground';
 import { AnimatedLogo } from '@/components/AnimatedLogo';
 import { ScrollFade } from '@/components/ScrollFade';
 import { HowItWorksSection } from '@/components/HowItWorksSection';
+import { CommunitySection } from '@/components/CommunitySection';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 import { Section } from '@/components/ui/Section';
@@ -917,79 +918,8 @@ export default function LandingPage() {
         </Card>
       </Section>
 
-      {/* ── 10. Final CTA ────────────────────────────────────────── */}
-      <Section id="final-cta">
-        <ScrollFade>
-          <Card 
-            hoverEffect={false}
-            style={{ 
-              padding: isDesktop ? '80px 48px' : '48px 24px', 
-              textAlign: 'center',
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'center',
-              position: 'relative',
-              overflow: 'hidden'
-            }}
-          >
-            {/* Glowing highlight */}
-            <div 
-              style={{
-                position: 'absolute',
-                top: '-50%',
-                left: '50%',
-                transform: 'translateX(-50%)',
-                width: '300px',
-                height: '300px',
-                background: 'radial-gradient(circle, rgba(255,255,255,0.04) 0%, transparent 70%)',
-                filter: 'blur(50px)',
-                pointerEvents: 'none'
-              }}
-            />
-
-            <h2
-              style={{
-                fontFamily: "'Cormorant Garamond', serif",
-                fontSize: isMobile ? '36px' : '52px',
-                fontWeight: 400,
-                color: '#ffffff',
-                marginBottom: 16,
-                letterSpacing: '-1px'
-              }}
-            >
-              Ready to Predict the Future?
-            </h2>
-            <p style={{ color: 'var(--text-secondary)', fontSize: 15, maxWidth: 500, marginBottom: 40, lineHeight: 1.6 }}>
-              Connect your wallet, explore active rounds, and join the high-frequency trading arena.
-            </p>
-
-            <div style={{ display: 'flex', flexDirection: isMobile ? 'column' : 'row', gap: 16, width: isMobile ? '100%' : 'auto', justifyContent: 'center' }}>
-              <Link href="/trade" style={{ textDecoration: 'none', width: isMobile ? '100%' : 'auto' }}>
-                <Button
-                  variant="primary"
-                  size="lg"
-                  style={{
-                    width: isMobile ? '100%' : 'auto',
-                  }}
-                >
-                  Start Trading
-                </Button>
-              </Link>
-              <a href="#markets" style={{ textDecoration: 'none', width: isMobile ? '100%' : 'auto' }}>
-                <Button
-                  variant="secondary"
-                  size="lg"
-                  style={{
-                    width: isMobile ? '100%' : 'auto',
-                  }}
-                >
-                  Explore Markets
-                </Button>
-              </a>
-            </div>
-          </Card>
-        </ScrollFade>
-      </Section>
+      {/* ── 10. Community Section ────────────────────────────────────────────── */}
+      <CommunitySection />
 
       {/* ── 11. Footer ───────────────────────────────────────────── */}
       <ScrollFade style={{ width: '100%' }}>
