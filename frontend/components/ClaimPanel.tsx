@@ -3,7 +3,8 @@
 import React, { useEffect, useState } from 'react';
 import { useAccount, useReadContract, useWriteContract, useWaitForTransactionReceipt } from 'wagmi';
 import { formatEther } from 'viem';
-import { ROUND_MARKET_ABI, MARKET_ADDRESS } from '@/lib/abi';
+import { ROUND_MARKET_ABI } from '@/lib/abi';
+import { useContracts, useCurrentChain } from '@/hooks/useNetworkConfig';
 
 interface RoundData {
   roundId: bigint;
@@ -36,6 +37,9 @@ interface ClaimableRound {
 export function ClaimPanel() {
   const { address, isConnected } = useAccount();
   const [claimStatus, setClaimStatus] = useState<string | null>(null);
+
+  const contracts = useContracts();
+  const MARKET_ADDRESS = contracts.predictionMarket;
 
   // Read user's round IDs
   const { data: userRoundIds } = useReadContract({
@@ -88,7 +92,7 @@ export function ClaimPanel() {
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
         {recentIds.map((id) => (
-          <ClaimRow key={id.toString()} roundId={id} address={address!} onClaim={handleClaim} claimPending={isPending || isConfirming} />
+          <ClaimRow key={id.toString()} roundId={id} address={address!} onClaim={handleClaim} claimPending={isPending || isConfirming} marketAddress={MARKET_ADDRESS} />
         ))}
       </div>
 
@@ -106,14 +110,18 @@ function ClaimRow({
   address,
   onClaim,
   claimPending,
+  marketAddress
 }: {
   roundId: bigint;
   address: string;
   onClaim: (id: bigint) => void;
   claimPending: boolean;
+  marketAddress: `0x${string}`;
 }) {
+  const currentChain = useCurrentChain();
+
   const { data: roundData } = useReadContract({
-    address: MARKET_ADDRESS,
+    address: marketAddress,
     abi: ROUND_MARKET_ABI,
     functionName: 'getRound',
     args: [roundId],
@@ -121,7 +129,7 @@ function ClaimRow({
   });
 
   const { data: betData } = useReadContract({
-    address: MARKET_ADDRESS,
+    address: marketAddress,
     abi: ROUND_MARKET_ABI,
     functionName: 'getUserBet',
     args: [roundId, address as `0x${string}`],
@@ -129,7 +137,7 @@ function ClaimRow({
   });
 
   const { data: canClaim } = useReadContract({
-    address: MARKET_ADDRESS,
+    address: marketAddress,
     abi: ROUND_MARKET_ABI,
     functionName: 'claimable',
     args: [roundId, address as `0x${string}`],
@@ -181,7 +189,7 @@ function ClaimRow({
           {isUp ? '▲' : '▼'}
         </span>
         <span className="font-mono" style={{ fontSize: 12, color: 'var(--text-secondary)' }}>
-          {formatEther(bet.amount)}
+          {formatEther(bet.amount)} {currentChain.nativeToken.symbol}
         </span>
       </div>
 

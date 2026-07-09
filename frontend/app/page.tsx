@@ -4,7 +4,8 @@ import React, { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { useReadContract } from 'wagmi';
 import { formatEther } from 'viem';
-import { ROUND_MARKET_ABI, MARKET_ADDRESS } from '@/lib/abi';
+import { ROUND_MARKET_ABI } from '@/lib/abi';
+import { useContracts } from '@/hooks/useNetworkConfig';
 import { StarryBackground } from '@/components/StarryBackground';
 import { AnimatedLogo } from '@/components/AnimatedLogo';
 import { ScrollFade } from '@/components/ScrollFade';
@@ -290,6 +291,8 @@ export default function LandingPage() {
   const [isMounted, setIsMounted] = useState(false);
   const [windowWidth, setWindowWidth] = useState(1200); // Default to desktop layout
   const [menuOpen, setMenuOpen] = useState(false);
+  const contracts = useContracts();
+  const MARKET_ADDRESS = contracts.predictionMarket;
 
   // Wagmi reads for live BTC stats
   const { data: currentRoundId } = useReadContract({
@@ -632,23 +635,6 @@ export default function LandingPage() {
         <div
           style={{
             fontSize: 11,
-            fontWeight: 700,
-            letterSpacing: '1.5px',
-            color: '#ffffff',
-            textTransform: 'uppercase',
-            marginBottom: 20,
-            background: 'rgba(255, 255, 255, 0.03)',
-            padding: '6px 16px',
-            borderRadius: 20,
-            border: '1px solid rgba(255, 255, 255, 0.08)',
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: 8,
-          }}
-        >
-          <div className="animate-pulse-live" style={{ width: 6, height: 6, borderRadius: '50%', background: '#ffffff' }} />
-          BUILT ON ARC
-        </div>
 
         {/* Redesigned Serif Headline */}
         <h1
@@ -735,7 +721,7 @@ export default function LandingPage() {
             { label: 'Non-Custodial', icon: <KeyIcon size={14} /> },
             { label: 'Low Fees', icon: <DiamondIcon size={14} /> },
             { label: 'Fast Settlement', icon: <LightningIcon size={14} /> },
-            { label: 'Built on Arc', icon: <GlobeIcon size={14} /> }
+            { label: 'Multi-Chain', icon: <GlobeIcon size={14} /> }
           ].map((badge, idx) => (
             <div
               key={idx}
@@ -859,88 +845,69 @@ export default function LandingPage() {
       {/* ── 4. How It Works ──────────────────────────────────────── */}
       <HowItWorksSection />
 
-      {/* ── 5. Why ARC? ──────────────────────────────────── */}
-      <Section id="why-arc">
-        <ScrollFade>
-          <Card 
-            hoverEffect={false}
-            style={{ 
-              display: 'flex', 
-              flexDirection: isDesktop ? 'row' : 'column',
-              alignItems: 'center', 
-              justifyContent: 'space-between',
-              gap: 48,
-              padding: isDesktop ? '64px' : '32px 24px',
-            }}
-          >
-            {/* Left text */}
-            <div style={{ flex: isDesktop ? '1 1 500px' : '1 1 100%' }}>
-              <h2
-                style={{
-                  fontFamily: "'Cormorant Garamond', serif",
-                  fontSize: isMobile ? '32px' : '44px',
-                  fontWeight: 400,
-                  color: '#ffffff',
-                  lineHeight: 1.2,
-                  margin: '0 0 20px',
-                }}
-              >
-                Why ARC?
-              </h2>
-              
-              <p style={{ color: 'var(--text-secondary)', fontSize: 15, lineHeight: 1.6, margin: '0 0 32px' }}>
-                dotMarket leverages the high-throughput architecture of ARC to offer speed and cost efficiency that are impossible on standard layer-1 chains.
+      {/* ── 5. Supported Networks ──────────────────────────────────── */}
+      <Section id="networks">
+        <PageHeader
+          title="Multi-Chain Infrastructure"
+          subtitle="DotMarket operates seamlessly across high-performance testnets."
+        />
+        <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 24, marginTop: 40 }}>
+          
+          <ScrollFade delay="0">
+            <Card hoverEffect style={{ padding: '32px', height: '100%', display: 'flex', flexDirection: 'column' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginBottom: 24 }}>
+                <div style={{ width: 48, height: 48, borderRadius: '50%', background: 'rgba(139, 92, 246, 0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px solid rgba(139, 92, 246, 0.2)' }}>
+                  <div style={{ width: 12, height: 12, borderRadius: '50%', background: '#8b5cf6', boxShadow: '0 0 12px #8b5cf6' }} />
+                </div>
+                <div>
+                  <h3 style={{ fontSize: 20, fontWeight: 500, color: '#ffffff', margin: 0 }}>Arc Testnet</h3>
+                  <div style={{ fontSize: 13, color: 'var(--text-muted)' }}>High-frequency L1 execution</div>
+                </div>
+              </div>
+              <p style={{ color: 'var(--text-secondary)', fontSize: 14, lineHeight: 1.6, flex: 1, margin: '0 0 24px' }}>
+                Leverage high-throughput architecture to experience near-instant finality and frictionless execution.
               </p>
-
-              {/* Bullet features */}
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-                {[
-                  { title: 'Near-Instant Finality', desc: 'Predict right up to the final second without transaction delays.' },
-                  { title: 'Frictionless Low Fees', desc: 'Execute micro-predictions economically with minimal gas fees.' },
-                  { title: 'Scalable Infrastructure', desc: 'Engineered to support thousands of parallel high-frequency pools.' },
-                  { title: 'Developer-Friendly Ecosystem', desc: 'Integrated with top-tier oracles and cross-chain compatibility bridges.' }
-                ].map((item, idx) => (
-                  <div key={idx} style={{ display: 'flex', gap: 12 }}>
-                    <span style={{ color: '#ffffff', fontWeight: 700 }}>✓</span>
-                    <div>
-                      <strong style={{ display: 'block', fontSize: 14, color: '#ffffff' }}>{item.title}</strong>
-                      <span style={{ fontSize: 13, color: 'var(--text-secondary)' }}>{item.desc}</span>
-                    </div>
-                  </div>
-                ))}
+              <div style={{ display: 'flex', gap: 16, borderTop: '1px solid rgba(255,255,255,0.05)', paddingTop: 20 }}>
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 4, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Gas Token</div>
+                  <div style={{ fontSize: 14, color: '#ffffff', fontFamily: 'var(--font-mono)' }}>USDC</div>
+                </div>
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 4, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Betting Asset</div>
+                  <div style={{ fontSize: 14, color: '#ffffff', fontFamily: 'var(--font-mono)' }}>USDC</div>
+                </div>
               </div>
-            </div>
+            </Card>
+          </ScrollFade>
 
-            {/* Right abstract logo/graphics panel */}
-            <div style={{ flex: isDesktop ? '1 1 400px' : '1 1 100%', display: 'flex', justifyContent: 'center', width: '100%' }}>
-              <div 
-                style={{ 
-                  width: '100%', 
-                  maxWidth: 400, 
-                  aspectRatio: '1', 
-                  borderRadius: '50%', 
-                  background: 'radial-gradient(circle, rgba(255,255,255,0.015) 0%, transparent 70%)',
-                  border: '1px solid rgba(255,255,255,0.03)',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  position: 'relative'
-                }}
-              >
-                {/* Arc stylized vector mark */}
-                <svg viewBox="0 0 100 100" width="160" height="160" xmlns="http://www.w3.org/2000/svg">
-                  <circle cx="50" cy="50" r="30" fill="none" stroke="rgba(255,255,255,0.05)" strokeWidth="0.8" />
-                  <circle cx="50" cy="50" r="42" fill="none" stroke="rgba(255,255,255,0.02)" strokeWidth="0.5" />
-                  {/* Elegant intersecting curves */}
-                  <path d="M20 50 A30 30 0 0 1 80 50" fill="none" stroke="#ffffff" strokeWidth="1.5" opacity="0.6" />
-                  <path d="M20 50 A30 30 0 0 0 80 50" fill="none" stroke="rgba(255,255,255,0.15)" strokeWidth="1" strokeDasharray="3 3" />
-                  <circle cx="50" cy="20" r="3" fill="#ffffff" />
-                  <circle cx="50" cy="80" r="2" fill="#ffffff" opacity="0.5" />
-                </svg>
+          <ScrollFade delay="100ms">
+            <Card hoverEffect style={{ padding: '32px', height: '100%', display: 'flex', flexDirection: 'column' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginBottom: 24 }}>
+                <div style={{ width: 48, height: 48, borderRadius: '50%', background: 'rgba(0, 200, 5, 0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px solid rgba(0, 200, 5, 0.2)' }}>
+                  <div style={{ width: 12, height: 12, borderRadius: '50%', background: '#00c805', boxShadow: '0 0 12px #00c805' }} />
+                </div>
+                <div>
+                  <h3 style={{ fontSize: 20, fontWeight: 500, color: '#ffffff', margin: 0 }}>Robinhood Chain</h3>
+                  <div style={{ fontSize: 13, color: 'var(--text-muted)' }}>Testnet Environment</div>
+                </div>
               </div>
-            </div>
-          </Card>
-        </ScrollFade>
+              <p style={{ color: 'var(--text-secondary)', fontSize: 14, lineHeight: 1.6, flex: 1, margin: '0 0 24px' }}>
+                Trade with a premium experience on Robinhood Chain using native ETH, with seamless USDT conversion UI.
+              </p>
+              <div style={{ display: 'flex', gap: 16, borderTop: '1px solid rgba(255,255,255,0.05)', paddingTop: 20 }}>
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 4, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Gas Token</div>
+                  <div style={{ fontSize: 14, color: '#ffffff', fontFamily: 'var(--font-mono)' }}>ETH</div>
+                </div>
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 4, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Betting Asset</div>
+                  <div style={{ fontSize: 14, color: '#ffffff', fontFamily: 'var(--font-mono)' }}>ETH (via USDT)</div>
+                </div>
+              </div>
+            </Card>
+          </ScrollFade>
+
+        </div>
       </Section>
 
 
@@ -987,7 +954,7 @@ export default function LandingPage() {
         <Card hoverEffect={false} style={{ overflow: 'hidden', padding: 0 }}>
           <FAQItem 
             question="What is dotMarket?" 
-            answer="dotMarket is a decentralized, high-frequency prediction platform built on ARC. It allows users to place binary predictions (UP or DOWN) on asset prices with sub-minute resolutions using a pari-mutuel AMM structure." 
+            answer="dotMarket is a decentralized, high-frequency prediction platform. It allows users to place binary predictions (UP or DOWN) on asset prices with sub-minute resolutions using a pari-mutuel AMM structure." 
           />
           <FAQItem 
             question="How do prediction markets work?" 
@@ -1133,7 +1100,7 @@ export default function LandingPage() {
                 </svg>
               </div>
               <span style={{ fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.5, maxWidth: 220 }}>
-                High-frequency binary decentralized prediction pools on ARC.
+                High-frequency binary decentralized prediction pools.
               </span>
             </div>
 

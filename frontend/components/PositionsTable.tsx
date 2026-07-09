@@ -3,7 +3,8 @@
 import React, { useState, useEffect } from 'react';
 import { useAccount, useReadContract, useWriteContract, useWaitForTransactionReceipt } from 'wagmi';
 import { formatEther } from 'viem';
-import { ROUND_MARKET_ABI, MARKET_ADDRESS } from '@/lib/abi';
+import { ROUND_MARKET_ABI } from '@/lib/abi';
+import { useCurrentChain, useContracts, useExplorer } from '../hooks/useNetworkConfig';
 import { Button } from './ui/Button';
 import { Card } from './ui/Card';
 import { Table, TableRow, TableCell } from './ui/Table';
@@ -35,6 +36,9 @@ export function PositionsTable() {
   const { address, isConnected } = useAccount();
   const [activeTab, setActiveTab] = useState<'positions' | 'history'>('positions');
   const [claimStatus, setClaimStatus] = useState<string | null>(null);
+
+  const contracts = useContracts();
+  const MARKET_ADDRESS = contracts.predictionMarket;
 
   useEffect(() => {
     setMounted(true);
@@ -167,6 +171,7 @@ export function PositionsTable() {
                 activeTab={activeTab} 
                 onClaim={handleClaim} 
                 claimPending={isPending || isConfirming} 
+                marketAddress={MARKET_ADDRESS}
               />
             ))}
           </Table>
@@ -188,15 +193,20 @@ function PositionRow({
   activeTab,
   onClaim,
   claimPending,
+  marketAddress
 }: {
   roundId: bigint;
   address: string;
   activeTab: 'positions' | 'history';
   onClaim: (id: bigint) => void;
   claimPending: boolean;
+  marketAddress: `0x${string}`;
 }) {
+  const currentChain = useCurrentChain();
+  const explorer = useExplorer();
+
   const { data: roundData } = useReadContract({
-    address: MARKET_ADDRESS,
+    address: marketAddress,
     abi: ROUND_MARKET_ABI,
     functionName: 'getRound',
     args: [roundId],
@@ -204,7 +214,7 @@ function PositionRow({
   });
 
   const { data: betData } = useReadContract({
-    address: MARKET_ADDRESS,
+    address: marketAddress,
     abi: ROUND_MARKET_ABI,
     functionName: 'getUserBet',
     args: [roundId, address as `0x${string}`],
@@ -212,7 +222,7 @@ function PositionRow({
   });
 
   const { data: canClaim } = useReadContract({
-    address: MARKET_ADDRESS,
+    address: marketAddress,
     abi: ROUND_MARKET_ABI,
     functionName: 'claimable',
     args: [roundId, address as `0x${string}`],
@@ -259,10 +269,20 @@ function PositionRow({
     statusText = 'LOST';
     badgeVariant = 'error';
   }
+  
+  const explorerUrl = explorer.getAddressUrl(marketAddress);
 
   return (
     <TableRow>
-      <TableCell style={{ fontWeight: 600 }}>#{roundId.toString()}</TableCell>
+      <TableCell style={{ fontWeight: 600 }}>
+        {explorerUrl ? (
+          <a href={explorerUrl} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--text-secondary)', textDecoration: 'none' }} title="View Contract on Explorer">
+            #{roundId.toString()} ↗
+          </a>
+        ) : (
+          `#${roundId.toString()}`
+        )}
+      </TableCell>
       <TableCell>
         <span 
           style={{ 
@@ -278,7 +298,9 @@ function PositionRow({
           {isUp ? '▲ UP' : '▼ DOWN'}
         </span>
       </TableCell>
-      <TableCell style={{ fontFamily: 'var(--font-mono)' }}>{formatEther(bet.amount)} USDC</TableCell>
+      <TableCell style={{ fontFamily: 'var(--font-mono)' }}>
+        {formatEther(bet.amount)} {currentChain.nativeToken.symbol}
+      </TableCell>
       <TableCell style={{ fontFamily: 'var(--font-mono)' }}>
         {startPriceScaled > 0 ? `$${startPriceScaled.toFixed(2)}` : '—'}
       </TableCell>

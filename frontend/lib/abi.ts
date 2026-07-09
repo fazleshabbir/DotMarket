@@ -58,6 +58,3 @@ export const ROUND_MARKET_ABI = [
   { type: 'event', name: 'RoundResolved', inputs: [{ name: 'roundId', type: 'uint256', indexed: true }, { name: 'closePrice', type: 'int256', indexed: false }, { name: 'upWins', type: 'bool', indexed: false }] },
   { type: 'event', name: 'Claimed', inputs: [{ name: 'roundId', type: 'uint256', indexed: true }, { name: 'user', type: 'address', indexed: true }, { name: 'amount', type: 'uint256', indexed: false }] },
 ] as const;
-
-// ⚠️  Replace with your deployed contract address after running `npm run deploy:arc-testnet`
-export const MARKET_ADDRESS = '0x31Aeb323aEE44e3EE5036F14bBD0D7f1429B4938' as `0x${string}`;

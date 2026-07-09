@@ -3,7 +3,9 @@
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useAccount, useReadContract } from 'wagmi';
-import { ROUND_MARKET_ABI, MARKET_ADDRESS } from '@/lib/abi';
+import { ROUND_MARKET_ABI } from '@/lib/abi';
+import { useContracts } from '@/hooks/useNetworkConfig';
+import { NetworkSelector } from '@/components/NetworkSelector';
 import { ConnectButton } from '@/components/ConnectButton';
 import { TradingViewChart } from '@/components/TradingViewChart';
 import { BettingPanel } from '@/components/BettingPanel';
@@ -166,6 +168,8 @@ export default function TradePage() {
   const [btcPrice, setBtcPrice] = useState(62000.0);
   const [isMounted, setIsMounted] = useState(false);
   const [windowWidth, setWindowWidth] = useState(1200); // Default to desktop
+  const contracts = useContracts();
+  const MARKET_ADDRESS = contracts.predictionMarket;
 
   useEffect(() => {
     setIsMounted(true);
@@ -285,10 +289,7 @@ export default function TradePage() {
 
         {/* Right Wallet Action */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-            <div className="animate-pulse-live" style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--up)' }} />
-            <span style={{ fontSize: 11, color: 'var(--text-muted)', fontFamily: 'var(--font-mono)' }}>ARC TESTNET</span>
-          </div>
+          <NetworkSelector />
           <ConnectButton />
         </div>
       </header>

@@ -5,30 +5,15 @@ import { type Chain } from 'viem';
 import { injected } from 'wagmi/connectors';
 import { QueryClient } from '@tanstack/react-query';
 
-// ── ARC Testnet Chain Definition ────────────────────────────────────────────
-export const arcTestnet: Chain = {
-  id: 5_042_002,
-  name: 'ARC Testnet',
-  nativeCurrency: {
-    name: 'USDC',
-    symbol: 'USDC',
-    decimals: 18,
-  },
-  rpcUrls: {
-    default: { http: ['https://5042002.rpc.thirdweb.com'] },
-  },
-  blockExplorers: {
-    default: { name: 'ArcScan', url: 'https://testnet.arcscan.app' },
-  },
-  testnet: true,
-};
+import { arcTestnetChain, robinhoodTestnetChain } from '../config/chains';
 
 // ── Wagmi Configuration ─────────────────────────────────────────────────────
 export const wagmiConfig = createConfig({
-  chains: [arcTestnet],
+  chains: [arcTestnetChain, robinhoodTestnetChain],
   connectors: [injected()],
   transports: {
-    [arcTestnet.id]: http('https://5042002.rpc.thirdweb.com'),
+    [arcTestnetChain.id]: http(arcTestnetChain.rpcUrls.default.http[0]),
+    [robinhoodTestnetChain.id]: http(robinhoodTestnetChain.rpcUrls.default.http[0]),
   },
   ssr: true,
 });
