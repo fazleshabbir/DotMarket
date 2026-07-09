@@ -9,6 +9,10 @@ import { StarryBackground } from '@/components/StarryBackground';
 import { AnimatedLogo } from '@/components/AnimatedLogo';
 import { ScrollFade } from '@/components/ScrollFade';
 import { HowItWorksSection } from '@/components/HowItWorksSection';
+import { Button } from '@/components/ui/Button';
+import { Card } from '@/components/ui/Card';
+import { Section } from '@/components/ui/Section';
+import { PageHeader } from '@/components/ui/PageHeader';
 
 // Minimal Web3 SVG Line-Art Icons
 interface IconProps {
@@ -516,22 +520,9 @@ export default function LandingPage() {
         {/* Right Actions */}
         {isDesktop ? (
           <Link href="/trade" style={{ textDecoration: 'none' }}>
-            <button
-              className="glass-card"
-              style={{
-                padding: '8px 22px',
-                borderRadius: 10,
-                cursor: 'pointer',
-                fontSize: 13,
-                fontWeight: 600,
-                color: '#ffffff',
-                border: '1px solid rgba(255, 255, 255, 0.1)',
-                background: 'rgba(255, 255, 255, 0.03)',
-                transition: 'all 0.3s ease',
-              }}
-            >
+            <Button variant="secondary" size="sm">
               Start Trading
-            </button>
+            </Button>
           </Link>
         ) : (
           <button
@@ -692,47 +683,14 @@ export default function LandingPage() {
         {/* Actions Button Row */}
         <div style={{ display: 'flex', flexDirection: isMobile ? 'column' : 'row', gap: 16, width: isMobile ? '100%' : 'auto', justifyContent: 'center', alignItems: 'center', marginBottom: 48 }}>
           <Link href="/trade" style={{ textDecoration: 'none', width: isMobile ? '100%' : 'auto' }}>
-            <button
-              className="btn-up animate-glow-pulse"
-              style={{
-                width: isMobile ? '100%' : 'auto',
-                padding: '16px 40px',
-                fontSize: 15,
-                fontWeight: 700,
-                letterSpacing: '1px',
-                boxShadow: '0 0 30px rgba(255, 255, 255, 0.2)',
-                background: 'linear-gradient(135deg, #ffffff 0%, #d4d4d4 100%)',
-                color: '#000000',
-              }}
-            >
+            <Button variant="primary" size="lg" style={{ width: isMobile ? '100%' : 'auto', letterSpacing: '1px' }}>
               Start Trading ↗
-            </button>
+            </Button>
           </Link>
           <a href="#markets" style={{ textDecoration: 'none', width: isMobile ? '100%' : 'auto' }}>
-            <button
-              style={{
-                width: isMobile ? '100%' : 'auto',
-                padding: '15px 36px',
-                fontSize: 15,
-                fontWeight: 600,
-                borderRadius: 12,
-                cursor: 'pointer',
-                color: '#ffffff',
-                background: 'rgba(255, 255, 255, 0.02)',
-                border: '1px solid rgba(255, 255, 255, 0.1)',
-                transition: 'all 0.2s',
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.3)';
-                e.currentTarget.style.background = 'rgba(255, 255, 255, 0.05)';
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.1)';
-                e.currentTarget.style.background = 'rgba(255, 255, 255, 0.02)';
-              }}
-            >
+            <Button variant="secondary" size="lg" style={{ width: isMobile ? '100%' : 'auto' }}>
               Explore Markets
-            </button>
+            </Button>
           </a>
         </div>
 
@@ -802,35 +760,11 @@ export default function LandingPage() {
       </section>
 
       {/* ── 2. Live Markets Preview ──────────────────────────────── */}
-      <section
-        id="markets"
-        style={{
-          position: 'relative',
-          zIndex: 10,
-          padding: isDesktop ? '100px 24px' : '60px 16px',
-          maxWidth: 1200,
-          margin: '0 auto',
-          width: '100%',
-        }}
-      >
-        <ScrollFade>
-          <div style={{ textAlign: 'center', marginBottom: 48 }}>
-            <h2
-              style={{
-                fontFamily: "'Cormorant Garamond', serif",
-                fontSize: isMobile ? '32px' : '42px',
-                fontWeight: 400,
-                color: '#ffffff',
-                marginBottom: 16,
-              }}
-            >
-              Live Markets
-            </h2>
-            <p style={{ color: 'var(--text-secondary)', fontSize: 15, maxWidth: 500, margin: '0 auto' }}>
-              Real-time binary predictions currently active on the testnet.
-            </p>
-          </div>
-        </ScrollFade>
+      <Section id="markets">
+        <PageHeader
+          title="Live Markets"
+          subtitle="Real-time binary predictions currently active on the testnet."
+        />
 
         {/* Markets cards grid */}
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: 24 }}>
@@ -861,15 +795,12 @@ export default function LandingPage() {
             }
           ].map((m, idx) => (
             <ScrollFade key={idx} delay={`${idx * 0.1}s`}>
-              <div 
-                className="feature-card"
+              <Card 
                 style={{ 
                   padding: 24, 
                   display: 'flex', 
                   flexDirection: 'column', 
-                  gap: 20, 
-                  border: '1px solid rgba(255,255,255,0.04)',
-                  background: 'rgba(255,255,255,0.015)' 
+                  gap: 20 
                 }}
               >
                 {/* Header info */}
@@ -914,55 +845,25 @@ export default function LandingPage() {
 
                 {/* Trade Button */}
                 <Link href="/trade" style={{ textDecoration: 'none', width: '100%' }}>
-                  <button 
-                    style={{ 
-                      width: '100%', 
-                      padding: '10px 0', 
-                      borderRadius: 8, 
-                      border: '1px solid rgba(255,255,255,0.08)',
-                      background: 'rgba(255,255,255,0.02)',
-                      color: '#ffffff',
-                      fontWeight: 600,
-                      fontSize: 13,
-                      cursor: 'pointer',
-                      transition: 'all 0.2s'
-                    }}
-                    onMouseEnter={(e) => {
-                      e.currentTarget.style.background = 'rgba(255,255,255,0.06)';
-                      e.currentTarget.style.borderColor = 'rgba(255,255,255,0.2)';
-                    }}
-                    onMouseLeave={(e) => {
-                      e.currentTarget.style.background = 'rgba(255,255,255,0.02)';
-                      e.currentTarget.style.borderColor = 'rgba(255,255,255,0.08)';
-                    }}
-                  >
+                  <Button variant="secondary" style={{ width: '100%', padding: '10px 0', borderRadius: '8px' }}>
                     Place Prediction ↗
-                  </button>
+                  </Button>
                 </Link>
-              </div>
+              </Card>
             </ScrollFade>
           ))}
         </div>
-      </section>
+      </Section>
 
 
       {/* ── 4. How It Works ──────────────────────────────────────── */}
       <HowItWorksSection />
 
       {/* ── 5. Why ARC? ──────────────────────────────────── */}
-      <section
-        style={{
-          position: 'relative',
-          zIndex: 10,
-          padding: isDesktop ? '100px 24px' : '60px 16px',
-          maxWidth: 1200,
-          margin: '0 auto',
-          width: '100%',
-        }}
-      >
+      <Section id="why-arc">
         <ScrollFade>
-          <div 
-            className="glass-card"
+          <Card 
+            hoverEffect={false}
             style={{ 
               display: 'flex', 
               flexDirection: isDesktop ? 'row' : 'column',
@@ -970,9 +871,6 @@ export default function LandingPage() {
               justifyContent: 'space-between',
               gap: 48,
               padding: isDesktop ? '64px' : '32px 24px',
-              background: 'rgba(255, 255, 255, 0.005)',
-              border: '1px solid rgba(255, 255, 255, 0.04)',
-              borderRadius: 24,
             }}
           >
             {/* Left text */}
@@ -1041,40 +939,17 @@ export default function LandingPage() {
                 </svg>
               </div>
             </div>
-          </div>
+          </Card>
         </ScrollFade>
-      </section>
+      </Section>
 
 
       {/* ── 8. Roadmap ───────────────────────────────────────────── */}
-      <section
-        style={{
-          position: 'relative',
-          zIndex: 10,
-          padding: isDesktop ? '100px 24px' : '60px 16px',
-          maxWidth: 1200,
-          margin: '0 auto',
-          width: '100%',
-        }}
-      >
-        <ScrollFade>
-          <div style={{ textAlign: 'center', marginBottom: 48 }}>
-            <h2
-              style={{
-                fontFamily: "'Cormorant Garamond', serif",
-                fontSize: isMobile ? '32px' : '42px',
-                fontWeight: 400,
-                color: '#ffffff',
-                marginBottom: 16,
-              }}
-            >
-              Development Roadmap
-            </h2>
-            <p style={{ color: 'var(--text-secondary)', fontSize: 15, maxWidth: 500, margin: '0 auto' }}>
-              The future of high-frequency prediction markets.
-            </p>
-          </div>
-        </ScrollFade>
+      <Section id="roadmap">
+        <PageHeader
+          title="Development Roadmap"
+          subtitle="The future of high-frequency prediction markets."
+        />
 
         {/* Roadmap horizontal timeline container */}
         <div className="roadmap-timeline-container">
@@ -1086,58 +961,30 @@ export default function LandingPage() {
             { phase: 'Future', title: 'DAO Governance', desc: 'Transition protocol mechanics to token voting structures.' },
             { phase: 'Future', title: 'Cross-Chain', desc: 'Deploy on Arbitrum, Base, and Solana via bridging protocols.' }
           ].map((item, idx) => (
-            <div 
+            <Card 
               key={idx}
-              className="glass-card"
               style={{
                 flex: '0 0 240px',
                 padding: '24px',
-                background: 'rgba(255, 255, 255, 0.01)',
-                border: '1px solid rgba(255, 255, 255, 0.04)',
-                borderRadius: 16
               }}
             >
               <span className="font-mono" style={{ fontSize: 11, color: 'var(--accent)', fontWeight: 700, display: 'block', marginBottom: 8 }}>{item.phase}</span>
               <h3 style={{ fontSize: 15, fontWeight: 700, color: '#ffffff', marginBottom: 8 }}>{item.title}</h3>
               <p style={{ fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.4 }}>{item.desc}</p>
-            </div>
+            </Card>
           ))}
         </div>
-      </section>
+      </Section>
 
       {/* ── 9. FAQ Accordion Section ────────────────────────────── */}
-      <section
-        id="faq"
-        style={{
-          position: 'relative',
-          zIndex: 10,
-          padding: isDesktop ? '100px 24px' : '60px 16px',
-          maxWidth: 800,
-          margin: '0 auto',
-          width: '100%',
-        }}
-      >
-        <ScrollFade>
-          <div style={{ textAlign: 'center', marginBottom: 48 }}>
-            <h2
-              style={{
-                fontFamily: "'Cormorant Garamond', serif",
-                fontSize: isMobile ? '32px' : '42px',
-                fontWeight: 400,
-                color: '#ffffff',
-                marginBottom: 16,
-              }}
-            >
-              Frequently Asked Questions
-            </h2>
-            <p style={{ color: 'var(--text-secondary)', fontSize: 15, maxWidth: 500, margin: '0 auto' }}>
-              Clear answers to core mechanism details.
-            </p>
-          </div>
-        </ScrollFade>
+      <Section id="faq" maxWidth={800}>
+        <PageHeader
+          title="Frequently Asked Questions"
+          subtitle="Clear answers to core mechanism details."
+        />
 
         {/* FAQ Accordion container */}
-        <div style={{ border: '1px solid rgba(255,255,255,0.05)', borderRadius: 16, overflow: 'hidden', background: 'rgba(255,255,255,0.005)' }}>
+        <Card hoverEffect={false} style={{ overflow: 'hidden', padding: 0 }}>
           <FAQItem 
             question="What is dotMarket?" 
             answer="dotMarket is a decentralized, high-frequency prediction platform built on ARC. It allows users to place binary predictions (UP or DOWN) on asset prices with sub-minute resolutions using a pari-mutuel AMM structure." 
@@ -1170,25 +1017,15 @@ export default function LandingPage() {
             question="When is mobile trading coming?" 
             answer="Mobile-optimized terminal views are currently scheduled for release in Q4. However, you can currently view the landing page and read active stats from any mobile viewport." 
           />
-        </div>
-      </section>
+        </Card>
+      </Section>
 
       {/* ── 10. Final CTA ────────────────────────────────────────── */}
-      <section
-        style={{
-          position: 'relative',
-          zIndex: 10,
-          padding: isDesktop ? '100px 24px 120px' : '60px 16px 80px',
-          maxWidth: 1200,
-          margin: '0 auto',
-          width: '100%',
-        }}
-      >
+      <Section id="final-cta">
         <ScrollFade>
-          <div 
-            className="glass-glow-panel"
+          <Card 
+            hoverEffect={false}
             style={{ 
-              borderRadius: 24, 
               padding: isDesktop ? '80px 48px' : '48px 24px', 
               textAlign: 'center',
               display: 'flex',
@@ -1231,49 +1068,31 @@ export default function LandingPage() {
 
             <div style={{ display: 'flex', flexDirection: isMobile ? 'column' : 'row', gap: 16, width: isMobile ? '100%' : 'auto', justifyContent: 'center' }}>
               <Link href="/trade" style={{ textDecoration: 'none', width: isMobile ? '100%' : 'auto' }}>
-                <button
-                  className="btn-up"
+                <Button
+                  variant="primary"
+                  size="lg"
                   style={{
                     width: isMobile ? '100%' : 'auto',
-                    padding: '16px 44px',
-                    fontSize: 15,
-                    fontWeight: 700,
-                    borderRadius: 10,
                   }}
                 >
                   Start Trading
-                </button>
+                </Button>
               </Link>
               <a href="#markets" style={{ textDecoration: 'none', width: isMobile ? '100%' : 'auto' }}>
-                <button
+                <Button
+                  variant="secondary"
+                  size="lg"
                   style={{
                     width: isMobile ? '100%' : 'auto',
-                    padding: '15px 36px',
-                    fontSize: 15,
-                    fontWeight: 600,
-                    borderRadius: 10,
-                    cursor: 'pointer',
-                    color: '#ffffff',
-                    background: 'rgba(255, 255, 255, 0.02)',
-                    border: '1px solid rgba(255, 255, 255, 0.08)',
-                    transition: 'all 0.2s',
-                  }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.2)';
-                    e.currentTarget.style.background = 'rgba(255, 255, 255, 0.04)';
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.08)';
-                    e.currentTarget.style.background = 'rgba(255, 255, 255, 0.02)';
                   }}
                 >
                   Explore Markets
-                </button>
+                </Button>
               </a>
             </div>
-          </div>
+          </Card>
         </ScrollFade>
-      </section>
+      </Section>
 
       {/* ── 11. Footer ───────────────────────────────────────────── */}
       <ScrollFade style={{ width: '100%' }}>

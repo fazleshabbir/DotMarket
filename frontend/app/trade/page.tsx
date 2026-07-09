@@ -9,6 +9,8 @@ import { TradingViewChart } from '@/components/TradingViewChart';
 import { BettingPanel } from '@/components/BettingPanel';
 import { PositionsTable } from '@/components/PositionsTable';
 import { ScrollFade } from '@/components/ScrollFade';
+import { Button } from '@/components/ui/Button';
+import { Card } from '@/components/ui/Card';
 
 interface RoundData {
   roundId: bigint;
@@ -126,40 +128,25 @@ function DesktopTradingOnly() {
         {/* Action Button stack */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', width: '100%' }}>
           <Link href="/" style={{ textDecoration: 'none', width: '100%' }}>
-            <button
-              className="btn-up"
+            <Button
+              variant="primary"
+              size="lg"
               style={{
                 width: '100%',
-                padding: '14px 0',
-                fontSize: '14px',
-                fontWeight: 700,
-                borderRadius: '8px',
                 letterSpacing: '1px',
-                textAlign: 'center',
               }}
             >
               Back to Home
-            </button>
+            </Button>
           </Link>
 
-          <button
+          <Button
             onClick={handleCopy}
-            className="glass-card"
+            variant="secondary"
+            size="md"
             style={{
               width: '100%',
-              padding: '12px 0',
-              fontSize: '13px',
-              fontWeight: 600,
-              borderRadius: '8px',
-              color: '#ffffff',
-              background: 'rgba(255, 255, 255, 0.02)',
-              border: '1px solid rgba(255, 255, 255, 0.08)',
-              cursor: 'pointer',
-              transition: 'all 0.2s ease',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: '8px',
+              borderRadius: '12px',
             }}
           >
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -167,7 +154,7 @@ function DesktopTradingOnly() {
               <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
             </svg>
             {copied ? 'Link Copied!' : 'Open on Desktop'}
-          </button>
+          </Button>
         </div>
       </div>
     </div>

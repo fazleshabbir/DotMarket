@@ -5,6 +5,9 @@ import { useAccount, useReadContract, useWriteContract, useWaitForTransactionRec
 import { parseEther, formatEther } from 'viem';
 import { ROUND_MARKET_ABI, MARKET_ADDRESS } from '@/lib/abi';
 import { RoundTimer } from './RoundTimer';
+import { Button } from './ui/Button';
+import { Card } from './ui/Card';
+import { Input } from './ui/Input';
 
 interface RoundData {
   roundId: bigint;
@@ -228,17 +231,17 @@ export function BettingPanel({ currentBtcPrice }: BettingPanelProps) {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 20, flex: 1 }}>
       {/* ─── CURRENT BETTING ROUND ────────────────────────────────────────── */}
-      <div className="glass-card animate-slide-up" style={{ padding: 20 }}>
+      <Card hoverEffect={false} style={{ padding: 20 }}>
         {/* Header */}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-          <div style={{ fontSize: 13, fontWeight: 700, letterSpacing: '1px', textTransform: 'uppercase', color: 'var(--up)' }}>
+          <div style={{ fontSize: 13, fontWeight: 700, letterSpacing: '1px', textTransform: 'uppercase', color: '#ffffff' }}>
             🟢 BTC PAIR
           </div>
           <span
             className="font-mono"
             style={{
-              padding: '2px 8px',
-              borderRadius: 6,
+              padding: '4px 10px',
+              borderRadius: 20,
               fontSize: 11,
               fontWeight: 600,
               background: 'rgba(255, 255, 255, 0.05)',
@@ -260,7 +263,7 @@ export function BettingPanel({ currentBtcPrice }: BettingPanelProps) {
             targetMode="lock"
           />
         ) : (
-          <div style={{ fontSize: 12, color: 'var(--text-muted)', padding: '10px 0' }}>
+          <div style={{ fontSize: 12, color: 'var(--text-secondary)', padding: '10px 0' }}>
             Awaiting active round creation...
           </div>
         )}
@@ -269,22 +272,22 @@ export function BettingPanel({ currentBtcPrice }: BettingPanelProps) {
         {activeRound && (
           <div style={{ marginTop: 16, marginBottom: 16 }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
-              <span style={{ fontSize: 11, color: 'var(--up)', fontWeight: 600 }}>
+              <span style={{ fontSize: 11, color: '#ffffff', fontWeight: 600 }}>
                 UP {activeUpPercent.toFixed(1)}%
               </span>
-              <span style={{ fontSize: 11, color: 'var(--down)', fontWeight: 600 }}>
+              <span style={{ fontSize: 11, color: 'var(--text-secondary)', fontWeight: 600 }}>
                 {activeDownPercent.toFixed(1)}% DOWN
               </span>
             </div>
-            <div style={{ display: 'flex', gap: 2, height: 6, borderRadius: 3, overflow: 'hidden', background: 'rgba(15,23,42,0.6)' }}>
-              <div className="pool-bar" style={{ width: `${activeUpPercent}%`, background: 'var(--up)' }} />
-              <div className="pool-bar" style={{ width: `${activeDownPercent}%`, background: 'var(--down)' }} />
+            <div style={{ display: 'flex', gap: 2, height: 6, borderRadius: 3, overflow: 'hidden', background: 'rgba(255,255,255,0.05)' }}>
+              <div className="pool-bar" style={{ width: `${activeUpPercent}%`, background: '#ffffff' }} />
+              <div className="pool-bar" style={{ width: `${activeDownPercent}%`, background: '#525252' }} />
             </div>
             <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 6 }}>
-              <span className="font-mono" style={{ fontSize: 10, color: 'var(--text-muted)' }}>
+              <span className="font-mono" style={{ fontSize: 10, color: 'var(--text-secondary)' }}>
                 {activeTotalPool > 0n ? formatEther(activeRound.totalUpAmount) : '0'} USDC
               </span>
-              <span className="font-mono" style={{ fontSize: 10, color: 'var(--text-muted)' }}>
+              <span className="font-mono" style={{ fontSize: 10, color: 'var(--text-secondary)' }}>
                 {activeTotalPool > 0n ? formatEther(activeRound.totalDownAmount) : '0'} USDC
               </span>
             </div>
@@ -294,15 +297,15 @@ export function BettingPanel({ currentBtcPrice }: BettingPanelProps) {
         {/* Multipliers */}
         {activeRound && (
           <div style={{ display: 'flex', gap: 10, marginBottom: 16 }}>
-            <div style={{ flex: 1, padding: 8, borderRadius: 8, background: 'var(--up-dim)', border: '1px solid rgba(255, 255, 255, 0.05)', textAlign: 'center' }}>
-              <div style={{ fontSize: 10, color: 'var(--text-muted)', marginBottom: 2 }}>UP Payout</div>
-              <div className="font-mono" style={{ fontSize: 16, fontWeight: 700, color: 'var(--up)' }}>
+            <div style={{ flex: 1, padding: 8, borderRadius: 8, background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255, 255, 255, 0.05)', textAlign: 'center' }}>
+              <div style={{ fontSize: 10, color: 'var(--text-secondary)', marginBottom: 2 }}>UP Payout</div>
+              <div className="font-mono" style={{ fontSize: 16, fontWeight: 700, color: '#ffffff' }}>
                 {activeUpMultiplier > 0 ? `${activeUpMultiplier.toFixed(2)}x` : '—'}
               </div>
             </div>
-            <div style={{ flex: 1, padding: 8, borderRadius: 8, background: 'var(--down-dim)', border: '1px solid rgba(82, 82, 82, 0.2)', textAlign: 'center' }}>
-              <div style={{ fontSize: 10, color: 'var(--text-muted)', marginBottom: 2 }}>DOWN Payout</div>
-              <div className="font-mono" style={{ fontSize: 16, fontWeight: 700, color: 'var(--down)' }}>
+            <div style={{ flex: 1, padding: 8, borderRadius: 8, background: 'rgba(82, 82, 82, 0.05)', border: '1px solid rgba(82, 82, 82, 0.1)', textAlign: 'center' }}>
+              <div style={{ fontSize: 10, color: 'var(--text-secondary)', marginBottom: 2 }}>DOWN Payout</div>
+              <div className="font-mono" style={{ fontSize: 16, fontWeight: 700, color: 'var(--text-secondary)' }}>
                 {activeDownMultiplier > 0 ? `${activeDownMultiplier.toFixed(2)}x` : '—'}
               </div>
             </div>
@@ -323,7 +326,7 @@ export function BettingPanel({ currentBtcPrice }: BettingPanelProps) {
             fontSize: 11
           }}
         >
-          <span style={{ color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Live BTC Price</span>
+          <span style={{ color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Live BTC Price</span>
           <strong className="font-mono" style={{ color: '#ffffff', fontSize: 12 }}>
             ${currentBtcPrice.toFixed(2)}
           </strong>
@@ -331,10 +334,10 @@ export function BettingPanel({ currentBtcPrice }: BettingPanelProps) {
 
         {/* User's active bet */}
         {hasPlacedActiveBet && activeUserBet && (
-          <div className="animate-slide-up" style={{ padding: 10, borderRadius: 8, background: 'var(--accent-dim)', border: '1px solid rgba(163, 163, 163, 0.1)', marginBottom: 12, textAlign: 'center', fontSize: 12 }}>
-            <span style={{ color: 'var(--accent)' }}>
+          <div className="animate-slide-up" style={{ padding: 10, borderRadius: 8, background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255, 255, 255, 0.06)', marginBottom: 12, textAlign: 'center', fontSize: 12 }}>
+            <span style={{ color: 'var(--text-secondary)' }}>
               Bet placed: <strong className="font-mono">{formatEther(activeUserBet.amount)} USDC</strong> on{' '}
-              <strong style={{ color: activeUserBet.position === 0 ? 'var(--up)' : 'var(--down)' }}>
+              <strong style={{ color: activeUserBet.position === 0 ? '#ffffff' : 'var(--text-secondary)' }}>
                 {activeUserBet.position === 0 ? '▲ UP' : '▼ DOWN'}
               </strong>
             </span>
@@ -344,54 +347,35 @@ export function BettingPanel({ currentBtcPrice }: BettingPanelProps) {
         {/* Bet Input - only when betting is open */}
         {!hasPlacedActiveBet && activeRound && !isActiveLocked && (
           <div style={{ marginBottom: 12 }}>
-            <div style={{ position: 'relative' }}>
-              <input
-                type="number"
-                className="input-amount"
-                placeholder="0.0"
-                value={betAmount}
-                onChange={(e) => setBetAmount(e.target.value)}
-                disabled={!canBet}
-                min="0.1"
-                step="0.1"
-                style={{ height: 38, fontSize: 13, padding: '0 50px 0 12px' }}
-              />
-              <span
-                style={{
-                  position: 'absolute',
-                  right: 12,
-                  top: '50%',
-                  transform: 'translateY(-50%)',
-                  fontSize: 11,
-                  fontWeight: 600,
-                  color: 'var(--text-muted)',
-                }}
-              >
-                USDC
-              </span>
-            </div>
+            <Input
+              type="number"
+              placeholder="0.0"
+              value={betAmount}
+              onChange={(e) => setBetAmount(e.target.value)}
+              disabled={!canBet}
+              min="0.1"
+              step="0.1"
+              prefixSymbol="USDC"
+            />
             <div style={{ display: 'flex', gap: 4, marginTop: 6 }}>
               {['0.1', '0.5', '1', '5'].map((v) => (
-                <button
+                <Button
                   key={v}
+                  variant="secondary"
+                  size="sm"
                   onClick={() => setBetAmount(v)}
                   disabled={!canBet}
                   style={{
                     flex: 1,
                     padding: '4px',
                     borderRadius: 6,
-                    fontSize: 11,
                     fontFamily: 'var(--font-mono)',
                     cursor: canBet ? 'pointer' : 'not-allowed',
-                    background: 'rgba(15,23,42,0.4)',
-                    border: '1px solid var(--border-subtle)',
-                    color: 'var(--text-secondary)',
-                    transition: 'all 0.2s ease',
                     opacity: canBet ? 1 : 0.4,
                   }}
                 >
                   {v}
-                </button>
+                </Button>
               ))}
             </div>
           </div>
@@ -400,53 +384,53 @@ export function BettingPanel({ currentBtcPrice }: BettingPanelProps) {
         {/* UP / DOWN Buttons - only when betting is open */}
         {!hasPlacedActiveBet && activeRound && !isActiveLocked && (
           <div style={{ display: 'flex', gap: 8 }}>
-            <button
-              className="btn-up"
-              style={{ flex: '1 1 0', minWidth: 0, fontSize: 13, height: 40, borderRadius: 8, fontWeight: 700 }}
+            <Button
+              variant="up"
+              style={{ flex: '1 1 0', minWidth: 0, height: 40 }}
               onClick={() => handlePlaceBet(0)}
               disabled={!canBet || !betAmount}
             >
               ▲ UP
-            </button>
-            <button
-              className="btn-down"
-              style={{ flex: '1 1 0', minWidth: 0, fontSize: 13, height: 40, borderRadius: 8, fontWeight: 700 }}
+            </Button>
+            <Button
+              variant="down"
+              style={{ flex: '1 1 0', minWidth: 0, height: 40 }}
               onClick={() => handlePlaceBet(1)}
               disabled={!canBet || !betAmount}
             >
               ▼ DOWN
-            </button>
+            </Button>
           </div>
         )}
 
         {/* Locked notice - show when betting is closed and user hasn't bet */}
         {!hasPlacedActiveBet && activeRound && isActiveLocked && (
-          <div style={{ textAlign: 'center', padding: '12px 0', fontSize: 12, color: 'var(--text-muted)' }}>
+          <div style={{ textAlign: 'center', padding: '12px 0', fontSize: 12, color: 'var(--text-secondary)' }}>
             Next round opens soon
           </div>
         )}
 
         {/* Not Connected / Messages */}
         {!isConnected && (
-          <div style={{ textAlign: 'center', fontSize: 12, color: 'var(--text-muted)', marginTop: 8 }}>
+          <div style={{ textAlign: 'center', fontSize: 12, color: 'var(--text-secondary)', marginTop: 8 }}>
             Connect wallet to bet
           </div>
         )}
-      </div>
+      </Card>
 
       {/* ─── PREVIOUS LOCKED ROUND ────────────────────────────────────────── */}
       {prevRoundId > 0n && prevRound && (
-        <div className="glass-card animate-slide-up" style={{ padding: 20, border: '1px solid rgba(255, 255, 255, 0.08)' }}>
+        <Card hoverEffect={false} style={{ padding: 20 }}>
           {/* Header */}
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-            <div style={{ fontSize: 13, fontWeight: 700, letterSpacing: '1px', textTransform: 'uppercase', color: 'var(--up)' }}>
+            <div style={{ fontSize: 13, fontWeight: 700, letterSpacing: '1px', textTransform: 'uppercase', color: '#ffffff' }}>
               🟢 BTC PAIR
             </div>
             <span
               className="font-mono"
               style={{
-                padding: '2px 8px',
-                borderRadius: 6,
+                padding: '4px 10px',
+                borderRadius: 20,
                 fontSize: 11,
                 fontWeight: 600,
                 background: 'rgba(255, 255, 255, 0.05)',
@@ -483,14 +467,14 @@ export function BettingPanel({ currentBtcPrice }: BettingPanelProps) {
             }}
           >
             <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-              <span style={{ color: 'var(--text-muted)', fontSize: 9, textTransform: 'uppercase' }}>Locked Price</span>
+              <span style={{ color: 'var(--text-secondary)', fontSize: 9, textTransform: 'uppercase' }}>Locked Price</span>
               <strong className="font-mono" style={{ color: '#ffffff', fontSize: 12 }}>
                 ${(Number(prevRound.startPrice) / 1e8).toFixed(2)}
               </strong>
             </div>
             <div style={{ width: 1, height: 20, background: 'rgba(255, 255, 255, 0.08)' }} />
             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 2 }}>
-              <span style={{ color: 'var(--text-muted)', fontSize: 9, textTransform: 'uppercase' }}>
+              <span style={{ color: 'var(--text-secondary)', fontSize: 9, textTransform: 'uppercase' }}>
                 {prevRound.resolved ? 'Close Price' : 'Live Price'}
               </span>
               <strong className="font-mono" style={{ color: prevRound.resolved ? 'var(--text-secondary)' : '#ffffff', fontSize: 12 }}>
@@ -506,7 +490,7 @@ export function BettingPanel({ currentBtcPrice }: BettingPanelProps) {
             <div style={{ padding: 10, borderRadius: 8, background: 'rgba(255, 255, 255, 0.02)', border: '1px solid rgba(255, 255, 255, 0.04)', marginBottom: 12, textAlign: 'center', fontSize: 12 }}>
               <span style={{ color: 'var(--text-secondary)' }}>
                 You bet <strong className="font-mono">{formatEther(prevUserBet.amount)} USDC</strong> on{' '}
-                <strong style={{ color: prevUserBet.position === 0 ? 'var(--up)' : 'var(--down)' }}>
+                <strong style={{ color: prevUserBet.position === 0 ? '#ffffff' : 'var(--text-secondary)' }}>
                   {prevUserBet.position === 0 ? '▲ UP' : '▼ DOWN'}
                 </strong>
               </span>
@@ -519,7 +503,7 @@ export function BettingPanel({ currentBtcPrice }: BettingPanelProps) {
               <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
                 {/* Result display */}
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>Outcome:</span>
+                  <span style={{ fontSize: 11, color: 'var(--text-secondary)' }}>Outcome:</span>
                   <span style={{ fontSize: 12, fontWeight: 700, color: outcome.color }}>
                     {outcome.text}
                   </span>
@@ -527,7 +511,7 @@ export function BettingPanel({ currentBtcPrice }: BettingPanelProps) {
 
                 {hasPlacedPrevBet && outcome.userText && (
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>Your Position:</span>
+                    <span style={{ fontSize: 11, color: 'var(--text-secondary)' }}>Your Position:</span>
                     <span style={{ fontSize: 12, fontWeight: 700, color: outcome.userColor }}>
                       {outcome.userText}
                     </span>
@@ -536,47 +520,39 @@ export function BettingPanel({ currentBtcPrice }: BettingPanelProps) {
 
                 {/* Claim Reward Button */}
                 {isClaimable && !prevUserBet?.claimed && (
-                  <button
+                  <Button
                     onClick={handleClaim}
                     disabled={isPending || isConfirming}
+                    variant="primary"
                     style={{
                       width: '100%',
-                      height: 36,
-                      borderRadius: 8,
-                      background: 'linear-gradient(135deg, var(--up), #22c55e)',
-                      border: 'none',
-                      color: '#020617',
-                      fontWeight: 700,
-                      fontSize: 13,
-                      cursor: 'pointer',
-                      boxShadow: '0 0 12px rgba(16, 185, 129, 0.3)',
-                      transition: 'all 0.2s ease',
+                      boxShadow: '0 0 12px rgba(255, 255, 255, 0.1)',
                     }}
                   >
                     CLAIM REWARDS
-                  </button>
+                  </Button>
                 )}
 
                 {prevUserBet?.claimed && (
-                  <div style={{ textAlign: 'center', fontSize: 12, color: 'var(--up)', fontWeight: 600, padding: '4px 0' }}>
+                  <div style={{ textAlign: 'center', fontSize: 12, color: '#ffffff', fontWeight: 600, padding: '4px 0' }}>
                     ✓ REWARDS CLAIMED SUCCESSFULLY
                   </div>
                 )}
               </div>
             ) : (
-              <div style={{ textAlign: 'center', fontSize: 11, color: 'var(--text-muted)', border: '1px dashed rgba(255, 255, 255, 0.05)', padding: '8px', borderRadius: 6 }}>
+              <div style={{ textAlign: 'center', fontSize: 11, color: 'var(--text-secondary)', border: '1px dashed rgba(255, 255, 255, 0.05)', padding: '8px', borderRadius: 6 }}>
                 🕒 Waiting for close price...
               </div>
             )}
           </div>
-        </div>
+        </Card>
       )}
 
       {/* Operation Status Messages */}
       {txStatus && (
-        <div className="glass-card animate-slide-up" style={{ padding: 10, textAlign: 'center', fontSize: 12, color: 'var(--text-secondary)', border: '1px solid rgba(255, 255, 255, 0.08)' }}>
+        <Card hoverEffect={false} style={{ padding: 10, textAlign: 'center', fontSize: 12, color: 'var(--text-secondary)' }}>
           {txStatus}
-        </div>
+        </Card>
       )}
     </div>
   );

@@ -4,6 +4,10 @@ import React, { useState, useEffect } from 'react';
 import { useAccount, useReadContract, useWriteContract, useWaitForTransactionReceipt } from 'wagmi';
 import { formatEther } from 'viem';
 import { ROUND_MARKET_ABI, MARKET_ADDRESS } from '@/lib/abi';
+import { Button } from './ui/Button';
+import { Card } from './ui/Card';
+import { Table, TableRow, TableCell } from './ui/Table';
+import { Badge } from './ui/Badge';
 
 interface RoundData {
   roundId: bigint;
@@ -72,117 +76,109 @@ export function PositionsTable() {
 
   if (!mounted) {
     return (
-      <div className="glass-card" style={{ padding: '24px', textAlign: 'center', minHeight: '180px', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#050505' }}>
-        <p style={{ color: 'var(--text-muted)', fontSize: 13 }}>Loading positions...</p>
-      </div>
+      <Card hoverEffect={false} style={{ padding: '48px 24px', textAlign: 'center', minHeight: '180px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <p style={{ color: 'var(--text-secondary)', fontSize: 13 }}>Loading positions...</p>
+      </Card>
     );
   }
 
   if (!isConnected) {
     return (
-      <div className="glass-card" style={{ padding: '24px', textAlign: 'center', minHeight: '180px', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#050505' }}>
-        <p style={{ color: 'var(--text-muted)', fontSize: 13 }}>Connect your wallet to view active positions and claim history.</p>
-      </div>
+      <Card hoverEffect={false} style={{ padding: '48px 24px', textAlign: 'center', minHeight: '180px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <p style={{ color: 'var(--text-secondary)', fontSize: 13, maxWidth: '320px', lineHeight: 1.6 }}>Connect your wallet to view active positions and claim history.</p>
+      </Card>
     );
   }
 
   return (
-    <div 
-      className="glass-card" 
+    <Card 
+      hoverEffect={false} 
       style={{ 
-        background: '#050505',
-        border: '1px solid rgba(255, 255, 255, 0.05)',
-        borderRadius: 8,
         overflow: 'hidden',
-        marginTop: 12
+        marginTop: 16,
+        padding: 0,
+        display: 'flex',
+        flexDirection: 'column'
       }}
     >
-      {/* Table Tabs */}
+      {/* Table Header Section */}
       <div 
         style={{ 
           display: 'flex', 
-          borderBottom: '1px solid rgba(255, 255, 255, 0.05)',
-          background: 'rgba(255, 255, 255, 0.01)',
-          padding: '0 12px'
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          borderBottom: '1px solid rgba(255, 255, 255, 0.06)',
+          background: 'rgba(255, 255, 255, 0.005)',
+          padding: '14px 20px'
         }}
       >
-        <button
-          onClick={() => setActiveTab('positions')}
-          style={{
-            padding: '12px 16px',
-            fontSize: 12,
-            fontWeight: 600,
-            background: 'none',
-            border: 'none',
-            color: activeTab === 'positions' ? '#ffffff' : 'var(--text-muted)',
-            borderBottom: activeTab === 'positions' ? '2px solid #ffffff' : 'none',
-            cursor: 'pointer',
-            textTransform: 'uppercase',
-            letterSpacing: '0.5px'
-          }}
-        >
-          Positions (bets)
-        </button>
-        <button
-          onClick={() => setActiveTab('history')}
-          style={{
-            padding: '12px 16px',
-            fontSize: 12,
-            fontWeight: 600,
-            background: 'none',
-            border: 'none',
-            color: activeTab === 'history' ? '#ffffff' : 'var(--text-muted)',
-            borderBottom: activeTab === 'history' ? '2px solid #ffffff' : 'none',
-            cursor: 'pointer',
-            textTransform: 'uppercase',
-            letterSpacing: '0.5px'
-          }}
-        >
-          Claimable History
-        </button>
+        <span style={{ fontSize: '11px', fontWeight: 700, letterSpacing: '1px', textTransform: 'uppercase', color: '#ffffff' }}>
+          Your Activity
+        </span>
+        <div style={{ display: 'flex', gap: '8px', background: 'rgba(255,255,255,0.02)', padding: '3px', borderRadius: '20px', border: '1px solid rgba(255,255,255,0.05)' }}>
+          <button
+            onClick={() => setActiveTab('positions')}
+            style={{
+              padding: '6px 14px',
+              fontSize: '11px',
+              fontWeight: 600,
+              borderRadius: '16px',
+              border: 'none',
+              cursor: 'pointer',
+              background: activeTab === 'positions' ? '#ffffff' : 'transparent',
+              color: activeTab === 'positions' ? '#000000' : 'var(--text-secondary)',
+              transition: 'all 200ms ease'
+            }}
+          >
+            ACTIVE BETS
+          </button>
+          <button
+            onClick={() => setActiveTab('history')}
+            style={{
+              padding: '6px 14px',
+              fontSize: '11px',
+              fontWeight: 600,
+              borderRadius: '16px',
+              border: 'none',
+              cursor: 'pointer',
+              background: activeTab === 'history' ? '#ffffff' : 'transparent',
+              color: activeTab === 'history' ? '#000000' : 'var(--text-secondary)',
+              transition: 'all 200ms ease'
+            }}
+          >
+            HISTORY
+          </button>
+        </div>
       </div>
 
       {/* Table Content */}
-      <div style={{ overflowX: 'auto', minHeight: '140px', maxHeight: '250px' }}>
+      <div style={{ overflowX: 'auto', minHeight: '140px' }}>
         {recentIds.length === 0 ? (
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '140px', color: 'var(--text-muted)', fontSize: 13 }}>
-            No active bets found
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '140px', color: 'var(--text-secondary)', fontSize: 13 }}>
+            No active positions found
           </div>
         ) : (
-          <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: 12 }}>
-            <thead>
-              <tr style={{ borderBottom: '1px solid rgba(255, 255, 255, 0.03)', color: 'var(--text-muted)', background: 'rgba(255, 255, 255, 0.005)' }}>
-                <th style={{ padding: '12px 16px', fontWeight: 500 }}>ROUND ID</th>
-                <th style={{ padding: '12px 16px', fontWeight: 500 }}>FORECAST</th>
-                <th style={{ padding: '12px 16px', fontWeight: 500 }}>AMOUNT</th>
-                <th style={{ padding: '12px 16px', fontWeight: 500 }}>LOCK PRICE</th>
-                <th style={{ padding: '12px 16px', fontWeight: 500 }}>CLOSE PRICE</th>
-                <th style={{ padding: '12px 16px', fontWeight: 500 }}>STATUS</th>
-                <th style={{ padding: '12px 16px', fontWeight: 500, textAlign: 'right' }}>ACTION</th>
-              </tr>
-            </thead>
-            <tbody>
-              {recentIds.map((id) => (
-                <PositionRow 
-                  key={id.toString()} 
-                  roundId={id} 
-                  address={address!} 
-                  activeTab={activeTab} 
-                  onClaim={handleClaim} 
-                  claimPending={isPending || isConfirming} 
-                />
-              ))}
-            </tbody>
-          </table>
+          <Table headers={['ROUND ID', 'FORECAST', 'AMOUNT', 'LOCK PRICE', 'CLOSE PRICE', 'STATUS', 'ACTION']}>
+            {recentIds.map((id) => (
+              <PositionRow 
+                key={id.toString()} 
+                roundId={id} 
+                address={address!} 
+                activeTab={activeTab} 
+                onClaim={handleClaim} 
+                claimPending={isPending || isConfirming} 
+              />
+            ))}
+          </Table>
         )}
       </div>
 
       {claimStatus && (
-        <div style={{ padding: '8px 16px', background: 'rgba(255, 255, 255, 0.02)', borderTop: '1px solid rgba(255,255,255,0.03)', color: '#ffffff', fontSize: 11, textAlign: 'center', fontFamily: 'var(--font-mono)' }}>
+        <div style={{ padding: '10px 16px', background: 'rgba(255, 255, 255, 0.02)', borderTop: '1px solid rgba(255,255,255,0.06)', color: '#ffffff', fontSize: 11, textAlign: 'center', fontFamily: 'var(--font-mono)' }}>
           {claimStatus}
         </div>
       )}
-    </div>
+    </Card>
   );
 }
 
@@ -238,7 +234,7 @@ function PositionRow({
   if (activeTab === 'positions' && !isPendingRound) return null;
   if (activeTab === 'history' && isPendingRound) return null;
 
-  const isUp = bet.position === 0; // 0 = UP, 1 = DOWN (matching contract positions)
+  const isUp = bet.position === 0; // 0 = UP, 1 = DOWN
   const upWins = round.closePrice > round.startPrice;
   const downWins = round.closePrice < round.startPrice;
   const isWinner = isResolved && !isCanceled && ((isUp && upWins) || (!isUp && downWins));
@@ -247,74 +243,70 @@ function PositionRow({
   const startPriceScaled = Number(round.startPrice) / 1e8;
   const closePriceScaled = Number(round.closePrice) / 1e8;
 
+  let badgeVariant: 'default' | 'success' | 'warning' | 'error' | 'outline' = 'default';
   let statusText = 'PENDING';
-  let statusColor = 'var(--text-muted)';
 
   if (isPendingRound) {
     statusText = 'ACTIVE';
-    statusColor = '#ffffff';
+    badgeVariant = 'success';
   } else if (isCanceled) {
     statusText = 'CANCELED';
-    statusColor = '#525252';
+    badgeVariant = 'outline';
   } else if (isWinner) {
     statusText = 'WON';
-    statusColor = '#ffffff';
+    badgeVariant = 'success';
   } else {
     statusText = 'LOST';
-    statusColor = '#525252';
+    badgeVariant = 'error';
   }
 
   return (
-    <tr style={{ borderBottom: '1px solid rgba(255, 255, 255, 0.02)' }}>
-      <td style={{ padding: '12px 16px', fontWeight: 600 }}>#{roundId.toString()}</td>
-      <td style={{ padding: '12px 16px' }}>
+    <TableRow>
+      <TableCell style={{ fontWeight: 600 }}>#{roundId.toString()}</TableCell>
+      <TableCell>
         <span 
           style={{ 
-            color: isUp ? '#ffffff' : 'var(--text-muted)', 
+            color: isUp ? '#ffffff' : 'var(--text-secondary)', 
             fontWeight: 700,
-            background: isUp ? 'rgba(255,255,255,0.05)' : 'rgba(82,82,82,0.15)',
-            padding: '2px 8px',
-            borderRadius: 4,
-            fontSize: 10
+            background: isUp ? 'rgba(255,255,255,0.06)' : 'rgba(82,82,82,0.15)',
+            padding: '4px 8px',
+            borderRadius: 6,
+            fontSize: 10,
+            border: isUp ? '1px solid rgba(255,255,255,0.1)' : '1px solid rgba(82,82,82,0.2)'
           }}
         >
           {isUp ? '▲ UP' : '▼ DOWN'}
         </span>
-      </td>
-      <td style={{ padding: '12px 16px', fontFamily: 'var(--font-mono)' }}>{formatEther(bet.amount)} USDC</td>
-      <td style={{ padding: '12px 16px', fontFamily: 'var(--font-mono)' }}>
+      </TableCell>
+      <TableCell style={{ fontFamily: 'var(--font-mono)' }}>{formatEther(bet.amount)} USDC</TableCell>
+      <TableCell style={{ fontFamily: 'var(--font-mono)' }}>
         {startPriceScaled > 0 ? `$${startPriceScaled.toFixed(2)}` : '—'}
-      </td>
-      <td style={{ padding: '12px 16px', fontFamily: 'var(--font-mono)' }}>
+      </TableCell>
+      <TableCell style={{ fontFamily: 'var(--font-mono)' }}>
         {closePriceScaled > 0 && !isPendingRound ? `$${closePriceScaled.toFixed(2)}` : '—'}
-      </td>
-      <td style={{ padding: '12px 16px', fontWeight: 700, color: statusColor }}>{statusText}</td>
-      <td style={{ padding: '12px 16px', textAlign: 'right' }}>
+      </TableCell>
+      <TableCell>
+        <Badge variant={badgeVariant}>{statusText}</Badge>
+      </TableCell>
+      <TableCell style={{ textAlign: 'right' }}>
         {isClaimable && !bet.claimed ? (
-          <button
+          <Button
             onClick={() => onClaim(roundId)}
             disabled={claimPending}
-            style={{
-              padding: '4px 12px',
-              borderRadius: 4,
-              fontSize: 11,
-              fontWeight: 600,
-              background: '#ffffff',
-              color: '#000000',
-              border: 'none',
-              cursor: 'pointer',
-            }}
+            variant="primary"
+            size="sm"
+            style={{ padding: '4px 10px', borderRadius: '6px' }}
           >
             Claim Payout
-          </button>
+          </Button>
         ) : bet.claimed ? (
-          <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>Claimed</span>
+          <span style={{ fontSize: 11, color: 'var(--text-secondary)' }}>Claimed</span>
         ) : isPendingRound ? (
-          <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>Locked</span>
+          <span style={{ fontSize: 11, color: 'var(--text-secondary)' }}>Locked</span>
         ) : (
-          <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>—</span>
+          <span style={{ fontSize: 11, color: 'var(--text-secondary)' }}>—</span>
         )}
-      </td>
-    </tr>
+      </TableCell>
+    </TableRow>
   );
 }
