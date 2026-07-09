@@ -240,20 +240,15 @@ export default function LandingPage() {
         }}
       >
         {/* Logo */}
-        <div style={{ display: 'flex', alignItems: 'center' }}>
-          <svg viewBox="0 0 200 60" width={isDesktop ? "160" : "130"} height={isDesktop ? "48" : "39"} xmlns="http://www.w3.org/2000/svg">
-            <defs>
-              <mask id="headerLogoMask">
-                <rect x="0" y="0" width="200" height="60" fill="white" />
-                <circle cx="20.5" cy="34.5" r="2.8" fill="black" />
-              </mask>
-            </defs>
-            <circle cx="16" cy="30" r="10" fill="#ffffff" mask="url(#headerLogoMask)" />
-            <line x1="32" y1="42" x2="44" y2="18" stroke="#525252" strokeWidth="2" strokeLinecap="round" />
-            <text x="54" y="38" fontFamily="system-ui, sans-serif" fontSize="26" fontWeight="800" fill="#ffffff" letterSpacing="-1">dot</text>
-            <text x="95" y="38" fontFamily="system-ui, sans-serif" fontSize="26" fontWeight="300" fill="#737373" letterSpacing="-1">Market</text>
+        <Link href="/" style={{ textDecoration: 'none', display: 'flex', alignItems: 'center', gap: 10 }}>
+          <svg width={isDesktop ? "22" : "18"} height={isDesktop ? "22" : "18"} viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <circle cx="12" cy="12" r="10" stroke="#ffffff" strokeWidth="2.5" />
+            <circle cx="12" cy="12" r="4.5" fill="#ffffff" />
           </svg>
-        </div>
+          <span style={{ fontSize: isDesktop ? '19px' : '17px', fontWeight: 800, color: '#ffffff', letterSpacing: '-0.8px', fontFamily: 'Inter, sans-serif' }}>
+            dot<span style={{ fontWeight: 300, color: '#a3a3a3' }}>Market</span>
+          </span>
+        </Link>
 
         {/* Center Nav Link capsule */}
         {isDesktop && (
@@ -1292,12 +1287,15 @@ export default function LandingPage() {
           >
             {/* Brand Logo & Tag */}
             <div style={{ gridColumn: isMobile ? 'span 2' : 'span 1', display: 'flex', flexDirection: 'column', gap: 16 }}>
-              <svg viewBox="0 0 200 60" width="130" height="39" xmlns="http://www.w3.org/2000/svg">
-                <circle cx="16" cy="30" r="10" fill="#ffffff" mask="url(#footerLogoMask)" />
-                <line x1="32" y1="42" x2="44" y2="18" stroke="#525252" strokeWidth="2" strokeLinecap="round" />
-                <text x="54" y="38" fontFamily="system-ui, sans-serif" fontSize="26" fontWeight="800" fill="#ffffff" letterSpacing="-1">dot</text>
-                <text x="95" y="38" fontFamily="system-ui, sans-serif" fontSize="26" fontWeight="300" fill="#737373" letterSpacing="-1">Market</text>
-              </svg>
+              <Link href="/" style={{ textDecoration: 'none', display: 'flex', alignItems: 'center', gap: 10 }}>
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <circle cx="12" cy="12" r="10" stroke="#ffffff" strokeWidth="2.5" />
+                  <circle cx="12" cy="12" r="4.5" fill="#ffffff" />
+                </svg>
+                <span style={{ fontSize: '19px', fontWeight: 800, color: '#ffffff', letterSpacing: '-0.8px', fontFamily: 'Inter, sans-serif' }}>
+                  dot<span style={{ fontWeight: 300, color: '#a3a3a3' }}>Market</span>
+                </span>
+              </Link>
               <span style={{ fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.5, maxWidth: 220 }}>
                 High-frequency binary decentralized prediction pools on Arc Network.
               </span>
