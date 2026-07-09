@@ -271,7 +271,7 @@ export function HowItWorksSection() {
                 key={idx}
                 onMouseEnter={() => setHoveredCard(idx)}
                 onMouseLeave={() => setHoveredCard(null)}
-                style={{ position: 'relative' }}
+                style={{ position: 'relative', display: 'flex', flexDirection: 'column', height: '100%' }}
               >
                 {/* Mobile/Tablet vertical connector lines */}
                 {idx < 3 && (
@@ -321,6 +321,8 @@ export function HowItWorksSection() {
                     transform: isHovered 
                       ? 'translateY(-8px) scale(1.03)' 
                       : 'translateY(0px) scale(1)',
+                    height: '100%',
+                    flex: 1,
                   }}
                 >
                   {/* Circular Icon Container */}
