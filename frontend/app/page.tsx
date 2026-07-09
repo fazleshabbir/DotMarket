@@ -563,7 +563,7 @@ export default function LandingPage() {
           }}
         >
           <div className="animate-pulse-live" style={{ width: 6, height: 6, borderRadius: '50%', background: '#ffffff' }} />
-          BUILT ON ARC NETWORK
+          BUILT ON ARC
         </div>
 
         {/* Redesigned Serif Headline */}
@@ -978,7 +978,7 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* ── 5. Why Arc Network? ──────────────────────────────────── */}
+      {/* ── 5. Why ARC? ──────────────────────────────────── */}
       <section
         style={{
           position: 'relative',
@@ -1016,11 +1016,11 @@ export default function LandingPage() {
                   margin: '0 0 20px',
                 }}
               >
-                Why Arc Network?
+                Why ARC?
               </h2>
               
               <p style={{ color: 'var(--text-secondary)', fontSize: 15, lineHeight: 1.6, margin: '0 0 32px' }}>
-                dotMarket leverages the high-throughput architecture of Arc Network to offer speed and cost efficiency that are impossible on standard layer-1 chains.
+                dotMarket leverages the high-throughput architecture of ARC to offer speed and cost efficiency that are impossible on standard layer-1 chains.
               </p>
 
               {/* Bullet features */}
@@ -1265,7 +1265,7 @@ export default function LandingPage() {
         <div style={{ border: '1px solid rgba(255,255,255,0.05)', borderRadius: 16, overflow: 'hidden', background: 'rgba(255,255,255,0.005)' }}>
           <FAQItem 
             question="What is dotMarket?" 
-            answer="dotMarket is a decentralized, high-frequency prediction platform built on Arc Network. It allows users to place binary predictions (UP or DOWN) on asset prices with sub-minute resolutions using a pari-mutuel AMM structure." 
+            answer="dotMarket is a decentralized, high-frequency prediction platform built on ARC. It allows users to place binary predictions (UP or DOWN) on asset prices with sub-minute resolutions using a pari-mutuel AMM structure." 
           />
           <FAQItem 
             question="How do prediction markets work?" 
@@ -1439,7 +1439,7 @@ export default function LandingPage() {
                 </svg>
               </div>
               <span style={{ fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.5, maxWidth: 220 }}>
-                High-frequency binary decentralized prediction pools on Arc Network.
+                High-frequency binary decentralized prediction pools on ARC.
               </span>
             </div>
 
