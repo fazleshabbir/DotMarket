@@ -874,6 +874,9 @@ export default function LandingPage() {
         </div>
       </Section>
 
+      {/* ── 10. Community Section ────────────────────────────────────────────── */}
+      <CommunitySection />
+
       {/* ── 9. FAQ Accordion Section ────────────────────────────── */}
       <Section id="faq" maxWidth={800}>
         <PageHeader
@@ -917,9 +920,6 @@ export default function LandingPage() {
           />
         </Card>
       </Section>
-
-      {/* ── 10. Community Section ────────────────────────────────────────────── */}
-      <CommunitySection />
 
       {/* ── 11. Footer ───────────────────────────────────────────── */}
       <ScrollFade style={{ width: '100%' }}>
