@@ -593,7 +593,7 @@ export default function LandingPage() {
             fontWeight: 400,
           }}
         >
-          The Pari-Mutuel AMM for High-Frequency Binary decentralized prediction markets powered by Arc Network.
+          The Pari-Mutuel AMM for High-Frequency Binary Decentralized Prediction Markets powered by Arc.
         </p>
 
         {/* Actions Button Row */}
