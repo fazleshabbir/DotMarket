@@ -249,14 +249,19 @@ export default function TradePage() {
       >
         <div style={{ display: 'flex', alignItems: 'center', gap: 32 }}>
           {/* Logo */}
-          <Link href="/" style={{ textDecoration: 'none', display: 'flex', alignItems: 'center', gap: 10 }}>
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <circle cx="12" cy="12" r="10" stroke="#ffffff" strokeWidth="2.5" />
-              <circle cx="12" cy="12" r="4.5" fill="#ffffff" />
+          <Link href="/" style={{ textDecoration: 'none' }}>
+            <svg viewBox="0 0 200 60" width="130" height="39" xmlns="http://www.w3.org/2000/svg">
+              <defs>
+                <mask id="tradeHeaderLogoMask">
+                  <rect x="0" y="0" width="200" height="60" fill="white" />
+                  <circle cx="20.5" cy="34.5" r="2.8" fill="black" />
+                </mask>
+              </defs>
+              <circle cx="16" cy="30" r="10" fill="#ffffff" mask="url(#tradeHeaderLogoMask)" />
+              <line x1="32" y1="42" x2="44" y2="18" stroke="#525252" strokeWidth="2" strokeLinecap="round" />
+              <text x="54" y="38" fontFamily="system-ui, sans-serif" fontSize="26" fontWeight="800" fill="#ffffff" letterSpacing="-1">dot</text>
+              <text x="95" y="38" fontFamily="system-ui, sans-serif" fontSize="26" fontWeight="300" fill="#737373" letterSpacing="-1">Market</text>
             </svg>
-            <span style={{ fontSize: '18px', fontWeight: 800, color: '#ffffff', letterSpacing: '-0.8px', fontFamily: 'Inter, sans-serif' }}>
-              dot<span style={{ fontWeight: 300, color: '#a3a3a3' }}>Market</span>
-            </span>
           </Link>
 
           {/* Navigation Links capsule */}

@@ -6,6 +6,138 @@ import { StarryBackground } from '@/components/StarryBackground';
 import { AnimatedLogo } from '@/components/AnimatedLogo';
 import { ScrollFade } from '@/components/ScrollFade';
 
+// Minimal Web3 SVG Line-Art Icons
+interface IconProps {
+  size?: number;
+}
+
+const KeyIcon = ({ size = 16 }: IconProps) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0l3 3m-3-3l-2.5-2.5" />
+  </svg>
+);
+
+const DiamondIcon = ({ size = 16 }: IconProps) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M6 3h12l4 6-10 12L2 9z" />
+    <path d="M11 3L8 9l4 12 4-12-3-6" />
+    <path d="M2 9h20" />
+  </svg>
+);
+
+const LightningIcon = ({ size = 16 }: IconProps) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+    <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
+  </svg>
+);
+
+const GlobeIcon = ({ size = 16 }: IconProps) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+    <circle cx="12" cy="12" r="10" />
+    <path d="M2 12h20" />
+    <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" />
+  </svg>
+);
+
+const ScaleIcon = ({ size = 16 }: IconProps) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+    <line x1="12" y1="3" x2="12" y2="21" />
+    <line x1="7" y1="7" x2="17" y2="7" />
+    <path d="M5 21a2 2 0 0 1-2-2v-5h4v5a2 2 0 0 1-2 2z" />
+    <path d="M19 21a2 2 0 0 1-2-2v-5h4v5a2 2 0 0 1-2 2z" />
+    <path d="M5 7L3 14h4z" />
+    <path d="M19 7l-2 14h4z" />
+  </svg>
+);
+
+const ScrollIcon = ({ size = 16 }: IconProps) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+    <polyline points="14 2 14 8 20 8" />
+    <line x1="16" y1="13" x2="8" y2="13" />
+    <line x1="16" y1="17" x2="8" y2="17" />
+  </svg>
+);
+
+const TimerIcon = ({ size = 16 }: IconProps) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+    <circle cx="12" cy="12" r="10" />
+    <polyline points="12 6 12 12 16 14" />
+  </svg>
+);
+
+const WalletIcon = ({ size = 16 }: IconProps) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+    <rect x="3" y="4" width="18" height="16" rx="2" />
+    <path d="M16 8h5v8h-5z" />
+    <circle cx="18" cy="12" r="1" />
+  </svg>
+);
+
+const ChartIcon = ({ size = 16 }: IconProps) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+    <line x1="18" y1="20" x2="18" y2="10" />
+    <line x1="12" y1="20" x2="12" y2="4" />
+    <line x1="6" y1="20" x2="6" y2="14" />
+  </svg>
+);
+
+const TargetIcon = ({ size = 16 }: IconProps) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+    <circle cx="12" cy="12" r="10" />
+    <circle cx="12" cy="12" r="6" />
+    <circle cx="12" cy="12" r="2" />
+  </svg>
+);
+
+const GiftIcon = ({ size = 16 }: IconProps) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+    <polyline points="20 12 20 22 4 22 4 12" />
+    <rect x="2" y="7" width="20" height="5" />
+    <line x1="12" y1="22" x2="12" y2="7" />
+    <path d="M12 7H7.5a2.5 2.5 0 0 1 0-5C11 2 12 7 12 7z" />
+    <path d="M12 7h4.5a2.5 2.5 0 0 0 0-5C13 2 12 7 12 7z" />
+  </svg>
+);
+
+const ShieldIcon = ({ size = 16 }: IconProps) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+  </svg>
+);
+
+const LinkIcon = ({ size = 16 }: IconProps) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" />
+    <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" />
+  </svg>
+);
+
+const LockIcon = ({ size = 16 }: IconProps) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+    <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
+    <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+  </svg>
+);
+
+const UsersIcon = ({ size = 16 }: IconProps) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+    <circle cx="9" cy="7" r="4" />
+    <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
+    <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+  </svg>
+);
+
+const DatabaseIcon = ({ size = 16 }: IconProps) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+    <rect x="2" y="2" width="20" height="8" rx="2" ry="2" />
+    <rect x="2" y="14" width="20" height="8" rx="2" ry="2" />
+    <line x1="6" y1="10" x2="6" y2="14" />
+    <line x1="18" y1="10" x2="18" y2="14" />
+  </svg>
+);
+
 // Reusable animated count-up statistic component using IntersectionObserver
 interface AnimatedStatProps {
   value: string;
@@ -240,15 +372,20 @@ export default function LandingPage() {
         }}
       >
         {/* Logo */}
-        <Link href="/" style={{ textDecoration: 'none', display: 'flex', alignItems: 'center', gap: 10 }}>
-          <svg width={isDesktop ? "22" : "18"} height={isDesktop ? "22" : "18"} viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <circle cx="12" cy="12" r="10" stroke="#ffffff" strokeWidth="2.5" />
-            <circle cx="12" cy="12" r="4.5" fill="#ffffff" />
+        <div style={{ display: 'flex', alignItems: 'center' }}>
+          <svg viewBox="0 0 200 60" width={isDesktop ? "160" : "130"} height={isDesktop ? "48" : "39"} xmlns="http://www.w3.org/2000/svg">
+            <defs>
+              <mask id="headerLogoMask">
+                <rect x="0" y="0" width="200" height="60" fill="white" />
+                <circle cx="20.5" cy="34.5" r="2.8" fill="black" />
+              </mask>
+            </defs>
+            <circle cx="16" cy="30" r="10" fill="#ffffff" mask="url(#headerLogoMask)" />
+            <line x1="32" y1="42" x2="44" y2="18" stroke="#525252" strokeWidth="2" strokeLinecap="round" />
+            <text x="54" y="38" fontFamily="system-ui, sans-serif" fontSize="26" fontWeight="800" fill="#ffffff" letterSpacing="-1">dot</text>
+            <text x="95" y="38" fontFamily="system-ui, sans-serif" fontSize="26" fontWeight="300" fill="#737373" letterSpacing="-1">Market</text>
           </svg>
-          <span style={{ fontSize: isDesktop ? '19px' : '17px', fontWeight: 800, color: '#ffffff', letterSpacing: '-0.8px', fontFamily: 'Inter, sans-serif' }}>
-            dot<span style={{ fontWeight: 300, color: '#a3a3a3' }}>Market</span>
-          </span>
-        </Link>
+        </div>
 
         {/* Center Nav Link capsule */}
         {isDesktop && (
@@ -544,10 +681,10 @@ export default function LandingPage() {
           }}
         >
           {[
-            { label: 'Non-Custodial', icon: '🔑' },
-            { label: 'Low Fees', icon: '💎' },
-            { label: 'Fast Settlement', icon: '⚡' },
-            { label: 'Built on Arc', icon: '🌐' }
+            { label: 'Non-Custodial', icon: <KeyIcon size={14} /> },
+            { label: 'Low Fees', icon: <DiamondIcon size={14} /> },
+            { label: 'Fast Settlement', icon: <LightningIcon size={14} /> },
+            { label: 'Built on Arc', icon: <GlobeIcon size={14} /> }
           ].map((badge, idx) => (
             <div
               key={idx}
@@ -564,7 +701,7 @@ export default function LandingPage() {
                 borderRadius: 20
               }}
             >
-              <span>{badge.icon}</span>
+              <span style={{ display: 'flex', alignItems: 'center', color: '#ffffff', opacity: 0.8 }}>{badge.icon}</span>
               <span>{badge.label}</span>
             </div>
           ))}
@@ -728,18 +865,18 @@ export default function LandingPage() {
         {/* 8 Features Grid */}
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: 20 }}>
           {[
-            { title: 'Non-Custodial', desc: 'Your assets always remain in your wallet.', icon: '🔑' },
-            { title: 'Transparent Resolution', desc: 'Markets resolve using verifiable on-chain data.', icon: '⚖️' },
-            { title: 'Fast Settlement', desc: 'Claim rewards immediately after market resolution.', icon: '⚡' },
-            { title: 'Built on Arc', desc: 'Fast and low-cost infrastructure.', icon: '🌐' },
-            { title: 'Open Source Contracts', desc: 'Smart contracts are publicly auditable.', icon: '📜' },
-            { title: 'Low Trading Fees', desc: 'More profits stay with traders.', icon: '💎' },
-            { title: 'Lightning Fast', desc: 'Near-instant transaction confirmations.', icon: '⏱️' },
-            { title: 'Global Access', desc: 'Trade from anywhere with a crypto wallet.', icon: '🌍' }
+            { title: 'Non-Custodial', desc: 'Your assets always remain in your wallet.', icon: <KeyIcon size={24} /> },
+            { title: 'Transparent Resolution', desc: 'Markets resolve using verifiable on-chain data.', icon: <ScaleIcon size={24} /> },
+            { title: 'Fast Settlement', desc: 'Claim rewards immediately after market resolution.', icon: <LightningIcon size={24} /> },
+            { title: 'Built on Arc', desc: 'Fast and low-cost infrastructure.', icon: <GlobeIcon size={24} /> },
+            { title: 'Open Source Contracts', desc: 'Smart contracts are publicly auditable.', icon: <ScrollIcon size={24} /> },
+            { title: 'Low Trading Fees', desc: 'More profits stay with traders.', icon: <DiamondIcon size={24} /> },
+            { title: 'Lightning Fast', desc: 'Near-instant transaction confirmations.', icon: <TimerIcon size={24} /> },
+            { title: 'Global Access', desc: 'Trade from anywhere with a crypto wallet.', icon: <GlobeIcon size={24} /> }
           ].map((f, idx) => (
             <ScrollFade key={idx} delay={`${idx * 0.05}s`}>
               <div className="feature-card" style={{ padding: 24, height: '100%', display: 'flex', flexDirection: 'column', gap: 12 }}>
-                <span style={{ fontSize: 24 }}>{f.icon}</span>
+                <span style={{ display: 'flex', alignItems: 'center', color: '#ffffff', opacity: 0.85 }}>{f.icon}</span>
                 <h3 style={{ fontSize: 16, fontWeight: 700, color: '#ffffff' }}>{f.title}</h3>
                 <p style={{ fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.5 }}>{f.desc}</p>
               </div>
@@ -782,10 +919,10 @@ export default function LandingPage() {
         {/* Steps Flow Grid */}
         <div style={{ display: 'grid', gridTemplateColumns: isDesktop ? 'repeat(4, 1fr)' : '1fr', gap: 32, position: 'relative' }}>
           {[
-            { num: '01', title: 'Connect Wallet', desc: 'Securely authenticate your Web3 identity.', icon: '👛' },
-            { num: '02', title: 'Choose a Market', desc: 'Select crypto pairings or forecasting rounds.', icon: '📊' },
-            { num: '03', title: 'Predict YES or NO', desc: 'Secure your trade and deposit collateral.', icon: '🎯' },
-            { num: '04', title: 'Claim Rewards', desc: 'Collect USDC automatically after resolution.', icon: '🎁' }
+            { num: '01', title: 'Connect Wallet', desc: 'Securely authenticate your Web3 identity.', icon: <WalletIcon size={22} /> },
+            { num: '02', title: 'Choose a Market', desc: 'Select crypto pairings or forecasting rounds.', icon: <ChartIcon size={22} /> },
+            { num: '03', title: 'Predict YES or NO', desc: 'Secure your trade and deposit collateral.', icon: <TargetIcon size={22} /> },
+            { num: '04', title: 'Claim Rewards', desc: 'Collect USDC automatically after resolution.', icon: <GiftIcon size={22} /> }
           ].map((s, idx) => (
             <ScrollFade key={idx} delay={`${idx * 0.1}s`}>
               <div 
@@ -1006,12 +1143,12 @@ export default function LandingPage() {
         {/* Security Cards Grid */}
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 20 }}>
           {[
-            { title: 'Self-Custody', desc: 'Withdraw and trade without third-party custodianship.', icon: '🛡️' },
-            { title: 'On-Chain Settlement', desc: 'Contract checks and price feeds settle fully on-chain.', icon: '🔗' },
-            { title: 'Transparent Smart Contracts', desc: 'Auditable code bases verify pool settlements.', icon: '🔎' },
-            { title: 'Immutable Transactions', desc: 'No transaction can be rolled back or censored.', icon: '🔒' },
-            { title: 'Community Driven', desc: 'Fees and features flow back into pool liquidity.', icon: '👥' },
-            { title: 'Secure Infrastructure', desc: 'Redundant RPC structures block loop crashes.', icon: '🏗️' }
+            { title: 'Self-Custody', desc: 'Withdraw and trade without third-party custodianship.', icon: <ShieldIcon size={20} /> },
+            { title: 'On-Chain Settlement', desc: 'Contract checks and price feeds settle fully on-chain.', icon: <LinkIcon size={20} /> },
+            { title: 'Transparent Smart Contracts', desc: 'Auditable code bases verify pool settlements.', icon: <ScrollIcon size={20} /> },
+            { title: 'Immutable Transactions', desc: 'No transaction can be rolled back or censored.', icon: <LockIcon size={20} /> },
+            { title: 'Community Driven', desc: 'Fees and features flow back into pool liquidity.', icon: <UsersIcon size={20} /> },
+            { title: 'Secure Infrastructure', desc: 'Redundant RPC structures block loop crashes.', icon: <DatabaseIcon size={20} /> }
           ].map((sec, idx) => (
             <ScrollFade key={idx} delay={`${idx * 0.05}s`}>
               <div 
@@ -1025,7 +1162,7 @@ export default function LandingPage() {
                   background: 'rgba(255, 255, 255, 0.005)' 
                 }}
               >
-                <span style={{ fontSize: 20 }}>{sec.icon}</span>
+                <span style={{ display: 'flex', alignItems: 'center', color: '#ffffff', opacity: 0.85 }}>{sec.icon}</span>
                 <h3 style={{ fontSize: 15, fontWeight: 700, color: '#ffffff' }}>{sec.title}</h3>
                 <p style={{ fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.5 }}>{sec.desc}</p>
               </div>
@@ -1287,15 +1424,20 @@ export default function LandingPage() {
           >
             {/* Brand Logo & Tag */}
             <div style={{ gridColumn: isMobile ? 'span 2' : 'span 1', display: 'flex', flexDirection: 'column', gap: 16 }}>
-              <Link href="/" style={{ textDecoration: 'none', display: 'flex', alignItems: 'center', gap: 10 }}>
-                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                  <circle cx="12" cy="12" r="10" stroke="#ffffff" strokeWidth="2.5" />
-                  <circle cx="12" cy="12" r="4.5" fill="#ffffff" />
+              <div style={{ display: 'flex', alignItems: 'center' }}>
+                <svg viewBox="0 0 200 60" width="130" height="39" xmlns="http://www.w3.org/2000/svg">
+                  <defs>
+                    <mask id="footerLogoMask">
+                      <rect x="0" y="0" width="200" height="60" fill="white" />
+                      <circle cx="20.5" cy="34.5" r="2.8" fill="black" />
+                    </mask>
+                  </defs>
+                  <circle cx="16" cy="30" r="10" fill="#ffffff" mask="url(#footerLogoMask)" />
+                  <line x1="32" y1="42" x2="44" y2="18" stroke="#525252" strokeWidth="2" strokeLinecap="round" />
+                  <text x="54" y="38" fontFamily="system-ui, sans-serif" fontSize="26" fontWeight="800" fill="#ffffff" letterSpacing="-1">dot</text>
+                  <text x="95" y="38" fontFamily="system-ui, sans-serif" fontSize="26" fontWeight="300" fill="#737373" letterSpacing="-1">Market</text>
                 </svg>
-                <span style={{ fontSize: '19px', fontWeight: 800, color: '#ffffff', letterSpacing: '-0.8px', fontFamily: 'Inter, sans-serif' }}>
-                  dot<span style={{ fontWeight: 300, color: '#a3a3a3' }}>Market</span>
-                </span>
-              </Link>
+              </div>
               <span style={{ fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.5, maxWidth: 220 }}>
                 High-frequency binary decentralized prediction pools on Arc Network.
               </span>
