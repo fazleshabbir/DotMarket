@@ -292,8 +292,16 @@ function NetworkNodesCanvas() {
 
 // ── MAIN COMMUNITY SECTION ───────────────────────────────────────────────────
 export function CommunitySection() {
-  const isMobile = useMediaQuery('(max-width: 768px)');
-  const isTablet = useMediaQuery('(max-width: 1024px)');
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  const isMobileQuery = useMediaQuery('(max-width: 768px)');
+  const isTabletQuery = useMediaQuery('(max-width: 1024px)');
+
+  const isMobile = mounted ? isMobileQuery : false;
+  const isTablet = mounted ? isTabletQuery : false;
 
   const headingText = "Join the DotMarket Community";
   const headingWords = headingText.split(" ");
