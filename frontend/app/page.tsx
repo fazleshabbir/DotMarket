@@ -8,6 +8,7 @@ import { ROUND_MARKET_ABI, MARKET_ADDRESS } from '@/lib/abi';
 import { StarryBackground } from '@/components/StarryBackground';
 import { AnimatedLogo } from '@/components/AnimatedLogo';
 import { ScrollFade } from '@/components/ScrollFade';
+import { HowItWorksSection } from '@/components/HowItWorksSection';
 
 // Minimal Web3 SVG Line-Art Icons
 interface IconProps {
@@ -946,97 +947,7 @@ export default function LandingPage() {
 
 
       {/* ── 4. How It Works ──────────────────────────────────────── */}
-      <section
-        id="how-it-works"
-        style={{
-          position: 'relative',
-          zIndex: 10,
-          padding: isDesktop ? '100px 24px' : '60px 16px',
-          maxWidth: 1200,
-          margin: '0 auto',
-          width: '100%',
-        }}
-      >
-        <ScrollFade>
-          <div style={{ textAlign: 'center', marginBottom: 64 }}>
-            <h2
-              style={{
-                fontFamily: "'Cormorant Garamond', serif",
-                fontSize: isMobile ? '32px' : '42px',
-                fontWeight: 400,
-                color: '#ffffff',
-                marginBottom: 16,
-              }}
-            >
-              How It Works
-            </h2>
-            <p style={{ color: 'var(--text-secondary)', fontSize: 15, maxWidth: 500, margin: '0 auto' }}>
-              Four simple steps to on-chain predictions.
-            </p>
-          </div>
-        </ScrollFade>
-
-        {/* Steps Flow Grid */}
-        <div style={{ display: 'grid', gridTemplateColumns: isDesktop ? 'repeat(4, 1fr)' : '1fr', gap: 32, position: 'relative' }}>
-          {[
-            { num: '01', title: 'Connect Wallet', desc: 'Securely authenticate your Web3 identity.', icon: <WalletIcon size={22} /> },
-            { num: '02', title: 'Choose a Market', desc: 'Select crypto pairings or forecasting rounds.', icon: <ChartIcon size={22} /> },
-            { num: '03', title: 'Predict YES or NO', desc: 'Secure your trade and deposit collateral.', icon: <TargetIcon size={22} /> },
-            { num: '04', title: 'Claim Rewards', desc: 'Collect USDC automatically after resolution.', icon: <GiftIcon size={22} /> }
-          ].map((s, idx) => (
-            <ScrollFade key={idx} delay={`${idx * 0.1}s`}>
-              <div 
-                style={{ 
-                  display: 'flex', 
-                  flexDirection: 'column', 
-                  alignItems: 'center', 
-                  textAlign: 'center', 
-                  position: 'relative', 
-                  padding: 24 
-                }}
-              >
-                {/* Visual Connector Dot */}
-                <div 
-                  style={{ 
-                    width: 48, 
-                    height: 48, 
-                    borderRadius: '50%', 
-                    background: 'rgba(255,255,255,0.03)', 
-                    border: '1px solid rgba(255,255,255,0.1)', 
-                    display: 'flex', 
-                    alignItems: 'center', 
-                    justifyContent: 'center', 
-                    fontSize: 20, 
-                    marginBottom: 20,
-                    boxShadow: '0 0 20px rgba(255,255,255,0.02)' 
-                  }}
-                >
-                  {s.icon}
-                </div>
-
-                <div className="font-mono" style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 8 }}>STEP {s.num}</div>
-                <h3 style={{ fontSize: 16, fontWeight: 700, color: '#ffffff', marginBottom: 10 }}>{s.title}</h3>
-                <p style={{ fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.5, maxWidth: 220 }}>{s.desc}</p>
-                
-                {/* Horizontal flow connector helper */}
-                {isDesktop && idx < 3 && (
-                  <div 
-                    style={{ 
-                      position: 'absolute', 
-                      top: 48, 
-                      left: 'calc(50% + 40px)', 
-                      width: 'calc(100% - 80px)', 
-                      height: 1, 
-                      borderTop: '1px dashed rgba(255,255,255,0.1)', 
-                      zIndex: 1 
-                    }} 
-                  />
-                )}
-              </div>
-            </ScrollFade>
-          ))}
-        </div>
-      </section>
+      <HowItWorksSection />
 
       {/* ── 5. Why ARC? ──────────────────────────────────── */}
       <section
