@@ -579,7 +579,7 @@ export default function LandingPage() {
             letterSpacing: '-1.5px',
           }}
         >
-          Predict the Future.<br />Trade Real-Time Markets.
+          Trade the Next Minute of Crypto.
         </h1>
 
         {/* Updated Subtitle */}
@@ -593,7 +593,7 @@ export default function LandingPage() {
             fontWeight: 400,
           }}
         >
-          The Pari-Mutuel AMM for High-Frequency Binary Decentralized Prediction Markets powered by Arc.
+          The Pari-Mutuel AMM for High-Frequency Binary Decentralized Prediction Markets.
         </p>
 
         {/* Actions Button Row */}
