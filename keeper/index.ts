@@ -215,7 +215,9 @@ async function fetchPrice(pairName: string): Promise<bigint> {
     }
 
     log("🔮", `Querying Pyth Hermes Feed: ${feedId}...`);
-    const res = await fetch(`https://hermes.pyth.network/v2/updates/price/latest?ids[]=${feedId}`);
+    const res = await fetch(`https://hermes.pyth.network/v2/updates/price/latest?ids[]=${feedId}`, {
+      signal: AbortSignal.timeout(10000)
+    });
     if (!res.ok) {
       throw new Error(`Hermes API returned status ${res.status}`);
     }
@@ -250,7 +252,9 @@ async function fetchPrice(pairName: string): Promise<bigint> {
   }
 
   try {
-    const res = await fetch(`https://api.binance.com/api/v3/ticker/price?symbol=${symbol}`);
+    const res = await fetch(`https://api.binance.com/api/v3/ticker/price?symbol=${symbol}`, {
+      signal: AbortSignal.timeout(10000)
+    });
     if (!res.ok) {
       throw new Error(`Binance API returned status ${res.status}`);
     }
@@ -271,7 +275,9 @@ async function fetchPrice(pairName: string): Promise<bigint> {
     } else if (pairName.toUpperCase() === "SOL/USD") {
       cgId = "solana";
     }
-    const res = await fetch(`https://api.coingecko.com/api/v3/simple/price?ids=${cgId}&vs_currencies=usd`);
+    const res = await fetch(`https://api.coingecko.com/api/v3/simple/price?ids=${cgId}&vs_currencies=usd`, {
+      signal: AbortSignal.timeout(10000)
+    });
     if (!res.ok) {
       throw new Error(`CoinGecko API returned status ${res.status}`);
     }
@@ -304,13 +310,13 @@ async function main() {
 
   const publicClient = createPublicClient({
     chain: arcTestnet,
-    transport: http(config.rpc),
+    transport: http(config.rpc, { timeout: 15000 }),
   });
 
   const walletClient = createWalletClient({
     account,
     chain: arcTestnet,
-    transport: http(config.rpc),
+    transport: http(config.rpc, { timeout: 15000 }),
   });
 
   // ── Check balance ──
