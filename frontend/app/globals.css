@@ -307,3 +307,77 @@ body::before {
   box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
 }
 
+/* ── Redesign CSS Animations & Utilities ─────────────────────────────────── */
+@keyframes grid-move {
+  0% { background-position: 0 0; }
+  100% { background-position: 40px 40px; }
+}
+
+.animate-grid-move {
+  animation: grid-move 20s linear infinite;
+}
+
+@keyframes pulse-slow {
+  0%, 100% { transform: scale(1) translate(0, 0); opacity: 0.15; }
+  50% { transform: scale(1.1) translate(15px, -15px); opacity: 0.25; }
+}
+
+.animate-pulse-slow {
+  animation: pulse-slow 8s ease-in-out infinite;
+}
+
+/* Premium Feature Card with Hover Border Glow */
+.feature-card {
+  background: rgba(255, 255, 255, 0.01);
+  border: 1px solid rgba(255, 255, 255, 0.03);
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  border-radius: 12px;
+  position: relative;
+  overflow: hidden;
+}
+
+.feature-card:hover {
+  transform: translateY(-4px);
+  border-color: rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.02);
+}
+
+/* Premium FAQ Accordion Panel */
+.faq-accordion-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+  padding: 20px 24px;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  text-align: left;
+  color: #ffffff;
+  transition: all 0.2s ease;
+}
+
+.faq-accordion-header:hover {
+  background: rgba(255, 255, 255, 0.01);
+}
+
+.faq-accordion-content {
+  overflow: hidden;
+  transition: max-height 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  background: rgba(255, 255, 255, 0.005);
+}
+
+/* Timeline grid styles */
+.roadmap-timeline-container {
+  display: flex;
+  gap: 24px;
+  overflow-x: auto;
+  padding: 24px 8px;
+  scrollbar-width: none;
+}
+
+.roadmap-timeline-container::-webkit-scrollbar {
+  display: none;
+}
+
+

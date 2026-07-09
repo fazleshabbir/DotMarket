@@ -1,10 +1,149 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { StarryBackground } from '@/components/StarryBackground';
 import { AnimatedLogo } from '@/components/AnimatedLogo';
 import { ScrollFade } from '@/components/ScrollFade';
+
+// Reusable animated count-up statistic component using IntersectionObserver
+interface AnimatedStatProps {
+  value: string;
+  suffix?: string;
+  duration?: number;
+}
+
+function AnimatedStat({ value, suffix = '', duration = 1500 }: AnimatedStatProps) {
+  const [displayValue, setDisplayValue] = useState<string>('0');
+  const elementRef = useRef<HTMLSpanElement>(null);
+
+  useEffect(() => {
+    const el = elementRef.current;
+    if (!el) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        const [entry] = entries;
+        if (entry.isIntersecting) {
+          // Parse float from value string (e.g. "42.8" from "42.8")
+          const numericPart = parseFloat(value.replace(/[^0-9.]/g, ''));
+          if (isNaN(numericPart)) {
+            setDisplayValue(value);
+            return;
+          }
+
+          const isPercent = value.includes('%');
+          const isDecimal = value.includes('.');
+          
+          let start = 0;
+          const startTime = performance.now();
+
+          const animate = (currentTime: number) => {
+            const elapsedTime = currentTime - startTime;
+            const progress = Math.min(elapsedTime / duration, 1);
+            
+            // Easing function (easeOutQuad)
+            const easeProgress = progress * (2 - progress);
+            const currentCount = numericPart * easeProgress;
+
+            if (isDecimal) {
+              setDisplayValue(currentCount.toFixed(2));
+            } else {
+              setDisplayValue(Math.floor(currentCount).toString());
+            }
+
+            if (progress < 1) {
+              requestAnimationFrame(animate);
+            } else {
+              setDisplayValue(value);
+            }
+          };
+
+          requestAnimationFrame(animate);
+          observer.disconnect();
+        }
+      },
+      { threshold: 0.1 }
+    );
+
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [value, duration]);
+
+  return <span ref={elementRef}>{displayValue}{suffix}</span>;
+}
+
+// Reusable FAQ Accordion Component
+interface FAQItemProps {
+  question: string;
+  answer: string;
+}
+
+function FAQItem({ question, answer }: FAQItemProps) {
+  const [isOpen, setIsOpen] = useState(false);
+  const contentRef = useRef<HTMLDivElement>(null);
+
+  return (
+    <div 
+      style={{ 
+        borderBottom: '1px solid rgba(255, 255, 255, 0.05)',
+        background: isOpen ? 'rgba(255, 255, 255, 0.005)' : 'transparent',
+        transition: 'background-color 0.3s ease'
+      }}
+    >
+      <button
+        onClick={() => setIsOpen(!isOpen)}
+        className="faq-accordion-header"
+        style={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          width: '100%',
+          padding: '22px 24px',
+          background: 'transparent',
+          border: 'none',
+          cursor: 'pointer',
+          textAlign: 'left',
+          color: '#ffffff',
+          fontWeight: 600,
+          fontSize: '15px'
+        }}
+      >
+        <span>{question}</span>
+        <svg 
+          width="16" 
+          height="16" 
+          viewBox="0 0 24 24" 
+          fill="none" 
+          stroke="currentColor" 
+          strokeWidth="2.5" 
+          strokeLinecap="round" 
+          strokeLinejoin="round"
+          style={{ 
+            transform: isOpen ? 'rotate(180deg)' : 'rotate(0deg)', 
+            transition: 'transform 0.3s cubic-bezier(0.16, 1, 0.3, 1)',
+            opacity: 0.7
+          }}
+        >
+          <polyline points="6 9 12 15 18 9"></polyline>
+        </svg>
+      </button>
+      <div
+        ref={contentRef}
+        className="faq-accordion-content"
+        style={{
+          maxHeight: isOpen ? `${contentRef.current?.scrollHeight}px` : '0px',
+          overflow: 'hidden',
+          transition: 'max-height 0.3s cubic-bezier(0.16, 1, 0.3, 1)'
+        }}
+      >
+        <div style={{ padding: '0 24px 24px', fontSize: '14px', lineHeight: '1.6', color: 'var(--text-secondary)' }}>
+          {answer}
+        </div>
+      </div>
+    </div>
+  );
+}
 
 export default function LandingPage() {
   const [sentiment, setSentiment] = useState(54);
@@ -35,11 +174,54 @@ export default function LandingPage() {
   const isDesktop = !isMounted || windowWidth >= 1024;
 
   return (
-    <div style={{ position: 'relative', minHeight: '100vh', display: 'flex', flexDirection: 'column', color: '#ffffff', background: '#000000' }}>
-      {/* Starry Canvas Background */}
+    <div style={{ position: 'relative', minHeight: '100vh', display: 'flex', flexDirection: 'column', color: '#ffffff', background: '#000000', overflowX: 'hidden' }}>
+      
+      {/* ── Background Aesthetics ────────────────────────────────── */}
       <StarryBackground />
 
-      {/* ── Header ──────────────────────────────────────────────── */}
+      {/* Grid Pattern Background overlay matching Vercel/Linear aesthetic */}
+      <div 
+        className="animate-grid-move"
+        style={{
+          position: 'absolute',
+          inset: 0,
+          background: 'linear-gradient(to right, rgba(255, 255, 255, 0.02) 1px, transparent 1px), linear-gradient(to bottom, rgba(255, 255, 255, 0.02) 1px, transparent 1px)',
+          backgroundSize: '40px 40px',
+          pointerEvents: 'none',
+          zIndex: 1,
+        }}
+      />
+
+      {/* Ambient Radial Gradient Nodes */}
+      <div 
+        className="animate-pulse-slow"
+        style={{
+          position: 'absolute',
+          top: '15%',
+          left: '20%',
+          width: '50vw',
+          height: '50vw',
+          background: 'radial-gradient(circle, rgba(255, 255, 255, 0.03) 0%, transparent 60%)',
+          filter: 'blur(80px)',
+          pointerEvents: 'none',
+          zIndex: 1,
+        }}
+      />
+      <div 
+        style={{
+          position: 'absolute',
+          top: '55%',
+          right: '10%',
+          width: '40vw',
+          height: '40vw',
+          background: 'radial-gradient(circle, rgba(82, 82, 82, 0.05) 0%, transparent 60%)',
+          filter: 'blur(60px)',
+          pointerEvents: 'none',
+          zIndex: 1,
+        }}
+      />
+
+      {/* ── Header / Navigation ──────────────────────────────────── */}
       <header
         style={{
           position: 'sticky',
@@ -51,8 +233,9 @@ export default function LandingPage() {
           alignItems: 'center',
           justifyContent: 'space-between',
           borderRadius: 16,
-          background: 'rgba(255, 255, 255, 0.01)',
+          background: 'rgba(5, 5, 5, 0.4)',
           backdropFilter: 'blur(16px)',
+          WebkitBackdropFilter: 'blur(16px)',
           border: '1px solid rgba(255, 255, 255, 0.05)',
         }}
       >
@@ -72,23 +255,23 @@ export default function LandingPage() {
           </svg>
         </div>
 
-        {/* Center Nav capsule */}
+        {/* Center Nav Link capsule */}
         {isDesktop && (
           <nav
             style={{
               display: 'flex',
-              gap: 20,
+              gap: 24,
               background: 'rgba(255, 255, 255, 0.02)',
               border: '1px solid rgba(255, 255, 255, 0.05)',
               borderRadius: 24,
-              padding: '6px 20px',
+              padding: '6px 24px',
               alignItems: 'center',
             }}
           >
-            {['Docs', 'Community', 'Articles'].map((tab) => (
+            {['Markets', 'Features', 'How It Works', 'Stats', 'FAQ'].map((tab) => (
               <a
                 key={tab}
-                href={tab === 'Community' ? '#ecosystem' : '#'}
+                href={`#${tab.toLowerCase().replace(/\s+/g, '-')}`}
                 style={{
                   fontSize: 13,
                   color: 'var(--text-secondary)',
@@ -105,13 +288,13 @@ export default function LandingPage() {
           </nav>
         )}
 
-        {/* Right Action / Mobile menu toggle */}
+        {/* Right Actions */}
         {isDesktop ? (
           <Link href="/trade" style={{ textDecoration: 'none' }}>
             <button
               className="glass-card"
               style={{
-                padding: '8px 20px',
+                padding: '8px 22px',
                 borderRadius: 10,
                 cursor: 'pointer',
                 fontSize: 13,
@@ -122,7 +305,7 @@ export default function LandingPage() {
                 transition: 'all 0.3s ease',
               }}
             >
-              Trade Now
+              Start Trading
             </button>
           </Link>
         ) : (
@@ -164,7 +347,7 @@ export default function LandingPage() {
               top: 70,
               right: 12,
               left: 12,
-              background: 'rgba(5, 5, 5, 0.95)',
+              background: 'rgba(5, 5, 5, 0.96)',
               backdropFilter: 'blur(20px)',
               WebkitBackdropFilter: 'blur(20px)',
               border: '1px solid rgba(255, 255, 255, 0.08)',
@@ -177,10 +360,10 @@ export default function LandingPage() {
               boxShadow: '0 20px 40px rgba(0,0,0,0.8)',
             }}
           >
-            {['Docs', 'Community', 'Articles'].map((tab) => (
+            {['Markets', 'Features', 'How It Works', 'Stats', 'FAQ'].map((tab) => (
               <a
                 key={tab}
-                href={tab === 'Community' ? '#ecosystem' : '#'}
+                href={`#${tab.toLowerCase().replace(/\s+/g, '-')}`}
                 onClick={() => setMenuOpen(false)}
                 style={{
                   fontSize: 16,
@@ -206,17 +389,17 @@ export default function LandingPage() {
                   textAlign: 'center',
                 }}
               >
-                Trade Now ↗
+                Start Trading ↗
               </button>
             </Link>
           </div>
         )}
       </header>
 
-      {/* ── 1. Hero Section (Full Viewport) ────────────────────────── */}
+      {/* ── 1. Hero Section ──────────────────────────────────────── */}
       <section
         style={{
-          minHeight: isDesktop ? 'calc(100vh - 100px)' : 'auto',
+          minHeight: isDesktop ? 'calc(100vh - 120px)' : 'auto',
           display: 'flex',
           flexDirection: 'column',
           alignItems: 'center',
@@ -224,168 +407,178 @@ export default function LandingPage() {
           textAlign: 'center',
           position: 'relative',
           zIndex: 10,
-          padding: isDesktop ? '0 24px 80px' : '60px 16px 60px',
+          padding: isDesktop ? '80px 24px 100px' : '60px 16px 60px',
         }}
       >
-        {/* Animated dotMarket Brand Mark */}
         <AnimatedLogo />
 
-        {/* Hero Badge */}
+        {/* Built on ARC Pulsing Badge */}
         <div
           style={{
-            fontSize: 12,
-            fontWeight: 600,
-            letterSpacing: '2px',
-            color: 'var(--text-secondary)',
+            fontSize: 11,
+            fontWeight: 700,
+            letterSpacing: '1.5px',
+            color: '#ffffff',
             textTransform: 'uppercase',
-            marginBottom: 16,
+            marginBottom: 20,
             background: 'rgba(255, 255, 255, 0.03)',
-            padding: '4px 14px',
+            padding: '6px 16px',
             borderRadius: 20,
-            border: '1px solid rgba(255, 255, 255, 0.05)',
+            border: '1px solid rgba(255, 255, 255, 0.08)',
             display: 'inline-flex',
             alignItems: 'center',
-            gap: 6,
+            gap: 8,
           }}
         >
           <div className="animate-pulse-live" style={{ width: 6, height: 6, borderRadius: '50%', background: '#ffffff' }} />
-          Built on ARC
+          BUILT ON ARC NETWORK
         </div>
 
-        {/* Serif Headline */}
+        {/* Redesigned Serif Headline */}
         <h1
           style={{
             fontFamily: "'Cormorant Garamond', serif",
-            fontSize: isMobile ? '38px' : isTablet ? '54px' : 'min(7.5vw, 68px)',
+            fontSize: isMobile ? '38px' : isTablet ? '56px' : '72px',
             fontWeight: 400,
             lineHeight: 1.1,
             color: '#ffffff',
             margin: '0 0 20px',
-            maxWidth: 900,
-            letterSpacing: '-1px',
+            maxWidth: 950,
+            letterSpacing: '-1.5px',
           }}
         >
-          Trade the Next Minute of Crypto
+          Predict the Future.<br />Trade Real-Time Markets.
         </h1>
 
-        {/* Subtitle */}
+        {/* Updated Subtitle */}
         <p
           style={{
-            fontSize: isMobile ? '15px' : isTablet ? '17px' : 'min(4.5vw, 18px)',
+            fontSize: isMobile ? '15px' : isTablet ? '17px' : '19px',
             color: 'var(--text-secondary)',
-            margin: '0 0 24px',
-            maxWidth: 600,
+            margin: '0 0 40px',
+            maxWidth: 680,
             lineHeight: 1.6,
             fontWeight: 400,
           }}
         >
-          The Pari-Mutuel AMM for High-Frequency Binary Markets.
+          The Pari-Mutuel AMM for High-Frequency Binary decentralized prediction markets powered by Arc Network.
         </p>
 
-        {/* Minimal Sentiment Indicator */}
-        <div
-          style={{
-            fontSize: 11,
-            fontFamily: 'var(--font-mono)',
-            color: 'var(--text-secondary)',
-            letterSpacing: '1.5px',
-            textTransform: 'uppercase',
-            marginBottom: isMobile ? 32 : 40,
-            display: 'flex',
-            alignItems: 'center',
-            flexWrap: 'wrap',
-            justifyContent: 'center',
-            gap: isMobile ? 8 : 12,
-            background: 'rgba(255, 255, 255, 0.02)',
-            padding: '6px 16px',
-            borderRadius: 8,
-            border: '1px solid rgba(255, 255, 255, 0.04)',
-          }}
-        >
-          <span>Sentiment:</span>
-          <span style={{ color: '#ffffff', fontWeight: 600 }}>⚪ {sentiment}% UP</span>
-          <span style={{ opacity: 0.3 }}>/</span>
-          <span style={{ color: 'var(--text-muted)', fontWeight: 600 }}>⚫ {100 - sentiment}% DOWN</span>
-        </div>
-
-        {/* Trade Now CTA with Glow */}
-        <div style={{ position: 'relative', display: 'inline-block' }}>
-          <div
-            style={{
-              position: 'absolute',
-              inset: '-8px',
-              background: 'radial-gradient(circle, rgba(255,255,255,0.15) 0%, transparent 70%)',
-              filter: 'blur(10px)',
-              pointerEvents: 'none',
-            }}
-          />
-          <Link href="/trade" style={{ textDecoration: 'none' }}>
+        {/* Actions Button Row */}
+        <div style={{ display: 'flex', flexDirection: isMobile ? 'column' : 'row', gap: 16, width: isMobile ? '100%' : 'auto', justifyContent: 'center', alignItems: 'center', marginBottom: 48 }}>
+          <Link href="/trade" style={{ textDecoration: 'none', width: isMobile ? '100%' : 'auto' }}>
             <button
               className="btn-up animate-glow-pulse"
               style={{
-                padding: isMobile ? '14px 32px' : '16px 44px',
-                fontSize: isMobile ? 15 : 16,
+                width: isMobile ? '100%' : 'auto',
+                padding: '16px 40px',
+                fontSize: 15,
                 fontWeight: 700,
-                letterSpacing: '1.5px',
+                letterSpacing: '1px',
                 boxShadow: '0 0 30px rgba(255, 255, 255, 0.2)',
                 background: 'linear-gradient(135deg, #ffffff 0%, #d4d4d4 100%)',
                 color: '#000000',
               }}
             >
-              Trade Now ↗
+              Start Trading ↗
             </button>
           </Link>
+          <a href="#markets" style={{ textDecoration: 'none', width: isMobile ? '100%' : 'auto' }}>
+            <button
+              style={{
+                width: isMobile ? '100%' : 'auto',
+                padding: '15px 36px',
+                fontSize: 15,
+                fontWeight: 600,
+                borderRadius: 12,
+                cursor: 'pointer',
+                color: '#ffffff',
+                background: 'rgba(255, 255, 255, 0.02)',
+                border: '1px solid rgba(255, 255, 255, 0.1)',
+                transition: 'all 0.2s',
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.3)';
+                e.currentTarget.style.background = 'rgba(255, 255, 255, 0.05)';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.1)';
+                e.currentTarget.style.background = 'rgba(255, 255, 255, 0.02)';
+              }}
+            >
+              Explore Markets
+            </button>
+          </a>
         </div>
 
-        {/* Central Social Bars */}
+        {/* Minimal Sentiment Bar */}
+        <div
+          style={{
+            fontSize: 11,
+            fontFamily: 'var(--font-mono)',
+            color: 'var(--text-secondary)',
+            letterSpacing: '1px',
+            textTransform: 'uppercase',
+            marginBottom: 64,
+            display: 'flex',
+            alignItems: 'center',
+            flexWrap: 'wrap',
+            justifyContent: 'center',
+            gap: 12,
+            background: 'rgba(255, 255, 255, 0.02)',
+            padding: '8px 18px',
+            borderRadius: 8,
+            border: '1px solid rgba(255, 255, 255, 0.04)',
+          }}
+        >
+          <span>LIVE BTC FORECAST SENTIMENT:</span>
+          <span style={{ color: '#ffffff', fontWeight: 600 }}>⚪ {sentiment}% UP</span>
+          <span style={{ opacity: 0.2 }}>|</span>
+          <span style={{ color: 'var(--text-muted)', fontWeight: 600 }}>⚫ {100 - sentiment}% DOWN</span>
+        </div>
+
+        {/* Trust Badges Row */}
         <div 
           style={{ 
             display: 'flex', 
+            flexWrap: 'wrap', 
+            justifyContent: 'center', 
             alignItems: 'center', 
-            gap: 20, 
-            marginTop: 48, 
-            color: 'var(--text-secondary)',
-            zIndex: 10,
+            gap: isMobile ? 12 : 24,
+            opacity: 0.85
           }}
         >
-          {/* X / Twitter */}
-          <a href="#" style={{ color: 'inherit', transition: 'color 0.2s' }} onMouseEnter={(e) => e.currentTarget.style.color = '#ffffff'} onMouseLeave={(e) => e.currentTarget.style.color = 'var(--text-secondary)'}>
-            <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
-            </svg>
-          </a>
-
-          <div style={{ width: 1, height: 16, background: 'rgba(255, 255, 255, 0.15)' }} />
-
-          {/* Telegram */}
-          <a href="#" style={{ color: 'inherit', transition: 'color 0.2s' }} onMouseEnter={(e) => e.currentTarget.style.color = '#ffffff'} onMouseLeave={(e) => e.currentTarget.style.color = 'var(--text-secondary)'}>
-            <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M21.9 2.1L2.1 9.7c-1.3.5-1.3 1.3-.2 1.6l5.1 1.6 1.8 5.6c.2.6.1.8.8.8.5 0 .7-.2 1-.5l2.4-2.3 5 3.7c.9.5 1.6.2 1.8-.8L23.9 4c.3-1.4-.5-2-1.4-1.9z" />
-            </svg>
-          </a>
-
-          <div style={{ width: 1, height: 16, background: 'rgba(255, 255, 255, 0.15)' }} />
-
-          {/* Docs */}
-          <a href="#" style={{ color: 'inherit', transition: 'color 0.2s' }} onMouseEnter={(e) => e.currentTarget.style.color = '#ffffff'} onMouseLeave={(e) => e.currentTarget.style.color = 'var(--text-secondary)'}>
-            <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M12 6.042A8.967 8.967 0 006 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 016 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 016-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0018 18a8.967 8.967 0 00-6 2.292m0-14.25v14.25" />
-            </svg>
-          </a>
-        </div>
-
-        {/* Scroll Indicator */}
-        <div style={{ position: 'absolute', bottom: 32, display: isDesktop ? 'flex' : 'none', flexDirection: 'column', alignItems: 'center', gap: 8, opacity: 0.5 }}>
-          <span style={{ fontSize: 10, letterSpacing: '1px', textTransform: 'uppercase', color: 'var(--text-secondary)' }}>Protocol Mechanics</span>
-          <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-            <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" />
-          </svg>
+          {[
+            { label: 'Non-Custodial', icon: '🔑' },
+            { label: 'Low Fees', icon: '💎' },
+            { label: 'Fast Settlement', icon: '⚡' },
+            { label: 'Built on Arc', icon: '🌐' }
+          ].map((badge, idx) => (
+            <div
+              key={idx}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 8,
+                fontSize: 12,
+                fontWeight: 600,
+                color: 'var(--text-secondary)',
+                background: 'rgba(255, 255, 255, 0.01)',
+                border: '1px solid rgba(255, 255, 255, 0.03)',
+                padding: '6px 14px',
+                borderRadius: 20
+              }}
+            >
+              <span>{badge.icon}</span>
+              <span>{badge.label}</span>
+            </div>
+          ))}
         </div>
       </section>
 
-      {/* ── 2. Protocol Mechanics Section ─────────────────────────── */}
+      {/* ── 2. Live Markets Preview ──────────────────────────────── */}
       <section
-        id="mechanics"
+        id="markets"
         style={{
           position: 'relative',
           zIndex: 10,
@@ -396,7 +589,7 @@ export default function LandingPage() {
         }}
       >
         <ScrollFade>
-          <div style={{ textAlign: 'center', marginBottom: isMobile ? 40 : 64 }}>
+          <div style={{ textAlign: 'center', marginBottom: 48 }}>
             <h2
               style={{
                 fontFamily: "'Cormorant Garamond', serif",
@@ -406,64 +599,265 @@ export default function LandingPage() {
                 marginBottom: 16,
               }}
             >
-              Protocol Mechanics
+              Live Markets
             </h2>
             <p style={{ color: 'var(--text-secondary)', fontSize: 15, maxWidth: 500, margin: '0 auto' }}>
-              Inside dotMarket's high-frequency prediction lifecycle.
+              Real-time binary predictions currently active on the testnet.
             </p>
           </div>
         </ScrollFade>
 
-        {/* 3 Step Grid */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: isDesktop ? 24 : 16 }}>
-          {/* Step 1 */}
-          <ScrollFade delay="0.1s" style={{ height: '100%' }}>
-            <div className="mechanic-card" style={{ height: '100%', padding: isMobile ? '24px' : '32px' }}>
-              <div className="font-mono" style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 16 }}>01 / POOLING</div>
-              <h3 style={{ fontSize: 18, fontWeight: 700, marginBottom: 12, color: '#ffffff' }}>Dynamic Collateral Pools</h3>
-              <p style={{ fontSize: 14, color: 'var(--text-secondary)', lineHeight: 1.6 }}>
-                Secure a stance (UP or DOWN). Winnings scale dynamically based on pool participant ratios.
-              </p>
-            </div>
-          </ScrollFade>
+        {/* Markets cards grid */}
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: 24 }}>
+          {[
+            { pair: 'BTC/USD', id: 'BTC-USD-26', vol: '12,450 USDC', upPct: 58, time: '0:42', target: 'BTC/USD 1m Forecast' },
+            { pair: 'ETH/USD', id: 'ETH-USD-26', vol: '7,830 USDC', upPct: 48, time: '0:28', target: 'ETH/USD 1m Forecast' },
+            { pair: 'SOL/USD', id: 'SOL-USD-26', vol: '4,920 USDC', upPct: 65, time: '1:12', target: 'SOL/USD 1m Forecast' }
+          ].map((m, idx) => (
+            <ScrollFade key={idx} delay={`${idx * 0.1}s`}>
+              <div 
+                className="feature-card"
+                style={{ 
+                  padding: 24, 
+                  display: 'flex', 
+                  flexDirection: 'column', 
+                  gap: 20, 
+                  border: '1px solid rgba(255,255,255,0.04)',
+                  background: 'rgba(255,255,255,0.015)' 
+                }}
+              >
+                {/* Header info */}
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <div style={{ width: 8, height: 8, borderRadius: '50%', background: 'var(--up)' }} className="animate-pulse-live" />
+                    <span style={{ fontSize: 14, fontWeight: 700 }}>{m.pair}</span>
+                  </div>
+                  <span style={{ fontSize: 11, fontFamily: 'var(--font-mono)', color: 'var(--text-muted)' }}>ID: {m.id}</span>
+                </div>
 
-          {/* Step 2 */}
-          <ScrollFade delay="0.2s" style={{ height: '100%' }}>
-            <div className="mechanic-card" style={{ height: '100%', padding: isMobile ? '24px' : '32px' }}>
-              <div className="font-mono" style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 16 }}>02 / SECURITY</div>
-              <h3 style={{ fontSize: 18, fontWeight: 700, marginBottom: 12, color: '#ffffff' }}>Arbitrage Shielding</h3>
-              <p style={{ fontSize: 14, color: 'var(--text-secondary)', lineHeight: 1.6 }}>
-                Pool locks 10 seconds before round start. Prevents late-stage arbitrage and front-running.
-              </p>
-            </div>
-          </ScrollFade>
+                {/* Main Forecast Title */}
+                <div>
+                  <h3 style={{ fontSize: 17, fontWeight: 600, color: '#ffffff', marginBottom: 4 }}>{m.target}</h3>
+                  <span style={{ fontSize: 12, color: 'var(--text-secondary)' }}>Will price settle higher than current?</span>
+                </div>
 
-          {/* Step 3 */}
-          <ScrollFade delay="0.3s" style={{ height: '100%' }}>
-            <div className="mechanic-card" style={{ height: '100%', padding: isMobile ? '24px' : '32px' }}>
-              <div className="font-mono" style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 16 }}>03 / SETTLEMENT</div>
-              <h3 style={{ fontSize: 18, fontWeight: 700, marginBottom: 12, color: '#ffffff' }}>Pari-Mutuel Settlements</h3>
-              <p style={{ fontSize: 14, color: 'var(--text-secondary)', lineHeight: 1.6 }}>
-                Keeper settles price feeds on-chain. Winner takes all pooled funds.
-              </p>
-            </div>
-          </ScrollFade>
+                {/* Probability bar distribution */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, fontWeight: 600 }}>
+                    <span style={{ color: '#ffffff' }}>YES {m.upPct}%</span>
+                    <span style={{ color: 'var(--text-secondary)' }}>NO {100 - m.upPct}%</span>
+                  </div>
+                  {/* Visual ratio bar */}
+                  <div style={{ height: 6, width: '100%', background: 'rgba(82, 82, 82, 0.2)', borderRadius: 3, display: 'flex', overflow: 'hidden' }}>
+                    <div style={{ width: `${m.upPct}%`, background: '#ffffff', height: '100%' }} />
+                    <div style={{ width: `${100 - m.upPct}%`, background: '#525252', height: '100%' }} />
+                  </div>
+                </div>
+
+                {/* Vol / Time stats */}
+                <div style={{ display: 'flex', justifyContent: 'space-between', borderTop: '1px solid rgba(255,255,255,0.05)', paddingTop: 16, fontSize: 12 }}>
+                  <div>
+                    <span style={{ color: 'var(--text-muted)' }}>VOLUME:</span>{' '}
+                    <strong style={{ color: '#ffffff', fontFamily: 'var(--font-mono)' }}>{m.vol}</strong>
+                  </div>
+                  <div>
+                    <span style={{ color: 'var(--text-muted)' }}>TIME LEFT:</span>{' '}
+                    <strong style={{ color: '#ffffff', fontFamily: 'var(--font-mono)' }}>{m.time}</strong>
+                  </div>
+                </div>
+
+                {/* Trade Button */}
+                <Link href="/trade" style={{ textDecoration: 'none', width: '100%' }}>
+                  <button 
+                    style={{ 
+                      width: '100%', 
+                      padding: '10px 0', 
+                      borderRadius: 8, 
+                      border: '1px solid rgba(255,255,255,0.08)',
+                      background: 'rgba(255,255,255,0.02)',
+                      color: '#ffffff',
+                      fontWeight: 600,
+                      fontSize: 13,
+                      cursor: 'pointer',
+                      transition: 'all 0.2s'
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.background = 'rgba(255,255,255,0.06)';
+                      e.currentTarget.style.borderColor = 'rgba(255,255,255,0.2)';
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.background = 'rgba(255,255,255,0.02)';
+                      e.currentTarget.style.borderColor = 'rgba(255,255,255,0.08)';
+                    }}
+                  >
+                    Place Prediction ↗
+                  </button>
+                </Link>
+              </div>
+            </ScrollFade>
+          ))}
         </div>
       </section>
 
-      {/* ── 3. Ecosystem / Community Section (Split Layout) ───────── */}
+      {/* ── 3. Why DotMarket Feature Grid ────────────────────────── */}
       <section
-        id="ecosystem"
+        id="features"
         style={{
           position: 'relative',
           zIndex: 10,
-          padding: isDesktop ? '80px 24px 100px' : '40px 16px 60px',
+          padding: isDesktop ? '100px 24px' : '60px 16px',
           maxWidth: 1200,
           margin: '0 auto',
           width: '100%',
         }}
       >
-        <ScrollFade delay="0.2s" style={{ width: '100%' }}>
+        <ScrollFade>
+          <div style={{ textAlign: 'center', marginBottom: 56 }}>
+            <h2
+              style={{
+                fontFamily: "'Cormorant Garamond', serif",
+                fontSize: isMobile ? '32px' : '42px',
+                fontWeight: 400,
+                color: '#ffffff',
+                marginBottom: 16,
+              }}
+            >
+              Why DotMarket?
+            </h2>
+            <p style={{ color: 'var(--text-secondary)', fontSize: 15, maxWidth: 500, margin: '0 auto' }}>
+              Built for high-performance decentralized finance.
+            </p>
+          </div>
+        </ScrollFade>
+
+        {/* 8 Features Grid */}
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: 20 }}>
+          {[
+            { title: 'Non-Custodial', desc: 'Your assets always remain in your wallet.', icon: '🔑' },
+            { title: 'Transparent Resolution', desc: 'Markets resolve using verifiable on-chain data.', icon: '⚖️' },
+            { title: 'Fast Settlement', desc: 'Claim rewards immediately after market resolution.', icon: '⚡' },
+            { title: 'Built on Arc', desc: 'Fast and low-cost infrastructure.', icon: '🌐' },
+            { title: 'Open Source Contracts', desc: 'Smart contracts are publicly auditable.', icon: '📜' },
+            { title: 'Low Trading Fees', desc: 'More profits stay with traders.', icon: '💎' },
+            { title: 'Lightning Fast', desc: 'Near-instant transaction confirmations.', icon: '⏱️' },
+            { title: 'Global Access', desc: 'Trade from anywhere with a crypto wallet.', icon: '🌍' }
+          ].map((f, idx) => (
+            <ScrollFade key={idx} delay={`${idx * 0.05}s`}>
+              <div className="feature-card" style={{ padding: 24, height: '100%', display: 'flex', flexDirection: 'column', gap: 12 }}>
+                <span style={{ fontSize: 24 }}>{f.icon}</span>
+                <h3 style={{ fontSize: 16, fontWeight: 700, color: '#ffffff' }}>{f.title}</h3>
+                <p style={{ fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.5 }}>{f.desc}</p>
+              </div>
+            </ScrollFade>
+          ))}
+        </div>
+      </section>
+
+      {/* ── 4. How It Works ──────────────────────────────────────── */}
+      <section
+        id="how-it-works"
+        style={{
+          position: 'relative',
+          zIndex: 10,
+          padding: isDesktop ? '100px 24px' : '60px 16px',
+          maxWidth: 1200,
+          margin: '0 auto',
+          width: '100%',
+        }}
+      >
+        <ScrollFade>
+          <div style={{ textAlign: 'center', marginBottom: 64 }}>
+            <h2
+              style={{
+                fontFamily: "'Cormorant Garamond', serif",
+                fontSize: isMobile ? '32px' : '42px',
+                fontWeight: 400,
+                color: '#ffffff',
+                marginBottom: 16,
+              }}
+            >
+              How It Works
+            </h2>
+            <p style={{ color: 'var(--text-secondary)', fontSize: 15, maxWidth: 500, margin: '0 auto' }}>
+              Four simple steps to on-chain predictions.
+            </p>
+          </div>
+        </ScrollFade>
+
+        {/* Steps Flow Grid */}
+        <div style={{ display: 'grid', gridTemplateColumns: isDesktop ? 'repeat(4, 1fr)' : '1fr', gap: 32, position: 'relative' }}>
+          {[
+            { num: '01', title: 'Connect Wallet', desc: 'Securely authenticate your Web3 identity.', icon: '👛' },
+            { num: '02', title: 'Choose a Market', desc: 'Select crypto pairings or forecasting rounds.', icon: '📊' },
+            { num: '03', title: 'Predict YES or NO', desc: 'Secure your trade and deposit collateral.', icon: '🎯' },
+            { num: '04', title: 'Claim Rewards', desc: 'Collect USDC automatically after resolution.', icon: '🎁' }
+          ].map((s, idx) => (
+            <ScrollFade key={idx} delay={`${idx * 0.1}s`}>
+              <div 
+                style={{ 
+                  display: 'flex', 
+                  flexDirection: 'column', 
+                  alignItems: 'center', 
+                  textAlign: 'center', 
+                  position: 'relative', 
+                  padding: 24 
+                }}
+              >
+                {/* Visual Connector Dot */}
+                <div 
+                  style={{ 
+                    width: 48, 
+                    height: 48, 
+                    borderRadius: '50%', 
+                    background: 'rgba(255,255,255,0.03)', 
+                    border: '1px solid rgba(255,255,255,0.1)', 
+                    display: 'flex', 
+                    alignItems: 'center', 
+                    justifyContent: 'center', 
+                    fontSize: 20, 
+                    marginBottom: 20,
+                    boxShadow: '0 0 20px rgba(255,255,255,0.02)' 
+                  }}
+                >
+                  {s.icon}
+                </div>
+
+                <div className="font-mono" style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 8 }}>STEP {s.num}</div>
+                <h3 style={{ fontSize: 16, fontWeight: 700, color: '#ffffff', marginBottom: 10 }}>{s.title}</h3>
+                <p style={{ fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.5, maxWidth: 220 }}>{s.desc}</p>
+                
+                {/* Horizontal flow connector helper */}
+                {isDesktop && idx < 3 && (
+                  <div 
+                    style={{ 
+                      position: 'absolute', 
+                      top: 48, 
+                      left: 'calc(50% + 40px)', 
+                      width: 'calc(100% - 80px)', 
+                      height: 1, 
+                      borderTop: '1px dashed rgba(255,255,255,0.1)', 
+                      zIndex: 1 
+                    }} 
+                  />
+                )}
+              </div>
+            </ScrollFade>
+          ))}
+        </div>
+      </section>
+
+      {/* ── 5. Why Arc Network? ──────────────────────────────────── */}
+      <section
+        style={{
+          position: 'relative',
+          zIndex: 10,
+          padding: isDesktop ? '100px 24px' : '60px 16px',
+          maxWidth: 1200,
+          margin: '0 auto',
+          width: '100%',
+        }}
+      >
+        <ScrollFade>
           <div 
             className="glass-card"
             style={{ 
@@ -471,28 +865,15 @@ export default function LandingPage() {
               flexDirection: isDesktop ? 'row' : 'column',
               alignItems: 'center', 
               justifyContent: 'space-between',
-              gap: isDesktop ? 48 : 32,
-              padding: isDesktop ? '60px 48px' : isTablet ? '40px 32px' : '32px 20px',
-              background: 'rgba(255, 255, 255, 0.01)',
+              gap: 48,
+              padding: isDesktop ? '64px' : '32px 24px',
+              background: 'rgba(255, 255, 255, 0.005)',
               border: '1px solid rgba(255, 255, 255, 0.04)',
               borderRadius: 24,
             }}
           >
-            {/* Left Column (Text & Buttons) */}
-            <div style={{ flex: isDesktop ? '1 1 500px' : '1 1 100%', width: '100%' }}>
-              {/* dotMarket Inner Dot logo mark */}
-              <div style={{ marginBottom: 24 }}>
-                <svg viewBox="0 0 100 100" width="36" height="36" xmlns="http://www.w3.org/2000/svg">
-                  <defs>
-                    <mask id="communityLogoMask">
-                      <rect x="0" y="0" width="100" height="100" fill="white" />
-                      <circle cx="72.5" cy="72.5" r="14" fill="black" />
-                    </mask>
-                  </defs>
-                  <circle cx="50" cy="50" r="50" fill="#ffffff" mask="url(#communityLogoMask)" />
-                </svg>
-              </div>
-
+            {/* Left text */}
+            <div style={{ flex: isDesktop ? '1 1 500px' : '1 1 100%' }}>
               <h2
                 style={{
                   fontFamily: "'Cormorant Garamond', serif",
@@ -500,125 +881,60 @@ export default function LandingPage() {
                   fontWeight: 400,
                   color: '#ffffff',
                   lineHeight: 1.2,
-                  margin: '0 0 16px',
+                  margin: '0 0 20px',
                 }}
               >
-                Join our community
+                Why Arc Network?
               </h2>
               
-              <p style={{ color: 'var(--text-secondary)', fontSize: 15, lineHeight: 1.6, margin: '0 0 32px', maxWidth: 450 }}>
-                Sub-Minute Resolution. Pure On-Chain Liquidity. Powered by Pyth.
+              <p style={{ color: 'var(--text-secondary)', fontSize: 15, lineHeight: 1.6, margin: '0 0 32px' }}>
+                dotMarket leverages the high-throughput architecture of Arc Network to offer speed and cost efficiency that are impossible on standard layer-1 chains.
               </p>
 
-              {/* Custom styled Discord button with halo glow */}
-              <div style={{ position: 'relative', display: 'inline-block', marginBottom: 32 }}>
-                <div
-                  style={{
-                    position: 'absolute',
-                    inset: '-4px',
-                    background: 'radial-gradient(circle, rgba(255,255,255,0.08) 0%, transparent 70%)',
-                    filter: 'blur(6px)',
-                    pointerEvents: 'none',
-                  }}
-                />
-                <a href="#" style={{ textDecoration: 'none' }}>
-                  <button
-                    style={{
-                      padding: '12px 28px',
-                      borderRadius: 8,
-                      fontSize: 13,
-                      fontWeight: 600,
-                      cursor: 'pointer',
-                      background: '#09090b',
-                      color: '#ffffff',
-                      border: '1px solid rgba(255, 255, 255, 0.15)',
-                      transition: 'all 0.2s',
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: 8,
-                    }}
-                    onMouseEnter={(e) => {
-                      e.currentTarget.style.borderColor = 'rgba(255,255,255,0.4)';
-                      e.currentTarget.style.background = 'rgba(255,255,255,0.03)';
-                    }}
-                    onMouseLeave={(e) => {
-                      e.currentTarget.style.borderColor = 'rgba(255,255,255,0.15)';
-                      e.currentTarget.style.background = '#09090b';
-                    }}
-                  >
-                    Join Discord ↗
-                  </button>
-                </a>
-              </div>
-
-              {/* Small Line Drawing Social Links */}
-              <div style={{ display: 'flex', gap: 20, marginBottom: isDesktop ? 0 : 32 }}>
-                {/* Twitter/X Link */}
-                <a href="#" style={{ color: 'var(--text-muted)', transition: 'color 0.2s' }} onMouseEnter={(e) => e.currentTarget.style.color = '#ffffff'} onMouseLeave={(e) => e.currentTarget.style.color = 'var(--text-muted)'}>
-                  <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
-                  </svg>
-                </a>
-
-                {/* Telegram Link */}
-                <a href="#" style={{ color: 'var(--text-muted)', transition: 'color 0.2s' }} onMouseEnter={(e) => e.currentTarget.style.color = '#ffffff'} onMouseLeave={(e) => e.currentTarget.style.color = 'var(--text-muted)'}>
-                  <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M21.9 2.1L2.1 9.7c-1.3.5-1.3 1.3-.2 1.6l5.1 1.6 1.8 5.6c.2.6.1.8.8.8.5 0 .7-.2 1-.5l2.4-2.3 5 3.7c.9.5 1.6.2 1.8-.8L23.9 4c.3-1.4-.5-2-1.4-1.9z" />
-                  </svg>
-                </a>
-
-                {/* Documents Link */}
-                <a href="#" style={{ color: 'var(--text-muted)', transition: 'color 0.2s' }} onMouseEnter={(e) => e.currentTarget.style.color = '#ffffff'} onMouseLeave={(e) => e.currentTarget.style.color = 'var(--text-muted)'}>
-                  <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 6.042A8.967 8.967 0 006 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 016 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 016-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0018 18a8.967 8.967 0 00-6 2.292m0-14.25v14.25" />
-                  </svg>
-                </a>
+              {/* Bullet features */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+                {[
+                  { title: 'Near-Instant Finality', desc: 'Predict right up to the final second without transaction delays.' },
+                  { title: 'Frictionless Low Fees', desc: 'Execute micro-predictions economically with minimal gas fees.' },
+                  { title: 'Scalable Infrastructure', desc: 'Engineered to support thousands of parallel high-frequency pools.' },
+                  { title: 'Developer-Friendly Ecosystem', desc: 'Integrated with top-tier oracles and cross-chain compatibility bridges.' }
+                ].map((item, idx) => (
+                  <div key={idx} style={{ display: 'flex', gap: 12 }}>
+                    <span style={{ color: '#ffffff', fontWeight: 700 }}>✓</span>
+                    <div>
+                      <strong style={{ display: 'block', fontSize: 14, color: '#ffffff' }}>{item.title}</strong>
+                      <span style={{ fontSize: 13, color: 'var(--text-secondary)' }}>{item.desc}</span>
+                    </div>
+                  </div>
+                ))}
               </div>
             </div>
 
-            {/* Right Column (Hatched Vector Mountain Artwork) */}
+            {/* Right abstract logo/graphics panel */}
             <div style={{ flex: isDesktop ? '1 1 400px' : '1 1 100%', display: 'flex', justifyContent: 'center', width: '100%' }}>
-              <div style={{ width: '100%', maxWidth: 460, borderRadius: 16, overflow: 'hidden', border: '1px solid rgba(255,255,255,0.03)' }}>
-                <svg viewBox="0 0 500 300" width="100%" height="100%" xmlns="http://www.w3.org/2000/svg" style={{ display: 'block', background: '#050505' }}>
-                  <defs>
-                    {/* Hatching patterns for engraving look */}
-                    <pattern id="hatch-1" width="10" height="10" patternTransform="rotate(45 0 0)" patternUnits="userSpaceOnUse">
-                      <line x1="0" y1="0" x2="0" y2="10" stroke="rgba(255,255,255,0.18)" strokeWidth="1" />
-                    </pattern>
-                    <pattern id="hatch-2" width="6" height="6" patternTransform="rotate(-45 0 0)" patternUnits="userSpaceOnUse">
-                      <line x1="0" y1="0" x2="0" y2="6" stroke="rgba(255,255,255,0.12)" strokeWidth="0.8" />
-                    </pattern>
-                    <linearGradient id="skyGlow" x1="0%" y1="0%" x2="100%" y2="100%">
-                      <stop offset="0%" stop-color="rgba(255,255,255,0.06)" />
-                      <stop offset="100%" stop-color="rgba(0,0,0,0)" />
-                    </linearGradient>
-                  </defs>
-
-                  {/* Sky background */}
-                  <rect width="500" height="300" fill="url(#skyGlow)" />
-
-                  {/* Constellation lines */}
-                  <line x1="120" y1="60" x2="200" y2="90" stroke="rgba(255,255,255,0.1)" strokeWidth="0.6" strokeDasharray="3 3" />
-                  <line x1="200" y1="90" x2="280" y2="40" stroke="rgba(255,255,255,0.1)" strokeWidth="0.6" strokeDasharray="3 3" />
-                  <circle cx="120" cy="60" r="1.5" fill="#ffffff" />
-                  <circle cx="200" cy="90" r="2" fill="#ffffff" style={{ filter: 'drop-shadow(0 0 3px #ffffff)' }} />
-                  <circle cx="280" cy="40" r="1.5" fill="#ffffff" />
-
-                  {/* Twinkles */}
-                  <circle cx="80" cy="110" r="0.8" fill="#ffffff" opacity="0.6" />
-                  <circle cx="340" cy="70" r="1" fill="#ffffff" opacity="0.8" />
-                  <circle cx="420" cy="140" r="0.6" fill="#ffffff" opacity="0.4" />
-
-                  {/* Mountain 3 (Back) */}
-                  <path d="M 120 300 L 280 120 L 440 300 Z" fill="url(#hatch-2)" stroke="rgba(255,255,255,0.08)" strokeWidth="0.8" />
-                  
-                  {/* Mountain 2 (Middle) */}
-                  <path d="M 40 300 L 210 80 L 380 300 Z" fill="#050505" />
-                  <path d="M 40 300 L 210 80 L 380 300 Z" fill="url(#hatch-1)" stroke="rgba(255,255,255,0.18)" strokeWidth="1.2" />
-
-                  {/* Mountain 1 (Front) */}
-                  <path d="M 180 300 L 340 150 L 500 300 Z" fill="#000000" />
-                  <path d="M 180 300 L 340 150 L 500 300 Z" fill="url(#hatch-2)" stroke="rgba(255,255,255,0.22)" strokeWidth="1.5" />
+              <div 
+                style={{ 
+                  width: '100%', 
+                  maxWidth: 400, 
+                  aspectRatio: '1', 
+                  borderRadius: '50%', 
+                  background: 'radial-gradient(circle, rgba(255,255,255,0.015) 0%, transparent 70%)',
+                  border: '1px solid rgba(255,255,255,0.03)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  position: 'relative'
+                }}
+              >
+                {/* Arc stylized vector mark */}
+                <svg viewBox="0 0 100 100" width="160" height="160" xmlns="http://www.w3.org/2000/svg">
+                  <circle cx="50" cy="50" r="30" fill="none" stroke="rgba(255,255,255,0.05)" strokeWidth="0.8" />
+                  <circle cx="50" cy="50" r="42" fill="none" stroke="rgba(255,255,255,0.02)" strokeWidth="0.5" />
+                  {/* Elegant intersecting curves */}
+                  <path d="M20 50 A30 30 0 0 1 80 50" fill="none" stroke="#ffffff" strokeWidth="1.5" opacity="0.6" />
+                  <path d="M20 50 A30 30 0 0 0 80 50" fill="none" stroke="rgba(255,255,255,0.15)" strokeWidth="1" strokeDasharray="3 3" />
+                  <circle cx="50" cy="20" r="3" fill="#ffffff" />
+                  <circle cx="50" cy="80" r="2" fill="#ffffff" opacity="0.5" />
                 </svg>
               </div>
             </div>
@@ -626,76 +942,399 @@ export default function LandingPage() {
         </ScrollFade>
       </section>
 
-      {/* ── Footer ────────────────────────────────────────────────── */}
+      {/* ── 6. Platform Statistics ───────────────────────────────── */}
+      <section
+        id="stats"
+        style={{
+          position: 'relative',
+          zIndex: 10,
+          padding: isDesktop ? '100px 24px' : '60px 16px',
+          background: 'rgba(255, 255, 255, 0.003)',
+          borderTop: '1px solid rgba(255,255,255,0.03)',
+          borderBottom: '1px solid rgba(255,255,255,0.03)',
+          width: '100%',
+        }}
+      >
+        <div style={{ maxWidth: 1200, margin: '0 auto', width: '100%' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr 1fr' : 'repeat(auto-fit, minmax(180px, 1fr))', gap: 32, textAlign: 'center' }}>
+            {[
+              { label: 'Trading Volume', value: '42.8', suffix: 'M', prefix: '$' },
+              { label: 'Markets Created', value: '12400', suffix: '+', prefix: '' },
+              { label: 'Predictions Made', value: '1.6', suffix: 'M+', prefix: '' },
+              { label: 'Active Traders', value: '45800', suffix: '+', prefix: '' },
+              { label: 'Settlement Accuracy', value: '99.99', suffix: '%', prefix: '' },
+              { label: 'Protocol Uptime', value: '99.99', suffix: '%', prefix: '' }
+            ].map((stat, idx) => (
+              <div key={idx} style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                <span style={{ fontSize: 12, color: 'var(--text-secondary)', fontWeight: 600, letterSpacing: '0.5px' }}>{stat.label.toUpperCase()}</span>
+                <strong style={{ fontSize: isMobile ? '24px' : '36px', fontWeight: 300, color: '#ffffff', fontFamily: 'var(--font-mono)' }}>
+                  {stat.prefix}
+                  <AnimatedStat value={stat.value} />
+                  {stat.suffix}
+                </strong>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ── 7. Security & Trust ──────────────────────────────────── */}
+      <section
+        style={{
+          position: 'relative',
+          zIndex: 10,
+          padding: isDesktop ? '100px 24px' : '60px 16px',
+          maxWidth: 1200,
+          margin: '0 auto',
+          width: '100%',
+        }}
+      >
+        <ScrollFade>
+          <div style={{ textAlign: 'center', marginBottom: 56 }}>
+            <h2
+              style={{
+                fontFamily: "'Cormorant Garamond', serif",
+                fontSize: isMobile ? '32px' : '42px',
+                fontWeight: 400,
+                color: '#ffffff',
+                marginBottom: 16,
+              }}
+            >
+              Security & Trust
+            </h2>
+            <p style={{ color: 'var(--text-secondary)', fontSize: 15, maxWidth: 500, margin: '0 auto' }}>
+              Pillars of security securing every transaction.
+            </p>
+          </div>
+        </ScrollFade>
+
+        {/* Security Cards Grid */}
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 20 }}>
+          {[
+            { title: 'Self-Custody', desc: 'Withdraw and trade without third-party custodianship.', icon: '🛡️' },
+            { title: 'On-Chain Settlement', desc: 'Contract checks and price feeds settle fully on-chain.', icon: '🔗' },
+            { title: 'Transparent Smart Contracts', desc: 'Auditable code bases verify pool settlements.', icon: '🔎' },
+            { title: 'Immutable Transactions', desc: 'No transaction can be rolled back or censored.', icon: '🔒' },
+            { title: 'Community Driven', desc: 'Fees and features flow back into pool liquidity.', icon: '👥' },
+            { title: 'Secure Infrastructure', desc: 'Redundant RPC structures block loop crashes.', icon: '🏗️' }
+          ].map((sec, idx) => (
+            <ScrollFade key={idx} delay={`${idx * 0.05}s`}>
+              <div 
+                className="feature-card" 
+                style={{ 
+                  padding: 24, 
+                  height: '100%', 
+                  display: 'flex', 
+                  flexDirection: 'column', 
+                  gap: 12,
+                  background: 'rgba(255, 255, 255, 0.005)' 
+                }}
+              >
+                <span style={{ fontSize: 20 }}>{sec.icon}</span>
+                <h3 style={{ fontSize: 15, fontWeight: 700, color: '#ffffff' }}>{sec.title}</h3>
+                <p style={{ fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.5 }}>{sec.desc}</p>
+              </div>
+            </ScrollFade>
+          ))}
+        </div>
+      </section>
+
+      {/* ── 8. Roadmap ───────────────────────────────────────────── */}
+      <section
+        style={{
+          position: 'relative',
+          zIndex: 10,
+          padding: isDesktop ? '100px 24px' : '60px 16px',
+          maxWidth: 1200,
+          margin: '0 auto',
+          width: '100%',
+        }}
+      >
+        <ScrollFade>
+          <div style={{ textAlign: 'center', marginBottom: 48 }}>
+            <h2
+              style={{
+                fontFamily: "'Cormorant Garamond', serif",
+                fontSize: isMobile ? '32px' : '42px',
+                fontWeight: 400,
+                color: '#ffffff',
+                marginBottom: 16,
+              }}
+            >
+              Development Roadmap
+            </h2>
+            <p style={{ color: 'var(--text-secondary)', fontSize: 15, maxWidth: 500, margin: '0 auto' }}>
+              The future of high-frequency prediction markets.
+            </p>
+          </div>
+        </ScrollFade>
+
+        {/* Roadmap horizontal timeline container */}
+        <div className="roadmap-timeline-container">
+          {[
+            { phase: 'Q2', title: 'Protocol Launch', desc: 'Core smart contract pools deployed on testnet.' },
+            { phase: 'Q3', title: 'Prediction Markets', desc: 'Launch multi-collateral and advanced metrics forecast pools.' },
+            { phase: 'Q4', title: 'Mobile Trading', desc: 'Launch dedicated responsive mobile terminal app views.' },
+            { phase: 'Future', title: 'Market Creation', desc: 'Allow user-created custom prediction pools.' },
+            { phase: 'Future', title: 'DAO Governance', desc: 'Transition protocol mechanics to token voting structures.' },
+            { phase: 'Future', title: 'Cross-Chain', desc: 'Deploy on Arbitrum, Base, and Solana via bridging protocols.' }
+          ].map((item, idx) => (
+            <div 
+              key={idx}
+              className="glass-card"
+              style={{
+                flex: '0 0 240px',
+                padding: '24px',
+                background: 'rgba(255, 255, 255, 0.01)',
+                border: '1px solid rgba(255, 255, 255, 0.04)',
+                borderRadius: 16
+              }}
+            >
+              <span className="font-mono" style={{ fontSize: 11, color: 'var(--accent)', fontWeight: 700, display: 'block', marginBottom: 8 }}>{item.phase}</span>
+              <h3 style={{ fontSize: 15, fontWeight: 700, color: '#ffffff', marginBottom: 8 }}>{item.title}</h3>
+              <p style={{ fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.4 }}>{item.desc}</p>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* ── 9. FAQ Accordion Section ────────────────────────────── */}
+      <section
+        id="faq"
+        style={{
+          position: 'relative',
+          zIndex: 10,
+          padding: isDesktop ? '100px 24px' : '60px 16px',
+          maxWidth: 800,
+          margin: '0 auto',
+          width: '100%',
+        }}
+      >
+        <ScrollFade>
+          <div style={{ textAlign: 'center', marginBottom: 48 }}>
+            <h2
+              style={{
+                fontFamily: "'Cormorant Garamond', serif",
+                fontSize: isMobile ? '32px' : '42px',
+                fontWeight: 400,
+                color: '#ffffff',
+                marginBottom: 16,
+              }}
+            >
+              Frequently Asked Questions
+            </h2>
+            <p style={{ color: 'var(--text-secondary)', fontSize: 15, maxWidth: 500, margin: '0 auto' }}>
+              Clear answers to core mechanism details.
+            </p>
+          </div>
+        </ScrollFade>
+
+        {/* FAQ Accordion container */}
+        <div style={{ border: '1px solid rgba(255,255,255,0.05)', borderRadius: 16, overflow: 'hidden', background: 'rgba(255,255,255,0.005)' }}>
+          <FAQItem 
+            question="What is dotMarket?" 
+            answer="dotMarket is a decentralized, high-frequency prediction platform built on Arc Network. It allows users to place binary predictions (UP or DOWN) on asset prices with sub-minute resolutions using a pari-mutuel AMM structure." 
+          />
+          <FAQItem 
+            question="How do prediction markets work?" 
+            answer="Traders allocate collateral (USDC) into either the UP pool or the DOWN pool. When the prediction window locks, the ratio is set. Once the round resolves, the winning side takes the accumulated pool, split proportionally based on individual collateral contributions." 
+          />
+          <FAQItem 
+            question="How are markets resolved?" 
+            answer="Markets are settled on-chain via automated keeper bots that query real-time oracle price feeds (such as the Pyth Network Hermes feed). This ensures transparent, fast, and tamper-proof resolution." 
+          />
+          <FAQItem 
+            question="Is dotMarket non-custodial?" 
+            answer="Yes, completely. dotMarket is constructed of non-custodial smart contracts. All tokens remain in your personal Web3 wallet or in the locked smart contract escrow during active rounds, and can only be withdrawn by you." 
+          />
+          <FAQItem 
+            question="Which wallets are supported?" 
+            answer="Any Web3 EIP-1193 compatible wallet (like MetaMask, Coinbase Wallet, Rabby, or Rainbow) is supported through the standard wagmi connector suite." 
+          />
+          <FAQItem 
+            question="Is KYC required?" 
+            answer="No. dotMarket is a decentralized protocol. You only need to connect a compatible Web3 wallet and hold testnet gas (ETH/USDC) to begin trading." 
+          />
+          <FAQItem 
+            question="What fees are charged?" 
+            answer="dotMarket charges minimal protocol fees of 1-2% on winning payouts. These fees accumulate to fuel keeper gas buffers and support active community development rewards." 
+          />
+          <FAQItem 
+            question="When is mobile trading coming?" 
+            answer="Mobile-optimized terminal views are currently scheduled for release in Q4. However, you can currently view the landing page and read active stats from any mobile viewport." 
+          />
+        </div>
+      </section>
+
+      {/* ── 10. Final CTA ────────────────────────────────────────── */}
+      <section
+        style={{
+          position: 'relative',
+          zIndex: 10,
+          padding: isDesktop ? '100px 24px 120px' : '60px 16px 80px',
+          maxWidth: 1200,
+          margin: '0 auto',
+          width: '100%',
+        }}
+      >
+        <ScrollFade>
+          <div 
+            className="glass-glow-panel"
+            style={{ 
+              borderRadius: 24, 
+              padding: isDesktop ? '80px 48px' : '48px 24px', 
+              textAlign: 'center',
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              position: 'relative',
+              overflow: 'hidden'
+            }}
+          >
+            {/* Glowing highlight */}
+            <div 
+              style={{
+                position: 'absolute',
+                top: '-50%',
+                left: '50%',
+                transform: 'translateX(-50%)',
+                width: '300px',
+                height: '300px',
+                background: 'radial-gradient(circle, rgba(255,255,255,0.04) 0%, transparent 70%)',
+                filter: 'blur(50px)',
+                pointerEvents: 'none'
+              }}
+            />
+
+            <h2
+              style={{
+                fontFamily: "'Cormorant Garamond', serif",
+                fontSize: isMobile ? '36px' : '52px',
+                fontWeight: 400,
+                color: '#ffffff',
+                marginBottom: 16,
+                letterSpacing: '-1px'
+              }}
+            >
+              Ready to Predict the Future?
+            </h2>
+            <p style={{ color: 'var(--text-secondary)', fontSize: 15, maxWidth: 500, marginBottom: 40, lineHeight: 1.6 }}>
+              Connect your wallet, explore active rounds, and join the high-frequency trading arena.
+            </p>
+
+            <div style={{ display: 'flex', flexDirection: isMobile ? 'column' : 'row', gap: 16, width: isMobile ? '100%' : 'auto', justifyContent: 'center' }}>
+              <Link href="/trade" style={{ textDecoration: 'none', width: isMobile ? '100%' : 'auto' }}>
+                <button
+                  className="btn-up"
+                  style={{
+                    width: isMobile ? '100%' : 'auto',
+                    padding: '16px 44px',
+                    fontSize: 15,
+                    fontWeight: 700,
+                    borderRadius: 10,
+                  }}
+                >
+                  Start Trading
+                </button>
+              </Link>
+              <a href="#markets" style={{ textDecoration: 'none', width: isMobile ? '100%' : 'auto' }}>
+                <button
+                  style={{
+                    width: isMobile ? '100%' : 'auto',
+                    padding: '15px 36px',
+                    fontSize: 15,
+                    fontWeight: 600,
+                    borderRadius: 10,
+                    cursor: 'pointer',
+                    color: '#ffffff',
+                    background: 'rgba(255, 255, 255, 0.02)',
+                    border: '1px solid rgba(255, 255, 255, 0.08)',
+                    transition: 'all 0.2s',
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.2)';
+                    e.currentTarget.style.background = 'rgba(255, 255, 255, 0.04)';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.08)';
+                    e.currentTarget.style.background = 'rgba(255, 255, 255, 0.02)';
+                  }}
+                >
+                  Explore Markets
+                </button>
+              </a>
+            </div>
+          </div>
+        </ScrollFade>
+      </section>
+
+      {/* ── 11. Footer ───────────────────────────────────────────── */}
       <ScrollFade style={{ width: '100%' }}>
         <footer
           style={{
             position: 'relative',
             zIndex: 10,
             borderTop: '1px solid rgba(255, 255, 255, 0.06)',
-            padding: isDesktop ? '48px 24px 32px' : '32px 16px 24px',
+            padding: isDesktop ? '64px 24px 32px' : '48px 16px 24px',
             maxWidth: 1200,
             margin: '0 auto',
             width: '100%',
           }}
         >
-          {/* Top half */}
+          {/* Top Multi-column grids */}
           <div 
             style={{ 
-              display: 'flex', 
-              flexDirection: isDesktop ? 'row' : 'column',
-              justifyContent: 'space-between', 
-              alignItems: 'center',
-              marginBottom: isDesktop ? 32 : 24,
-              gap: 20
+              display: 'grid',
+              gridTemplateColumns: isMobile ? '1fr 1fr' : isTablet ? '1fr 1fr 1.5fr' : '2fr 1fr 1fr 1fr',
+              gap: 40,
+              marginBottom: 48
             }}
           >
-            {/* Logo */}
-            <div style={{ display: 'flex', alignItems: 'center' }}>
+            {/* Brand Logo & Tag */}
+            <div style={{ gridColumn: isMobile ? 'span 2' : 'span 1', display: 'flex', flexDirection: 'column', gap: 16 }}>
               <svg viewBox="0 0 200 60" width="130" height="39" xmlns="http://www.w3.org/2000/svg">
-                <defs>
-                  <mask id="footerLogoMask">
-                    <rect x="0" y="0" width="200" height="60" fill="white" />
-                    <circle cx="20.5" cy="34.5" r="2.8" fill="black" />
-                  </mask>
-                </defs>
                 <circle cx="16" cy="30" r="10" fill="#ffffff" mask="url(#footerLogoMask)" />
                 <line x1="32" y1="42" x2="44" y2="18" stroke="#525252" strokeWidth="2" strokeLinecap="round" />
                 <text x="54" y="38" fontFamily="system-ui, sans-serif" fontSize="26" fontWeight="800" fill="#ffffff" letterSpacing="-1">dot</text>
                 <text x="95" y="38" fontFamily="system-ui, sans-serif" fontSize="26" fontWeight="300" fill="#737373" letterSpacing="-1">Market</text>
               </svg>
+              <span style={{ fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.5, maxWidth: 220 }}>
+                High-frequency binary decentralized prediction pools on Arc Network.
+              </span>
             </div>
 
-            {/* Social Row */}
-            <div style={{ display: 'flex', gap: 16 }}>
-              {/* Twitter/X */}
-              <a href="#" style={{ color: 'var(--text-secondary)', transition: 'color 0.2s' }} onMouseEnter={(e) => e.currentTarget.style.color = '#ffffff'} onMouseLeave={(e) => e.currentTarget.style.color = 'var(--text-secondary)'}>
-                <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
-                </svg>
-              </a>
-              {/* Telegram */}
-              <a href="#" style={{ color: 'var(--text-secondary)', transition: 'color 0.2s' }} onMouseEnter={(e) => e.currentTarget.style.color = '#ffffff'} onMouseLeave={(e) => e.currentTarget.style.color = 'var(--text-secondary)'}>
-                <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M21.9 2.1L2.1 9.7c-1.3.5-1.3 1.3-.2 1.6l5.1 1.6 1.8 5.6c.2.6.1.8.8.8.5 0 .7-.2 1-.5l2.4-2.3 5 3.7c.9.5 1.6.2 1.8-.8L23.9 4c.3-1.4-.5-2-1.4-1.9z" />
-                </svg>
-              </a>
-              {/* Discord */}
-              <a href="#" style={{ color: 'var(--text-secondary)', transition: 'color 0.2s' }} onMouseEnter={(e) => e.currentTarget.style.color = '#ffffff'} onMouseLeave={(e) => e.currentTarget.style.color = 'var(--text-secondary)'}>
-                <svg width="16" height="16" fill="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                  <path d="M19.27 4.73a16.14 16.14 0 0 0-3.97-1.23.08.08 0 0 0-.08.04 11.23 11.23 0 0 0-.5 1.02 14.88 14.88 0 0 0-4.44 0 11.3 11.3 0 0 0-.51-1.02.08.08 0 0 0-.08-.04 16.1 16.1 0 0 0-3.97 1.23.08.08 0 0 0-.03.03 16.17 16.17 0 0 0-3.1 11.75.09.09 0 0 0 .04.06 16.24 16.24 0 0 0 4.9 2.48.08.08 0 0 0 .09-.03c.38-.52.72-1.07 1-1.65a.08.08 0 0 0-.04-.11 10.63 10.63 0 0 1-1.5-.72.08.08 0 0 1-.01-.13 7.8 7.8 0 0 0 .3-.23.08.08 0 0 1 .08-.01c3.1 1.42 6.46 1.42 9.5 0a.08.08 0 0 1 .08.01c.1.08.2.16.3.24a.08.08 0 0 1-.01.13 10.84 10.84 0 0 1-1.5.72.08.08 0 0 0-.04.11c.29.58.63 1.13 1 1.65a.08.08 0 0 0 .09.03 16.18 16.18 0 0 0 4.9-2.48.08.08 0 0 0 .04-.06 16.17 16.17 0 0 0-3.07-11.75.08.08 0 0 0-.06-.03z" />
-                </svg>
-              </a>
-              {/* Gitbook / Docs */}
-              <a href="#" style={{ color: 'var(--text-secondary)', transition: 'color 0.2s' }} onMouseEnter={(e) => e.currentTarget.style.color = '#ffffff'} onMouseLeave={(e) => e.currentTarget.style.color = 'var(--text-secondary)'}>
-                <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 6.042A8.967 8.967 0 006 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 016 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 016-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0018 18a8.967 8.967 0 00-6 2.292m0-14.25v14.25" />
-                </svg>
-              </a>
+            {/* Product Column */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+              <strong style={{ fontSize: 13, color: '#ffffff', letterSpacing: '0.5px' }}>PRODUCT</strong>
+              {['Start Trading', 'Leaderboard', 'Portfolio'].map((link) => (
+                <Link key={link} href="/trade" style={{ textDecoration: 'none', fontSize: 13, color: 'var(--text-secondary)' }}>
+                  {link}
+                </Link>
+              ))}
+            </div>
+
+            {/* Documentation Column */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+              <strong style={{ fontSize: 13, color: '#ffffff', letterSpacing: '0.5px' }}>RESOURCES</strong>
+              {['Documentation', 'Brand Kit', 'Privacy Policy', 'Terms of Service'].map((link) => (
+                <a key={link} href="#" style={{ textDecoration: 'none', fontSize: 13, color: 'var(--text-secondary)' }}>
+                  {link}
+                </a>
+              ))}
+            </div>
+
+            {/* Social Column */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+              <strong style={{ fontSize: 13, color: '#ffffff', letterSpacing: '0.5px' }}>COMMUNITY</strong>
+              {['X (Twitter)', 'Discord', 'Telegram', 'GitHub'].map((link) => (
+                <a key={link} href="#" style={{ textDecoration: 'none', fontSize: 13, color: 'var(--text-secondary)' }}>
+                  {link}
+                </a>
+              ))}
             </div>
           </div>
 
-          {/* Bottom half (Copyright + status) */}
+          {/* Bottom Copyright Status bar */}
           <div 
             style={{ 
               display: 'flex', 
@@ -706,7 +1345,8 @@ export default function LandingPage() {
               color: 'var(--text-muted)',
               gap: 16,
               textAlign: 'center',
-              width: '100%'
+              borderTop: '1px solid rgba(255,255,255,0.03)',
+              paddingTop: 24
             }}
           >
             <div>&copy; {new Date().getFullYear()} dotMarket. All rights reserved.</div>
@@ -718,8 +1358,6 @@ export default function LandingPage() {
                 <div className="animate-pulse-live" style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--up)' }} />
                 <span style={{ fontSize: 11, fontFamily: 'var(--font-mono)' }}>Status: Active</span>
               </div>
-              <div style={{ width: 1, height: 10, background: 'rgba(255,255,255,0.1)' }} />
-              <span style={{ fontSize: 11, fontFamily: 'var(--font-mono)', cursor: 'pointer' }}>Brand Kit</span>
             </div>
           </div>
         </footer>
