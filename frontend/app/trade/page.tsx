@@ -5,7 +5,6 @@ import Link from 'next/link';
 import { useAccount, useReadContract } from 'wagmi';
 import { ROUND_MARKET_ABI } from '@/lib/abi';
 import { useContracts } from '@/hooks/useNetworkConfig';
-import { NetworkSelector } from '@/components/NetworkSelector';
 import { ConnectButton } from '@/components/ConnectButton';
 import { TradingViewChart } from '@/components/TradingViewChart';
 import { BettingPanel } from '@/components/BettingPanel';
@@ -289,7 +288,10 @@ export default function TradePage() {
 
         {/* Right Wallet Action */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
-          <NetworkSelector />
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'rgba(139, 92, 246, 0.1)', border: '1px solid rgba(139, 92, 246, 0.2)', padding: '6px 12px', borderRadius: 20 }}>
+            <div className="animate-pulse-live" style={{ width: 6, height: 6, borderRadius: '50%', background: '#8b5cf6' }} />
+            <span style={{ fontSize: 11, fontWeight: 700, color: '#8b5cf6', letterSpacing: '0.5px' }}>ARC TESTNET</span>
+          </div>
           <ConnectButton />
         </div>
       </header>

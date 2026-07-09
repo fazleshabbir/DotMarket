@@ -4,13 +4,11 @@ import React, { useState, useEffect } from 'react';
 import { useAccount, useReadContract, useWriteContract, useWaitForTransactionReceipt } from 'wagmi';
 import { parseEther, formatEther } from 'viem';
 import { ROUND_MARKET_ABI } from '@/lib/abi';
-import { useCurrentChain, useContracts, useExplorer } from '../hooks/useNetworkConfig';
-import { useEthPrice } from '../hooks/useEthPrice';
+import { useContracts } from '@/hooks/useNetworkConfig';
 import { RoundTimer } from './RoundTimer';
 import { Button } from './ui/Button';
 import { Card } from './ui/Card';
 import { Input } from './ui/Input';
-import { Modal } from './ui/Modal';
 
 interface RoundData {
   roundId: bigint;
@@ -34,27 +32,11 @@ interface BettingPanelProps {
 export function BettingPanel({ currentBtcPrice }: BettingPanelProps) {
   const [mounted, setMounted] = useState(false);
   const { address, isConnected } = useAccount();
-  
-  // Custom multi-chain hooks
-  const currentChain = useCurrentChain();
-  const contracts = useContracts();
-  const explorer = useExplorer();
-  const ethPriceQuery = useEthPrice();
-  
-  const MARKET_ADDRESS = contracts.predictionMarket;
-
-  const [inputCurrency, setInputCurrency] = useState<'USDT' | 'NATIVE'>(
-    currentChain.bettingToken.isNative ? 'NATIVE' : 'USDT'
-  );
-  
-  // Force reset currency toggle when switching chains
-  useEffect(() => {
-    setInputCurrency(currentChain.bettingToken.isNative ? 'NATIVE' : 'USDT');
-  }, [currentChain.chain.id]);
-
-  const [inputValue, setInputValue] = useState('');
+  const [betAmount, setBetAmount] = useState('');
   const [txStatus, setTxStatus] = useState<string | null>(null);
-  const [confirmModalState, setConfirmModalState] = useState<{ isOpen: boolean, position: number | null }>({ isOpen: false, position: null });
+
+  const contracts = useContracts();
+  const MARKET_ADDRESS = contracts.predictionMarket;
 
   useEffect(() => {
     setMounted(true);
@@ -144,61 +126,21 @@ export function BettingPanel({ currentBtcPrice }: BettingPanelProps) {
     else if (isConfirming) setTxStatus('⛓️ Confirming transaction...');
     else if (isSuccess) {
       setTxStatus('✅ Operation successful!');
-      setInputValue('');
+      setBetAmount('');
       setTimeout(() => setTxStatus(null), 4000);
     }
   }, [isPending, isConfirming, isSuccess]);
 
-  // Handle Conversion
-  const parsedInput = parseFloat(inputValue);
-  const isValidInput = !isNaN(parsedInput) && parsedInput > 0;
-  
-  let nativeEthAmountStr = '';
-  let usdtDisplayStr = '';
-  
-  if (currentChain.bettingToken.isNative) {
-    // E.g. Arc Testnet where betting token IS the native token (USDC)
-    nativeEthAmountStr = isValidInput ? inputValue : '0';
-  } else {
-    // E.g. Robinhood Testnet where betting token is USDT, but native is ETH
-    if (inputCurrency === 'USDT') {
-      if (ethPriceQuery.price && isValidInput) {
-        nativeEthAmountStr = (parsedInput / ethPriceQuery.price).toFixed(6);
-        usdtDisplayStr = inputValue;
-      }
-    } else {
-      if (ethPriceQuery.price && isValidInput) {
-        nativeEthAmountStr = inputValue;
-        usdtDisplayStr = (parsedInput * ethPriceQuery.price).toFixed(2);
-      }
-    }
-  }
-
-  // Pre-bet validation
-  const promptBetConfirmation = (position: number) => {
-    if (!isValidInput) return;
-    
-    // Check if price feed is missing when we need it
-    if (!currentChain.bettingToken.isNative && !ethPriceQuery.price) {
-      setTxStatus('❌ Unable to retrieve the latest ETH price. Please try again shortly.');
-      return;
-    }
-    
-    setConfirmModalState({ isOpen: true, position });
-  };
-
   // Place bet action
-  const handlePlaceBet = () => {
-    if (confirmModalState.position === null || !nativeEthAmountStr) return;
-    setConfirmModalState({ isOpen: false, position: null });
-    
+  const handlePlaceBet = (position: number) => {
+    if (!betAmount || parseFloat(betAmount) <= 0) return;
     try {
       writeContract({
         address: MARKET_ADDRESS,
         abi: ROUND_MARKET_ABI,
         functionName: 'placeBet',
-        args: [activeRoundId, confirmModalState.position],
-        value: parseEther(nativeEthAmountStr),
+        args: [activeRoundId, position],
+        value: parseEther(betAmount),
       });
     } catch (err) {
       setTxStatus(`❌ Error: ${err instanceof Error ? err.message : 'Unknown error'}`);
@@ -221,13 +163,11 @@ export function BettingPanel({ currentBtcPrice }: BettingPanelProps) {
 
   // Calculations for Active Round
   const activeNow = Math.floor(Date.now() / 1000);
+  // A round is only valid if it has a non-zero lockTimestamp (initialized on-chain)
   const hasValidActiveRound = activeRound && Number(activeRound.lockTimestamp) > 0;
   const isActiveLocked = hasValidActiveRound ? activeNow >= Number(activeRound!.lockTimestamp) : true;
   const isActiveResolved = activeRound?.resolved || activeRound?.canceled || false;
-  
-  // Disable betting if we don't have price feed on chains that need conversion
-  const priceFeedOk = currentChain.bettingToken.isNative || !!ethPriceQuery.price;
-  const canBet = isConnected && activeRoundId > 0n && hasValidActiveRound && !isActiveLocked && !isActiveResolved && !hasPlacedActiveBet && !isPending && !isConfirming && priceFeedOk;
+  const canBet = isConnected && activeRoundId > 0n && hasValidActiveRound && !isActiveLocked && !isActiveResolved && !hasPlacedActiveBet && !isPending && !isConfirming;
 
   const activeTotalPool = activeRound ? activeRound.totalUpAmount + activeRound.totalDownAmount : 0n;
   const activeUpPercent = activeTotalPool > 0n ? Number((activeRound!.totalUpAmount * 10000n) / activeTotalPool) / 100 : 50;
@@ -238,7 +178,13 @@ export function BettingPanel({ currentBtcPrice }: BettingPanelProps) {
 
   // Calculations for Previous Round
   const prevTotalPool = prevRound ? prevRound.totalUpAmount + prevRound.totalDownAmount : 0n;
-  
+  const prevUpPercent = prevTotalPool > 0n ? Number((prevRound!.totalUpAmount * 10000n) / prevTotalPool) / 100 : 50;
+  const prevDownPercent = prevTotalPool > 0n ? 100 - prevUpPercent : 50;
+
+  const prevUpMultiplier = prevMultipliers ? Number((prevMultipliers as any)[0] || 0n) / 10000 : 0;
+  const prevDownMultiplier = prevMultipliers ? Number((prevMultipliers as any)[1] || 0n) / 10000 : 0;
+
+  // Determine previous round outcome
   const getPrevOutcome = (): { text: string; color: string; userText?: string; userColor?: string } => {
     if (!prevRound) return { text: '—', color: 'var(--text-muted)' };
     if (!prevRound.resolved && !prevRound.canceled) {
@@ -288,9 +234,9 @@ export function BettingPanel({ currentBtcPrice }: BettingPanelProps) {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 20, flex: 1 }}>
-      
       {/* ─── CURRENT BETTING ROUND ────────────────────────────────────────── */}
       <Card hoverEffect={false} style={{ padding: 20 }}>
+        {/* Header */}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
           <div style={{ fontSize: 13, fontWeight: 700, letterSpacing: '1px', textTransform: 'uppercase', color: '#ffffff' }}>
             🟢 BTC PAIR
@@ -311,6 +257,7 @@ export function BettingPanel({ currentBtcPrice }: BettingPanelProps) {
           </span>
         </div>
 
+        {/* Timer */}
         {hasValidActiveRound ? (
           <RoundTimer
             startTimestamp={Number(activeRound!.startTimestamp)}
@@ -342,10 +289,10 @@ export function BettingPanel({ currentBtcPrice }: BettingPanelProps) {
             </div>
             <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 6 }}>
               <span className="font-mono" style={{ fontSize: 10, color: 'var(--text-secondary)' }}>
-                {activeTotalPool > 0n ? formatEther(activeRound.totalUpAmount) : '0'} {currentChain.nativeToken.symbol}
+                {activeTotalPool > 0n ? formatEther(activeRound.totalUpAmount) : '0'} USDC
               </span>
               <span className="font-mono" style={{ fontSize: 10, color: 'var(--text-secondary)' }}>
-                {activeTotalPool > 0n ? formatEther(activeRound.totalDownAmount) : '0'} {currentChain.nativeToken.symbol}
+                {activeTotalPool > 0n ? formatEther(activeRound.totalDownAmount) : '0'} USDC
               </span>
             </div>
           </div>
@@ -393,7 +340,7 @@ export function BettingPanel({ currentBtcPrice }: BettingPanelProps) {
         {hasPlacedActiveBet && activeUserBet && (
           <div className="animate-slide-up" style={{ padding: 10, borderRadius: 8, background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255, 255, 255, 0.06)', marginBottom: 12, textAlign: 'center', fontSize: 12 }}>
             <span style={{ color: 'var(--text-secondary)' }}>
-              Bet placed: <strong className="font-mono">{formatEther(activeUserBet.amount)} {currentChain.nativeToken.symbol}</strong> on{' '}
+              Bet placed: <strong className="font-mono">{formatEther(activeUserBet.amount)} USDC</strong> on{' '}
               <strong style={{ color: activeUserBet.position === 0 ? '#ffffff' : 'var(--text-secondary)' }}>
                 {activeUserBet.position === 0 ? '▲ UP' : '▼ DOWN'}
               </strong>
@@ -401,123 +348,73 @@ export function BettingPanel({ currentBtcPrice }: BettingPanelProps) {
           </div>
         )}
 
-        {/* Bet Input area */}
+        {/* Bet Input - only when betting is open */}
         {!hasPlacedActiveBet && activeRound && !isActiveLocked && (
-          <div style={{ marginBottom: 16 }}>
-            
-            {/* Live conversion toggles for chains like Robinhood */}
-            {!currentChain.bettingToken.isNative && (
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
-                <span style={{ fontSize: 11, color: 'var(--text-secondary)', textTransform: 'uppercase' }}>Bet Amount</span>
-                
-                <div style={{ display: 'flex', background: 'rgba(255,255,255,0.05)', borderRadius: 12, padding: 2 }}>
-                  <button 
-                    onClick={() => setInputCurrency('USDT')}
-                    style={{
-                      padding: '2px 8px',
-                      fontSize: 10,
-                      borderRadius: 10,
-                      fontWeight: 600,
-                      color: inputCurrency === 'USDT' ? '#fff' : 'var(--text-secondary)',
-                      background: inputCurrency === 'USDT' ? 'rgba(255,255,255,0.1)' : 'transparent',
-                      border: 'none',
-                      cursor: 'pointer',
-                    }}
-                  >
-                    {currentChain.bettingToken.symbol}
-                  </button>
-                  <button 
-                    onClick={() => setInputCurrency('NATIVE')}
-                    style={{
-                      padding: '2px 8px',
-                      fontSize: 10,
-                      borderRadius: 10,
-                      fontWeight: 600,
-                      color: inputCurrency === 'NATIVE' ? '#fff' : 'var(--text-secondary)',
-                      background: inputCurrency === 'NATIVE' ? 'rgba(255,255,255,0.1)' : 'transparent',
-                      border: 'none',
-                      cursor: 'pointer',
-                    }}
-                  >
-                    {currentChain.nativeToken.symbol}
-                  </button>
-                </div>
-              </div>
-            )}
-            
+          <div style={{ marginBottom: 12 }}>
             <Input
               type="number"
               placeholder="0.0"
-              value={inputValue}
-              onChange={(e) => setInputValue(e.target.value)}
+              value={betAmount}
+              onChange={(e) => setBetAmount(e.target.value)}
               disabled={!canBet}
-              min="0.001"
-              step="0.001"
-              prefixSymbol={inputCurrency === 'USDT' ? currentChain.bettingToken.symbol : currentChain.nativeToken.symbol}
+              min="0.1"
+              step="0.1"
+              prefixSymbol="USDC"
             />
-            
-            {/* Live Price Conversion Display */}
-            {!currentChain.bettingToken.isNative && ethPriceQuery.price && (
-              <div className="animate-fade-in" style={{ 
-                marginTop: 8, 
-                padding: '6px 10px', 
-                background: 'rgba(255,255,255,0.02)', 
-                borderRadius: 6,
-                border: '1px solid rgba(255,255,255,0.05)',
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center',
-                fontSize: 11
-              }}>
-                <span style={{ color: 'var(--text-secondary)' }}>
-                  ≈ {inputCurrency === 'USDT' ? nativeEthAmountStr || '0.00' : usdtDisplayStr || '0.00'}{' '}
-                  {inputCurrency === 'USDT' ? currentChain.nativeToken.symbol : currentChain.bettingToken.symbol}
-                </span>
-                
-                <span style={{ color: 'var(--text-muted)', fontSize: 9 }}>
-                  1 {currentChain.nativeToken.symbol} = {ethPriceQuery.price.toLocaleString()} {currentChain.bettingToken.symbol}
-                  <span className="animate-pulse" style={{ display: 'inline-block', width: 4, height: 4, borderRadius: '50%', background: '#00c805', marginLeft: 6, verticalAlign: 'middle' }} />
-                </span>
-              </div>
-            )}
-            
-            {!currentChain.bettingToken.isNative && ethPriceQuery.error && (
-              <div style={{ marginTop: 8, fontSize: 11, color: 'var(--down)' }}>
-                Unable to retrieve the latest {currentChain.nativeToken.symbol} price.
-              </div>
-            )}
+            <div style={{ display: 'flex', gap: 4, marginTop: 6 }}>
+              {['0.1', '0.5', '1', '5'].map((v) => (
+                <Button
+                  key={v}
+                  variant="secondary"
+                  size="sm"
+                  onClick={() => setBetAmount(v)}
+                  disabled={!canBet}
+                  style={{
+                    flex: 1,
+                    padding: '4px',
+                    borderRadius: 6,
+                    fontFamily: 'var(--font-mono)',
+                    cursor: canBet ? 'pointer' : 'not-allowed',
+                    opacity: canBet ? 1 : 0.4,
+                  }}
+                >
+                  {v}
+                </Button>
+              ))}
+            </div>
           </div>
         )}
 
-        {/* UP / DOWN Buttons */}
+        {/* UP / DOWN Buttons - only when betting is open */}
         {!hasPlacedActiveBet && activeRound && !isActiveLocked && (
           <div style={{ display: 'flex', gap: 8 }}>
             <Button
               variant="up"
               style={{ flex: '1 1 0', minWidth: 0, height: 40 }}
-              onClick={() => promptBetConfirmation(0)}
-              disabled={!canBet || !inputValue}
+              onClick={() => handlePlaceBet(0)}
+              disabled={!canBet || !betAmount}
             >
               ▲ UP
             </Button>
             <Button
               variant="down"
               style={{ flex: '1 1 0', minWidth: 0, height: 40 }}
-              onClick={() => promptBetConfirmation(1)}
-              disabled={!canBet || !inputValue}
+              onClick={() => handlePlaceBet(1)}
+              disabled={!canBet || !betAmount}
             >
               ▼ DOWN
             </Button>
           </div>
         )}
 
-        {/* Locked notice */}
+        {/* Locked notice - show when betting is closed and user hasn't bet */}
         {!hasPlacedActiveBet && activeRound && isActiveLocked && (
           <div style={{ textAlign: 'center', padding: '12px 0', fontSize: 12, color: 'var(--text-secondary)' }}>
             Next round opens soon
           </div>
         )}
 
+        {/* Not Connected / Messages */}
         {!isConnected && (
           <div style={{ textAlign: 'center', fontSize: 12, color: 'var(--text-secondary)', marginTop: 8 }}>
             Connect wallet to bet
@@ -528,6 +425,7 @@ export function BettingPanel({ currentBtcPrice }: BettingPanelProps) {
       {/* ─── PREVIOUS LOCKED ROUND ────────────────────────────────────────── */}
       {prevRoundId > 0n && prevRound && (
         <Card hoverEffect={false} style={{ padding: 20 }}>
+          {/* Header */}
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
             <div style={{ fontSize: 13, fontWeight: 700, letterSpacing: '1px', textTransform: 'uppercase', color: '#ffffff' }}>
               🟢 BTC PAIR
@@ -548,6 +446,7 @@ export function BettingPanel({ currentBtcPrice }: BettingPanelProps) {
             </span>
           </div>
 
+          {/* Timer */}
           <RoundTimer
             startTimestamp={Number(prevRound.startTimestamp)}
             endTimestamp={Number(prevRound.endTimestamp)}
@@ -556,6 +455,7 @@ export function BettingPanel({ currentBtcPrice }: BettingPanelProps) {
             targetMode="end"
           />
 
+          {/* Price Metrics */}
           <div 
             style={{ 
               display: 'flex', 
@@ -589,10 +489,11 @@ export function BettingPanel({ currentBtcPrice }: BettingPanelProps) {
             </div>
           </div>
 
+          {/* User's past bet */}
           {hasPlacedPrevBet && prevUserBet && (
             <div style={{ padding: 10, borderRadius: 8, background: 'rgba(255, 255, 255, 0.02)', border: '1px solid rgba(255, 255, 255, 0.04)', marginBottom: 12, textAlign: 'center', fontSize: 12 }}>
               <span style={{ color: 'var(--text-secondary)' }}>
-                You bet <strong className="font-mono">{formatEther(prevUserBet.amount)} {currentChain.nativeToken.symbol}</strong> on{' '}
+                You bet <strong className="font-mono">{formatEther(prevUserBet.amount)} USDC</strong> on{' '}
                 <strong style={{ color: prevUserBet.position === 0 ? '#ffffff' : 'var(--text-secondary)' }}>
                   {prevUserBet.position === 0 ? '▲ UP' : '▼ DOWN'}
                 </strong>
@@ -600,9 +501,11 @@ export function BettingPanel({ currentBtcPrice }: BettingPanelProps) {
             </div>
           )}
 
+          {/* Settle Status / Winnings Claims */}
           <div style={{ marginTop: 12 }}>
             {prevRound.resolved || prevRound.canceled ? (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                {/* Result display */}
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                   <span style={{ fontSize: 11, color: 'var(--text-secondary)' }}>Outcome:</span>
                   <span style={{ fontSize: 12, fontWeight: 700, color: outcome.color }}>
@@ -619,6 +522,7 @@ export function BettingPanel({ currentBtcPrice }: BettingPanelProps) {
                   </div>
                 )}
 
+                {/* Claim Reward Button */}
                 {isClaimable && !prevUserBet?.claimed && (
                   <Button
                     onClick={handleClaim}
@@ -648,86 +552,10 @@ export function BettingPanel({ currentBtcPrice }: BettingPanelProps) {
         </Card>
       )}
 
-      {/* Confirmation Modal */}
-      <Modal 
-        isOpen={confirmModalState.isOpen} 
-        onClose={() => setConfirmModalState({ isOpen: false, position: null })} 
-        title="Confirm Prediction"
-      >
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
-          <div style={{ textAlign: 'center' }}>
-            <div style={{ fontSize: 14, color: 'var(--text-secondary)', marginBottom: 8 }}>You are about to place:</div>
-            
-            {!currentChain.bettingToken.isNative && inputCurrency === 'USDT' ? (
-              <>
-                <div style={{ fontSize: 32, fontWeight: 600, color: '#ffffff', fontFamily: 'var(--font-mono)' }}>
-                  {inputValue} {currentChain.bettingToken.symbol}
-                </div>
-                <div style={{ fontSize: 16, color: 'var(--text-muted)', fontFamily: 'var(--font-mono)', marginTop: 4 }}>
-                  ≈ {nativeEthAmountStr} {currentChain.nativeToken.symbol}
-                </div>
-              </>
-            ) : (
-              <>
-                <div style={{ fontSize: 32, fontWeight: 600, color: '#ffffff', fontFamily: 'var(--font-mono)' }}>
-                  {nativeEthAmountStr} {currentChain.nativeToken.symbol}
-                </div>
-                {!currentChain.bettingToken.isNative && (
-                  <div style={{ fontSize: 16, color: 'var(--text-muted)', fontFamily: 'var(--font-mono)', marginTop: 4 }}>
-                    ≈ {usdtDisplayStr} {currentChain.bettingToken.symbol}
-                  </div>
-                )}
-              </>
-            )}
-          </div>
-
-          <div style={{ background: 'rgba(255, 255, 255, 0.03)', border: '1px solid rgba(255, 255, 255, 0.08)', borderRadius: 12, padding: 16 }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 12, fontSize: 13 }}>
-              <span style={{ color: 'var(--text-secondary)' }}>Direction</span>
-              <strong style={{ color: confirmModalState.position === 0 ? 'var(--up)' : 'var(--down)' }}>
-                {confirmModalState.position === 0 ? '▲ UP' : '▼ DOWN'}
-              </strong>
-            </div>
-            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 12, fontSize: 13 }}>
-              <span style={{ color: 'var(--text-secondary)' }}>Network</span>
-              <strong style={{ color: '#ffffff' }}>{currentChain.chain.name}</strong>
-            </div>
-            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 12, fontSize: 13 }}>
-              <span style={{ color: 'var(--text-secondary)' }}>Settlement Currency</span>
-              <strong style={{ color: '#ffffff' }}>{currentChain.nativeToken.symbol}</strong>
-            </div>
-            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13 }}>
-              <span style={{ color: 'var(--text-secondary)' }}>Gas Token</span>
-              <strong style={{ color: '#ffffff' }}>{currentChain.nativeToken.symbol}</strong>
-            </div>
-          </div>
-
-          {!currentChain.bettingToken.isNative && (
-            <div style={{ fontSize: 11, color: 'var(--text-muted)', textAlign: 'center', lineHeight: 1.5 }}>
-              ≈ Estimated using the live {currentChain.nativeToken.symbol}/{currentChain.bettingToken.symbol} market price.<br/>
-              The actual blockchain transaction and settlement occur entirely in native {currentChain.nativeToken.symbol}.
-            </div>
-          )}
-
-          <Button 
-            variant={confirmModalState.position === 0 ? 'up' : 'down'}
-            size="lg" 
-            onClick={handlePlaceBet}
-            style={{ width: '100%', marginTop: 8 }}
-          >
-            Confirm & Place Bet
-          </Button>
-        </div>
-      </Modal>
-
       {/* Operation Status Messages */}
       {txStatus && (
-        <Card hoverEffect={false} style={{ padding: 12, textAlign: 'center', fontSize: 13, color: 'var(--text-secondary)' }}>
-          {txStatus.includes('http') ? (
-             <a href={txStatus} target="_blank" rel="noopener noreferrer" style={{ color: '#8b5cf6', textDecoration: 'underline' }}>View Transaction</a>
-          ) : (
-            txStatus
-          )}
+        <Card hoverEffect={false} style={{ padding: 10, textAlign: 'center', fontSize: 12, color: 'var(--text-secondary)' }}>
+          {txStatus}
         </Card>
       )}
     </div>

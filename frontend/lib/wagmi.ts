@@ -5,15 +5,14 @@ import { type Chain } from 'viem';
 import { injected } from 'wagmi/connectors';
 import { QueryClient } from '@tanstack/react-query';
 
-import { arcTestnetChain, robinhoodTestnetChain } from '../config/chains';
+import { arcTestnetChain } from '../config/chains';
 
 // ── Wagmi Configuration ─────────────────────────────────────────────────────
 export const wagmiConfig = createConfig({
-  chains: [arcTestnetChain, robinhoodTestnetChain],
+  chains: [arcTestnetChain],
   connectors: [injected()],
   transports: {
     [arcTestnetChain.id]: http(arcTestnetChain.rpcUrls.default.http[0]),
-    [robinhoodTestnetChain.id]: http(robinhoodTestnetChain.rpcUrls.default.http[0]),
   },
   ssr: true,
 });

@@ -44,39 +44,9 @@ export const arcTestnetConfig: ChainConfig = {
   bettingToken: { symbol: 'USDC', decimals: 18, isNative: true },
 };
 
-// ── Robinhood Chain Testnet ─────────────────────────────────────────────────
-export const robinhoodTestnetChain: Chain = {
-  id: 46630,
-  name: 'Robinhood Chain Testnet',
-  nativeCurrency: {
-    name: 'ETH',
-    symbol: 'ETH',
-    decimals: 18,
-  },
-  rpcUrls: {
-    default: { http: [process.env.NEXT_PUBLIC_ROBINHOOD_RPC_URL || 'https://rpc.testnet.chain.robinhood.com'] },
-  },
-  blockExplorers: {
-    default: { name: 'Robinhood Explorer', url: 'https://explorer.testnet.chain.robinhood.com' },
-  },
-  testnet: true,
-};
-
-export const robinhoodTestnetConfig: ChainConfig = {
-  chain: robinhoodTestnetChain,
-  contracts: {
-    // Placeholder address until deployed on Robinhood Testnet
-    predictionMarket: (process.env.NEXT_PUBLIC_ROBINHOOD_MARKET_ADDRESS as `0x${string}`) || '0x0000000000000000000000000000000000000000',
-  },
-  nativeToken: { symbol: 'ETH', decimals: 18 },
-  // Betting UI thinks in USDT, but sends native ETH
-  bettingToken: { symbol: 'USDT', decimals: 18, isNative: false },
-};
-
 // ── Export Map ──────────────────────────────────────────────────────────────
 export const SUPPORTED_CHAINS: Record<number, ChainConfig> = {
   [arcTestnetChain.id]: arcTestnetConfig,
-  [robinhoodTestnetChain.id]: robinhoodTestnetConfig,
 };
 
 // Default fallback chain

@@ -631,11 +631,6 @@ export default function LandingPage() {
       >
         <AnimatedLogo />
 
-        {/* Built on ARC Pulsing Badge */}
-        <div
-          style={{
-            fontSize: 11,
-
         {/* Redesigned Serif Headline */}
         <h1
           style={{
