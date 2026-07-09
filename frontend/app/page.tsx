@@ -2,6 +2,9 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
+import { useReadContract } from 'wagmi';
+import { formatEther } from 'viem';
+import { ROUND_MARKET_ABI, MARKET_ADDRESS } from '@/lib/abi';
 import { StarryBackground } from '@/components/StarryBackground';
 import { AnimatedLogo } from '@/components/AnimatedLogo';
 import { ScrollFade } from '@/components/ScrollFade';
@@ -282,6 +285,95 @@ export default function LandingPage() {
   const [isMounted, setIsMounted] = useState(false);
   const [windowWidth, setWindowWidth] = useState(1200); // Default to desktop layout
   const [menuOpen, setMenuOpen] = useState(false);
+
+  // Wagmi reads for live BTC stats
+  const { data: currentRoundId } = useReadContract({
+    address: MARKET_ADDRESS,
+    abi: ROUND_MARKET_ABI,
+    functionName: 'currentRoundId',
+    query: { refetchInterval: 2000 },
+  });
+
+  const activeRoundId = currentRoundId ? BigInt(currentRoundId.toString()) : 0n;
+
+  const { data: activeRoundData } = useReadContract({
+    address: MARKET_ADDRESS,
+    abi: ROUND_MARKET_ABI,
+    functionName: 'getRound',
+    args: [activeRoundId],
+    query: { enabled: activeRoundId > 0n, refetchInterval: 2000 },
+  });
+  const activeRound = activeRoundData as any;
+
+  const [btcTimeLeft, setBtcTimeLeft] = useState<string>('0:00');
+
+  useEffect(() => {
+    if (!activeRound) return;
+    const updateBtcTimeLeft = () => {
+      const nowSec = Math.floor(Date.now() / 1000);
+      const lockTs = Number(activeRound.lockTimestamp);
+      const timeLeft = lockTs - nowSec;
+
+      if (timeLeft <= 0) {
+        setBtcTimeLeft('LOCKED');
+      } else {
+        const mins = Math.floor(timeLeft / 60);
+        const secs = timeLeft % 60;
+        setBtcTimeLeft(`${mins}:${secs < 10 ? '0' : ''}${secs}`);
+      }
+    };
+    updateBtcTimeLeft();
+    const interval = setInterval(updateBtcTimeLeft, 1000);
+    return () => clearInterval(interval);
+  }, [activeRound]);
+
+  const btcVolume = activeRound 
+    ? parseFloat(formatEther(activeRound.totalUpAmount + activeRound.totalDownAmount)).toFixed(2)
+    : '0.00';
+
+  const btcTotalPool = activeRound ? activeRound.totalUpAmount + activeRound.totalDownAmount : 0n;
+  const btcUpPercent = btcTotalPool > 0n 
+    ? Math.round(Number((activeRound.totalUpAmount * 100n) / btcTotalPool))
+    : 50;
+  const btcDownPercent = 100 - btcUpPercent;
+
+  // Live simulation stats for other pairs
+  const [ethStats, setEthStats] = useState({ vol: 7830, upPct: 48, timeLeft: 148 });
+  const [solStats, setSolStats] = useState({ vol: 4920, upPct: 65, timeLeft: 72 });
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setEthStats((prev) => {
+        const nextTime = prev.timeLeft <= 1 ? 240 : prev.timeLeft - 1;
+        const volChange = Math.random() > 0.9 ? Math.floor(Math.random() * 5) + 1 : 0;
+        const pctChange = Math.random() > 0.9 ? (Math.random() > 0.5 ? 1 : -1) : 0;
+        return {
+          vol: prev.vol + volChange,
+          upPct: Math.max(30, Math.min(70, prev.upPct + pctChange)),
+          timeLeft: nextTime,
+        };
+      });
+
+      setSolStats((prev) => {
+        const nextTime = prev.timeLeft <= 1 ? 240 : prev.timeLeft - 1;
+        const volChange = Math.random() > 0.9 ? Math.floor(Math.random() * 5) + 1 : 0;
+        const pctChange = Math.random() > 0.9 ? (Math.random() > 0.5 ? 1 : -1) : 0;
+        return {
+          vol: prev.vol + volChange,
+          upPct: Math.max(35, Math.min(75, prev.upPct + pctChange)),
+          timeLeft: nextTime,
+        };
+      });
+    }, 1000);
+
+    return () => clearInterval(timer);
+  }, []);
+
+  const formatMinsSecs = (seconds: number) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins}:${secs < 10 ? '0' : ''}${secs}`;
+  };
 
   useEffect(() => {
     setIsMounted(true);
@@ -742,9 +834,30 @@ export default function LandingPage() {
         {/* Markets cards grid */}
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: 24 }}>
           {[
-            { pair: 'BTC/USD', id: 'BTC-USD-26', vol: '12,450 USDC', upPct: 58, time: '0:42', target: 'BTC/USD 1m Forecast' },
-            { pair: 'ETH/USD', id: 'ETH-USD-26', vol: '7,830 USDC', upPct: 48, time: '0:28', target: 'ETH/USD 1m Forecast' },
-            { pair: 'SOL/USD', id: 'SOL-USD-26', vol: '4,920 USDC', upPct: 65, time: '1:12', target: 'SOL/USD 1m Forecast' }
+            { 
+              pair: 'BTC/USD', 
+              id: activeRound ? `BTC-USD-${activeRound.roundId.toString()}` : 'BTC-USD-0', 
+              vol: `${parseFloat(btcVolume).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})} USDC`, 
+              upPct: btcUpPercent, 
+              time: btcTimeLeft, 
+              target: 'BTC/USD 1m Forecast' 
+            },
+            { 
+              pair: 'ETH/USD', 
+              id: 'ETH-USD-26', 
+              vol: `${ethStats.vol.toLocaleString()} USDC`, 
+              upPct: ethStats.upPct, 
+              time: formatMinsSecs(ethStats.timeLeft), 
+              target: 'ETH/USD 1m Forecast' 
+            },
+            { 
+              pair: 'SOL/USD', 
+              id: 'SOL-USD-26', 
+              vol: `${solStats.vol.toLocaleString()} USDC`, 
+              upPct: solStats.upPct, 
+              time: formatMinsSecs(solStats.timeLeft), 
+              target: 'SOL/USD 1m Forecast' 
+            }
           ].map((m, idx) => (
             <ScrollFade key={idx} delay={`${idx * 0.1}s`}>
               <div 
