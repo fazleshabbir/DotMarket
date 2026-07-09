@@ -492,7 +492,7 @@ export default function LandingPage() {
               alignItems: 'center',
             }}
           >
-            {['Markets', 'Features', 'How It Works', 'Stats', 'FAQ'].map((tab) => (
+            {['Markets', 'How It Works', 'FAQ'].map((tab) => (
               <a
                 key={tab}
                 href={`#${tab.toLowerCase().replace(/\s+/g, '-')}`}
@@ -584,7 +584,7 @@ export default function LandingPage() {
               boxShadow: '0 20px 40px rgba(0,0,0,0.8)',
             }}
           >
-            {['Markets', 'Features', 'How It Works', 'Stats', 'FAQ'].map((tab) => (
+            {['Markets', 'How It Works', 'FAQ'].map((tab) => (
               <a
                 key={tab}
                 href={`#${tab.toLowerCase().replace(/\s+/g, '-')}`}
@@ -944,59 +944,6 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* ── 3. Why DotMarket Feature Grid ────────────────────────── */}
-      <section
-        id="features"
-        style={{
-          position: 'relative',
-          zIndex: 10,
-          padding: isDesktop ? '100px 24px' : '60px 16px',
-          maxWidth: 1200,
-          margin: '0 auto',
-          width: '100%',
-        }}
-      >
-        <ScrollFade>
-          <div style={{ textAlign: 'center', marginBottom: 56 }}>
-            <h2
-              style={{
-                fontFamily: "'Cormorant Garamond', serif",
-                fontSize: isMobile ? '32px' : '42px',
-                fontWeight: 400,
-                color: '#ffffff',
-                marginBottom: 16,
-              }}
-            >
-              Why DotMarket?
-            </h2>
-            <p style={{ color: 'var(--text-secondary)', fontSize: 15, maxWidth: 500, margin: '0 auto' }}>
-              Built for high-performance decentralized finance.
-            </p>
-          </div>
-        </ScrollFade>
-
-        {/* 8 Features Grid */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: 20 }}>
-          {[
-            { title: 'Non-Custodial', desc: 'Your assets always remain in your wallet.', icon: <KeyIcon size={24} /> },
-            { title: 'Transparent Resolution', desc: 'Markets resolve using verifiable on-chain data.', icon: <ScaleIcon size={24} /> },
-            { title: 'Fast Settlement', desc: 'Claim rewards immediately after market resolution.', icon: <LightningIcon size={24} /> },
-            { title: 'Built on Arc', desc: 'Fast and low-cost infrastructure.', icon: <GlobeIcon size={24} /> },
-            { title: 'Open Source Contracts', desc: 'Smart contracts are publicly auditable.', icon: <ScrollIcon size={24} /> },
-            { title: 'Low Trading Fees', desc: 'More profits stay with traders.', icon: <DiamondIcon size={24} /> },
-            { title: 'Lightning Fast', desc: 'Near-instant transaction confirmations.', icon: <TimerIcon size={24} /> },
-            { title: 'Global Access', desc: 'Trade from anywhere with a crypto wallet.', icon: <GlobeIcon size={24} /> }
-          ].map((f, idx) => (
-            <ScrollFade key={idx} delay={`${idx * 0.05}s`}>
-              <div className="feature-card" style={{ padding: 24, height: '100%', display: 'flex', flexDirection: 'column', gap: 12 }}>
-                <span style={{ display: 'flex', alignItems: 'center', color: '#ffffff', opacity: 0.85 }}>{f.icon}</span>
-                <h3 style={{ fontSize: 16, fontWeight: 700, color: '#ffffff' }}>{f.title}</h3>
-                <p style={{ fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.5 }}>{f.desc}</p>
-              </div>
-            </ScrollFade>
-          ))}
-        </div>
-      </section>
 
       {/* ── 4. How It Works ──────────────────────────────────────── */}
       <section
@@ -1187,102 +1134,6 @@ export default function LandingPage() {
         </ScrollFade>
       </section>
 
-      {/* ── 6. Platform Statistics ───────────────────────────────── */}
-      <section
-        id="stats"
-        style={{
-          position: 'relative',
-          zIndex: 10,
-          padding: isDesktop ? '100px 24px' : '60px 16px',
-          background: 'rgba(255, 255, 255, 0.003)',
-          borderTop: '1px solid rgba(255,255,255,0.03)',
-          borderBottom: '1px solid rgba(255,255,255,0.03)',
-          width: '100%',
-        }}
-      >
-        <div style={{ maxWidth: 1200, margin: '0 auto', width: '100%' }}>
-          <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr 1fr' : 'repeat(auto-fit, minmax(180px, 1fr))', gap: 32, textAlign: 'center' }}>
-            {[
-              { label: 'Trading Volume', value: '42.8', suffix: 'M', prefix: '$' },
-              { label: 'Markets Created', value: '12400', suffix: '+', prefix: '' },
-              { label: 'Predictions Made', value: '1.6', suffix: 'M+', prefix: '' },
-              { label: 'Active Traders', value: '45800', suffix: '+', prefix: '' },
-              { label: 'Settlement Accuracy', value: '99.99', suffix: '%', prefix: '' },
-              { label: 'Protocol Uptime', value: '99.99', suffix: '%', prefix: '' }
-            ].map((stat, idx) => (
-              <div key={idx} style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                <span style={{ fontSize: 12, color: 'var(--text-secondary)', fontWeight: 600, letterSpacing: '0.5px' }}>{stat.label.toUpperCase()}</span>
-                <strong style={{ fontSize: isMobile ? '24px' : '36px', fontWeight: 300, color: '#ffffff', fontFamily: 'var(--font-mono)' }}>
-                  {stat.prefix}
-                  <AnimatedStat value={stat.value} />
-                  {stat.suffix}
-                </strong>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* ── 7. Security & Trust ──────────────────────────────────── */}
-      <section
-        style={{
-          position: 'relative',
-          zIndex: 10,
-          padding: isDesktop ? '100px 24px' : '60px 16px',
-          maxWidth: 1200,
-          margin: '0 auto',
-          width: '100%',
-        }}
-      >
-        <ScrollFade>
-          <div style={{ textAlign: 'center', marginBottom: 56 }}>
-            <h2
-              style={{
-                fontFamily: "'Cormorant Garamond', serif",
-                fontSize: isMobile ? '32px' : '42px',
-                fontWeight: 400,
-                color: '#ffffff',
-                marginBottom: 16,
-              }}
-            >
-              Security & Trust
-            </h2>
-            <p style={{ color: 'var(--text-secondary)', fontSize: 15, maxWidth: 500, margin: '0 auto' }}>
-              Pillars of security securing every transaction.
-            </p>
-          </div>
-        </ScrollFade>
-
-        {/* Security Cards Grid */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 20 }}>
-          {[
-            { title: 'Self-Custody', desc: 'Withdraw and trade without third-party custodianship.', icon: <ShieldIcon size={20} /> },
-            { title: 'On-Chain Settlement', desc: 'Contract checks and price feeds settle fully on-chain.', icon: <LinkIcon size={20} /> },
-            { title: 'Transparent Smart Contracts', desc: 'Auditable code bases verify pool settlements.', icon: <ScrollIcon size={20} /> },
-            { title: 'Immutable Transactions', desc: 'No transaction can be rolled back or censored.', icon: <LockIcon size={20} /> },
-            { title: 'Community Driven', desc: 'Fees and features flow back into pool liquidity.', icon: <UsersIcon size={20} /> },
-            { title: 'Secure Infrastructure', desc: 'Redundant RPC structures block loop crashes.', icon: <DatabaseIcon size={20} /> }
-          ].map((sec, idx) => (
-            <ScrollFade key={idx} delay={`${idx * 0.05}s`}>
-              <div 
-                className="feature-card" 
-                style={{ 
-                  padding: 24, 
-                  height: '100%', 
-                  display: 'flex', 
-                  flexDirection: 'column', 
-                  gap: 12,
-                  background: 'rgba(255, 255, 255, 0.005)' 
-                }}
-              >
-                <span style={{ display: 'flex', alignItems: 'center', color: '#ffffff', opacity: 0.85 }}>{sec.icon}</span>
-                <h3 style={{ fontSize: 15, fontWeight: 700, color: '#ffffff' }}>{sec.title}</h3>
-                <p style={{ fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.5 }}>{sec.desc}</p>
-              </div>
-            </ScrollFade>
-          ))}
-        </div>
-      </section>
 
       {/* ── 8. Roadmap ───────────────────────────────────────────── */}
       <section
