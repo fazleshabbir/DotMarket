@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useRef, useEffect } from 'react';
-import { motion, useMotionValue, useSpring, useMotionTemplate } from 'framer-motion';
+import { motion, useMotionValue, useSpring } from 'framer-motion';
 import { ArrowRight } from 'lucide-react';
 import { useMediaQuery } from '@/hooks/useMediaQuery';
 
@@ -65,10 +65,9 @@ function MagneticIcon({ children, tooltip, href }: MagneticIconProps) {
         color: '#ffffff',
         cursor: 'pointer',
         textDecoration: 'none',
-        boxShadow: hovered ? '0 0 15px rgba(139, 92, 246, 0.25)' : 'none',
-        borderColor: hovered ? 'rgba(139, 92, 246, 0.4)' : 'rgba(255, 255, 255, 0.08)',
         transition: 'border-color 0.2s ease, box-shadow 0.2s ease',
       }}
+      className="magnetic-icon-element"
     >
       {children}
 
@@ -102,7 +101,7 @@ function MagneticIcon({ children, tooltip, href }: MagneticIconProps) {
   );
 }
 
-// ── CANVAS NODES GRAPHIC COMPONENT ───────────────────────────────────────────
+// ── CANVAS LOGO & NETWORK COMPONENT (BLACK & WHITE) ──────────────────────────
 function NetworkNodesCanvas() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
@@ -115,6 +114,7 @@ function NetworkNodesCanvas() {
     let animationFrameId: number;
     let width = (canvas.width = 450);
     let height = (canvas.height = 400);
+    let logoAngle = 45;
 
     const resizeHandler = () => {
       if (canvas.parentElement) {
@@ -125,15 +125,14 @@ function NetworkNodesCanvas() {
     resizeHandler();
     window.addEventListener('resize', resizeHandler);
 
+    // Initialize black & white particles
     const particles: Array<{
       x: number;
       y: number;
       vx: number;
       vy: number;
       radius: number;
-      orbitRadius: number;
-      orbitSpeed: number;
-      angle: number;
+      color: string;
     }> = [];
 
     const numParticles = 35;
@@ -143,10 +142,8 @@ function NetworkNodesCanvas() {
         y: Math.random() * height,
         vx: (Math.random() - 0.5) * 0.35,
         vy: (Math.random() - 0.5) * 0.35,
-        radius: Math.random() * 2 + 1,
-        orbitRadius: Math.random() * 80 + 40,
-        orbitSpeed: (Math.random() - 0.5) * 0.004,
-        angle: Math.random() * Math.PI * 2,
+        radius: Math.random() * 2 + 1.5,
+        color: i % 3 === 0 ? 'rgba(255, 255, 255, 0.65)' : 'rgba(255, 255, 255, 0.25)',
       });
     }
 
@@ -169,67 +166,84 @@ function NetworkNodesCanvas() {
     const draw = () => {
       ctx.clearRect(0, 0, width, height);
 
-      const centerX = width / 2;
-      const centerY = height / 2;
+      const cx = width / 2;
+      const cy = height / 2;
 
-      // Draw faint orbital rings (Polymarket / Hyperliquid styling)
-      ctx.strokeStyle = 'rgba(255, 255, 255, 0.015)';
+      // Update logo orbiting cutout coordinates
+      logoAngle = (logoAngle + 0.6) % 360;
+      const rad = (logoAngle * Math.PI) / 180;
+      const offset = 45;
+      const cutoutX = cx + offset * Math.cos(rad);
+      const cutoutY = cy + offset * Math.sin(rad);
+
+      // --- Draw Dot Logo ---
+      // Faint clock dial indicators
       ctx.lineWidth = 1;
-      
-      [100, 160, 220].forEach((r) => {
+      for (let deg = 0; deg < 360; deg += 30) {
+        const r1 = 114;
+        const r2 = 122;
+        const radVal = (deg * Math.PI) / 180;
+        ctx.strokeStyle = deg % 90 === 0 ? 'rgba(255, 255, 255, 0.22)' : 'rgba(255, 255, 255, 0.07)';
         ctx.beginPath();
-        ctx.arc(centerX, centerY, r, 0, Math.PI * 2);
+        ctx.moveTo(cx + r1 * Math.cos(radVal), cy + r1 * Math.sin(radVal));
+        ctx.lineTo(cx + r2 * Math.cos(radVal), cy + r2 * Math.sin(radVal));
         ctx.stroke();
-      });
+      }
 
-      // Draw soft central glow
-      const glowGrad = ctx.createRadialGradient(centerX, centerY, 10, centerX, centerY, 200);
-      glowGrad.addColorStop(0, 'rgba(139, 92, 246, 0.05)');
-      glowGrad.addColorStop(1, 'rgba(0, 0, 0, 0)');
-      ctx.fillStyle = glowGrad;
+      // Draw Main White Circle with subtle glow
+      ctx.shadowColor = 'rgba(255, 255, 255, 0.12)';
+      ctx.shadowBlur = 15;
+      ctx.fillStyle = '#ffffff';
       ctx.beginPath();
-      ctx.arc(centerX, centerY, 200, 0, Math.PI * 2);
+      ctx.arc(cx, cy, 100, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.shadowBlur = 0; // reset shadow
+
+      // Draw Orbiting Cutout (Black Circle matching background)
+      ctx.fillStyle = '#000000';
+      ctx.beginPath();
+      ctx.arc(cutoutX, cutoutY, 28, 0, Math.PI * 2);
       ctx.fill();
 
-      // Update and draw nodes
+      // --- Draw Particles (White in background, Black when over Logo) ---
       particles.forEach((p, idx) => {
-        // Mix simple physics with orbital drift
-        p.angle += p.orbitSpeed;
-        const targetX = centerX + Math.cos(p.angle) * p.orbitRadius;
-        const targetY = centerY + Math.sin(p.angle) * p.orbitRadius;
-
-        p.x += (targetX - p.x) * 0.01 + p.vx;
-        p.y += (targetY - p.y) * 0.01 + p.vy;
-
-        // Attract slightly to mouse
+        // Drift gently towards cursor
         if (mouse.x > 0) {
           const dx = mouse.x - p.x;
           const dy = mouse.y - p.y;
           const dist = Math.sqrt(dx * dx + dy * dy);
-          if (dist < 120) {
-            p.x += dx * 0.012;
-            p.y += dy * 0.012;
+          if (dist < 150) {
+            p.x += dx * 0.006;
+            p.y += dy * 0.006;
           }
         }
 
-        // Pulse the node radius
-        const displayRadius = p.radius + Math.sin(Date.now() * 0.003 + idx) * 0.5;
+        // Velocity motion
+        p.x += p.vx;
+        p.y += p.vy;
 
-        ctx.fillStyle = idx % 3 === 0 ? 'rgba(167, 139, 250, 0.4)' : 'rgba(255, 255, 255, 0.3)';
-        ctx.beginPath();
-        ctx.arc(p.x, p.y, displayRadius, 0, Math.PI * 2);
-        ctx.fill();
+        // Boundary collision bounce
+        if (p.x < 0 || p.x > width) p.vx *= -1;
+        if (p.y < 0 || p.y > height) p.vy *= -1;
 
-        // Highlight ring on some nodes
-        if (idx % 8 === 0) {
-          ctx.strokeStyle = 'rgba(139, 92, 246, 0.2)';
-          ctx.beginPath();
-          ctx.arc(p.x, p.y, displayRadius + 4, 0, Math.PI * 2);
-          ctx.stroke();
+        // Detect if particle is overlaying the white logo geometry
+        const distFromCenter = Math.sqrt((p.x - cx) * (p.x - cx) + (p.y - cy) * (p.y - cy));
+        const distFromCutout = Math.sqrt((p.x - cutoutX) * (p.x - cutoutX) + (p.y - cutoutY) * (p.y - cutoutY));
+
+        let isOverLogo = distFromCenter <= 100;
+        if (isOverLogo && distFromCutout <= 28) {
+          isOverLogo = false; // it is in the black cutout dot
         }
+
+        // Draw floating black dots over logo, white dots on background
+        ctx.fillStyle = isOverLogo ? 'rgba(0, 0, 0, 0.85)' : p.color;
+
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2);
+        ctx.fill();
       });
 
-      // Connect nodes with light lines
+      // Connect lines in background (monochrome)
       for (let i = 0; i < numParticles; i++) {
         for (let j = i + 1; j < numParticles; j++) {
           const p1 = particles[i];
@@ -238,14 +252,20 @@ function NetworkNodesCanvas() {
           const dy = p1.y - p2.y;
           const dist = Math.sqrt(dx * dx + dy * dy);
 
-          if (dist < 90) {
-            const alpha = (1 - dist / 90) * 0.18;
-            ctx.strokeStyle = `rgba(139, 92, 246, ${alpha})`;
-            ctx.lineWidth = 0.5;
-            ctx.beginPath();
-            ctx.moveTo(p1.x, p1.y);
-            ctx.lineTo(p2.x, p2.y);
-            ctx.stroke();
+          if (dist < 80) {
+            const midX = (p1.x + p2.x) / 2;
+            const midY = (p1.y + p2.y) / 2;
+            const distFromCenter = Math.sqrt((midX - cx) * (midX - cx) + (midY - cy) * (midY - cy));
+
+            if (distFromCenter > 105) {
+              const alpha = (1 - dist / 80) * 0.12;
+              ctx.strokeStyle = `rgba(255, 255, 255, ${alpha})`;
+              ctx.lineWidth = 0.5;
+              ctx.beginPath();
+              ctx.moveTo(p1.x, p1.y);
+              ctx.lineTo(p2.x, p2.y);
+              ctx.stroke();
+            }
           }
         }
       }
@@ -270,114 +290,6 @@ function NetworkNodesCanvas() {
   );
 }
 
-// ── SOCIAL GLASS CARD COMPONENT ──────────────────────────────────────────────
-interface SocialCardProps {
-  title: string;
-  desc: string;
-  icon: React.ReactNode;
-  btnText: string;
-  href: string;
-}
-
-function SocialCard({ title, desc, icon, btnText, href }: SocialCardProps) {
-  const mouseX = useMotionValue(0);
-  const mouseY = useMotionValue(0);
-
-  function handleMouseMove({ currentTarget, clientX, clientY }: React.MouseEvent<HTMLDivElement>) {
-    const { left, top } = currentTarget.getBoundingClientRect();
-    mouseX.set(clientX - left);
-    mouseY.set(clientY - top);
-  }
-
-  return (
-    <div
-      onMouseMove={handleMouseMove}
-      style={{
-        position: 'relative',
-        borderRadius: '20px',
-        border: '1px solid rgba(255, 255, 255, 0.05)',
-        background: 'rgba(15, 15, 15, 0.3)',
-        backdropFilter: 'blur(16px)',
-        WebkitBackdropFilter: 'blur(16px)',
-        overflow: 'hidden',
-        padding: '32px',
-        display: 'flex',
-        flexDirection: 'column',
-        height: '100%',
-        transition: 'all 0.3s ease',
-        cursor: 'default',
-      }}
-      className="group hover:border-white/10 hover:shadow-2xl hover:shadow-purple-500/5 hover:-translate-y-2"
-    >
-      {/* Dynamic glow overlay follow cursor */}
-      <motion.div
-        style={{
-          position: 'absolute',
-          inset: 0,
-          background: useMotionTemplate`
-            radial-gradient(
-              250px circle at ${mouseX}px ${mouseY}px,
-              rgba(139, 92, 246, 0.05),
-              transparent 80%
-            )
-          `,
-        }}
-      />
-
-      <div style={{ position: 'relative', zIndex: 1, display: 'flex', flexDirection: 'column', height: '100%' }}>
-        <div 
-          style={{ 
-            width: 48, 
-            height: 48, 
-            borderRadius: '12px', 
-            background: 'rgba(255, 255, 255, 0.02)', 
-            border: '1px solid rgba(255, 255, 255, 0.06)',
-            display: 'flex', 
-            alignItems: 'center', 
-            justifyContent: 'center',
-            marginBottom: 24,
-            color: '#a78bfa',
-            transition: 'border-color 0.2s ease'
-          }}
-          className="group-hover:border-purple-500/30"
-        >
-          {icon}
-        </div>
-
-        <h3 style={{ margin: '0 0 12px', fontSize: '20px', fontWeight: 500, color: '#ffffff' }}>
-          {title}
-        </h3>
-        
-        <p style={{ margin: '0 0 32px', fontSize: '14px', color: 'var(--text-secondary)', lineHeight: 1.6, flex: 1 }}>
-          {desc}
-        </p>
-
-        <a 
-          href={href} 
-          target="_blank" 
-          rel="noopener noreferrer" 
-          style={{ 
-            textDecoration: 'none',
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: 8,
-            fontSize: '13px',
-            fontWeight: 600,
-            color: '#ffffff',
-            transition: 'gap 0.2s ease, color 0.2s ease'
-          }}
-          className="hover:text-purple-400 group-btn"
-          onMouseEnter={(e) => e.currentTarget.style.color = '#c084fc'}
-          onMouseLeave={(e) => e.currentTarget.style.color = '#ffffff'}
-        >
-          <span>{btnText}</span>
-          <ArrowRight size={14} style={{ transition: 'transform 0.2s ease' }} className="group-btn-arrow" />
-        </a>
-      </div>
-    </div>
-  );
-}
-
 // ── MAIN COMMUNITY SECTION ───────────────────────────────────────────────────
 export function CommunitySection() {
   const isMobile = useMediaQuery('(max-width: 768px)');
@@ -390,32 +302,21 @@ export function CommunitySection() {
     <section 
       style={{ 
         position: 'relative', 
-        padding: isMobile ? '80px 16px' : '120px 0', 
+        padding: isMobile ? '60px 16px' : '100px 0', 
         overflow: 'hidden',
-        borderTop: '1px solid rgba(255, 255, 255, 0.03)'
+        borderTop: '1px solid rgba(255, 255, 255, 0.03)',
+        background: 'transparent'
       }}
     >
-      {/* Stars & Grid background lines enhancement */}
-      <div 
-        style={{ 
-          position: 'absolute', 
-          inset: 0, 
-          background: 'radial-gradient(circle at 50% 50%, rgba(15, 12, 30, 0.6) 0%, rgba(0,0,0,0) 100%)',
-          pointerEvents: 'none',
-          zIndex: 0
-        }} 
-      />
-
       <div style={{ maxWidth: 1200, margin: '0 auto', padding: '0 24px', position: 'relative', zIndex: 1 }}>
         
-        {/* TOP LAYOUT - TWO COLUMNS */}
+        {/* SPLIT LAYOUT - TWO COLUMNS */}
         <div 
           style={{ 
             display: 'grid', 
             gridTemplateColumns: isTablet ? '1fr' : '1.1fr 0.9fr', 
             gap: 64, 
-            alignItems: 'center',
-            marginBottom: 80
+            alignItems: 'center'
           }}
         >
           {/* LEFT SIDE - CONTENT */}
@@ -439,20 +340,6 @@ export function CommunitySection() {
                 <text x="54" y="38" fontFamily="system-ui, sans-serif" fontSize="26" fontWeight="800" fill="#ffffff" letterSpacing="-1">dot</text>
                 <text x="95" y="38" fontFamily="system-ui, sans-serif" fontSize="26" fontWeight="300" fill="#737373" letterSpacing="-1">Market</text>
               </svg>
-            </div>
-
-            {/* Glowing badge */}
-            <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: '6px 12px', background: 'rgba(139, 92, 246, 0.05)', border: '1px solid rgba(139, 92, 246, 0.15)', borderRadius: 20, marginBottom: 20 }}>
-              <div 
-                style={{ 
-                  width: 6, 
-                  height: 6, 
-                  borderRadius: '50%', 
-                  background: '#8b5cf6', 
-                  boxShadow: '0 0 8px #8b5cf6' 
-                }} 
-              />
-              <span style={{ fontSize: 11, fontWeight: 600, color: '#a78bfa', textTransform: 'uppercase', letterSpacing: '1px' }}>Community</span>
             </div>
 
             {/* Staggered Word Reveal Heading */}
@@ -572,201 +459,13 @@ export function CommunitySection() {
             </motion.div>
           )}
         </div>
-
-        {/* 3 PREMIUM GLASS CARDS */}
-        <div 
-          style={{ 
-            display: 'grid', 
-            gridTemplateColumns: isMobile ? '1fr' : 'repeat(3, 1fr)', 
-            gap: 24,
-            marginBottom: 80
-          }}
-        >
-          <SocialCard 
-            title="Discord"
-            desc="Join discussions, governance updates, market ideas and community events."
-            btnText="Join"
-            href="https://discord.com"
-            icon={
-              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M7.5 4.2c-2.43 1.8-3.4 5.23-3.4 8.78c0 3.32.74 5.94 1.48 7.37c1.37 2.65 4.25 3.35 6.42 1.35v0c1.07-.98 2.93-.98 4 0v0c2.17 2 5.05 1.3 6.42-1.35c.74-1.43 1.48-4.05 1.48-7.37c0-3.55-.97-6.98-3.4-8.78c-2.73-2-6.52-2.28-9-1.95c-2.48-.33-6.27-.05-9 1.95z"></path>
-                <path d="M9 12h.01"></path>
-                <path d="M15 12h.01"></path>
-              </svg>
-            }
-          />
-          <SocialCard 
-            title="X (Twitter)"
-            desc="Follow product updates, announcements and market insights."
-            btnText="Follow"
-            href="https://twitter.com"
-            icon={
-              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M4 4l11.733 16h4.267l-11.733 -16z"></path>
-                <path d="M4 20l6.768 -6.768m2.46 -2.46l6.772 -6.772"></path>
-              </svg>
-            }
-          />
-          <SocialCard 
-            title="Telegram"
-            desc="Chat with traders in real time and stay connected with the community."
-            btnText="Open"
-            href="https://telegram.org"
-            icon={
-              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M15 10l-4 4l6 6l4 -16l-18 7l4 2l2 6l3 -4"></path>
-              </svg>
-            }
-          />
-        </div>
-
-        {/* BOTTOM CTA STRIP */}
-        <motion.div
-          initial={{ opacity: 0, y: 30 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true, margin: "-50px" }}
-          transition={{ duration: 0.6 }}
-          style={{
-            position: 'relative',
-            borderRadius: '24px',
-            border: '1px solid rgba(255, 255, 255, 0.05)',
-            background: 'linear-gradient(135deg, rgba(20, 20, 25, 0.4) 0%, rgba(10, 10, 15, 0.6) 100%)',
-            backdropFilter: 'blur(16px)',
-            WebkitBackdropFilter: 'blur(16px)',
-            padding: isMobile ? '32px 24px' : '48px 64px',
-            overflow: 'hidden',
-          }}
-        >
-          {/* Animated sweep effect */}
-          <div 
-            style={{
-              position: 'absolute',
-              top: 0,
-              left: 0,
-              right: 0,
-              bottom: 0,
-              background: 'linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.02) 40%, rgba(139, 92, 246, 0.04) 50%, rgba(255, 255, 255, 0.02) 60%, transparent)',
-              backgroundSize: '200% 100%',
-              animation: 'community-sweep 8s infinite linear',
-              pointerEvents: 'none',
-              zIndex: 0
-            }}
-          />
-
-          <div 
-            style={{ 
-              position: 'relative', 
-              zIndex: 1, 
-              display: 'flex', 
-              flexDirection: isMobile ? 'column' : 'row', 
-              justifyContent: 'space-between', 
-              alignItems: 'center', 
-              gap: 32 
-            }}
-          >
-            <div style={{ display: 'flex', gap: 24, alignItems: 'center', flexDirection: isMobile ? 'column' : 'row', textAlign: isMobile ? 'center' : 'left' }}>
-              <div 
-                style={{ 
-                  width: 56, 
-                  height: 56, 
-                  borderRadius: '16px', 
-                  background: 'rgba(139, 92, 246, 0.05)', 
-                  border: '1px solid rgba(139, 92, 246, 0.15)',
-                  display: 'flex', 
-                  alignItems: 'center', 
-                  justifyContent: 'center',
-                  color: '#a78bfa',
-                  flexShrink: 0,
-                  boxShadow: '0 0 20px rgba(139, 92, 246, 0.1)',
-                  animation: 'community-pulse 3s infinite ease-in-out'
-                }}
-              >
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2m12-10a4 4 0 1 0-8-0 4 4 0 0 0 8 0z"></path>
-                  <path d="M23 21v-2a4 4 0 0 0-3-3.87m-4-12a4 4 0 0 1 0 7.75"></path>
-                </svg>
-              </div>
-
-              <div>
-                <h4 style={{ margin: '0 0 6px', fontSize: '20px', fontWeight: 500, color: '#ffffff' }}>
-                  Built by the Community
-                </h4>
-                <p style={{ margin: 0, fontSize: '14px', color: 'var(--text-secondary)', lineHeight: 1.5, maxWidth: 450 }}>
-                  Every prediction, contribution and discussion helps shape DotMarket.
-                </p>
-              </div>
-            </div>
-
-            <motion.a 
-              href="https://discord.com" 
-              target="_blank" 
-              rel="noopener noreferrer" 
-              style={{ textDecoration: 'none', width: isMobile ? '100%' : 'auto' }}
-              whileHover={{ scale: 1.02 }}
-              whileTap={{ scale: 0.98 }}
-            >
-              <button
-                style={{
-                  background: 'rgba(255, 255, 255, 0.02)',
-                  color: '#ffffff',
-                  border: '1px solid rgba(255, 255, 255, 0.08)',
-                  padding: '14px 32px',
-                  borderRadius: '12px',
-                  fontWeight: 600,
-                  fontSize: '14px',
-                  cursor: 'pointer',
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  gap: 8,
-                  whiteSpace: 'nowrap',
-                  width: isMobile ? '100%' : 'auto',
-                  transition: 'all 0.2s ease'
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.2)';
-                  e.currentTarget.style.background = 'rgba(255, 255, 255, 0.05)';
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.08)';
-                  e.currentTarget.style.background = 'rgba(255, 255, 255, 0.02)';
-                }}
-              >
-                <span>Join the Community</span>
-                <ArrowRight size={16} />
-              </button>
-            </motion.a>
-          </div>
-        </motion.div>
       </div>
 
-      {/* Embedded CSS Animations for Sweep and Icon pulse */}
       <style jsx global>{`
-        @keyframes community-sweep {
-          0% { background-position: -200% 0; }
-          100% { background-position: 200% 0; }
-        }
-        @keyframes community-pulse {
-          0%, 100% { transform: scale(1); box-shadow: 0 0 20px rgba(139, 92, 246, 0.1); }
-          50% { transform: scale(1.05); box-shadow: 0 0 30px rgba(139, 92, 246, 0.25); }
-        }
-        .magnetic-icon-group:hover {
-          color: #a78bfa !important;
-        }
-        .group-hover\\:border-white\\/10:hover {
-          border-color: rgba(255, 255, 255, 0.12) !important;
-        }
-        .group-hover\\:border-purple-500\\/30:hover {
-          border-color: rgba(139, 92, 246, 0.3) !important;
-        }
-        .hover\\:-translate-y-2:hover {
-          transform: translateY(-8px) !important;
-        }
-        .hover\\:shadow-purple-500\\/5:hover {
-          box-shadow: 0 25px 50px -12px rgba(139, 92, 246, 0.1) !important;
-        }
-        .group-btn:hover .group-btn-arrow {
-          transform: translateX(4px);
+        .magnetic-icon-element:hover {
+          color: #ffffff !important;
+          border-color: rgba(255, 255, 255, 0.25) !important;
+          box-shadow: 0 0 15px rgba(255, 255, 255, 0.15) !important;
         }
       `}</style>
     </section>
