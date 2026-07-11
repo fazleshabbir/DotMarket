@@ -4,15 +4,17 @@ import React, { useState, useRef, useEffect } from 'react';
 import { motion, useMotionValue, useSpring } from 'framer-motion';
 import { ArrowRight } from 'lucide-react';
 import { useMediaQuery } from '@/hooks/useMediaQuery';
+import { useMotionSystem } from '@/hooks/useMotionSystem';
 
 // ── MAGNETIC SOCIAL ICON COMPONENT ───────────────────────────────────────────
 interface MagneticIconProps {
   children: React.ReactNode;
   tooltip: string;
   href: string;
+  delayIndex: number;
 }
 
-function MagneticIcon({ children, tooltip, href }: MagneticIconProps) {
+function MagneticIcon({ children, tooltip, href, delayIndex }: MagneticIconProps) {
   const x = useMotionValue(0);
   const y = useMotionValue(0);
   const springConfig = { damping: 12, stiffness: 120 };
@@ -20,6 +22,7 @@ function MagneticIcon({ children, tooltip, href }: MagneticIconProps) {
   const springY = useSpring(y, springConfig);
 
   const [hovered, setHovered] = useState(false);
+  const { getFloatingAnimation, shouldReduceMotion } = useMotionSystem();
 
   const handleMouseMove = (e: React.MouseEvent<HTMLAnchorElement>) => {
     const { clientX, clientY, currentTarget } = e;
@@ -40,6 +43,13 @@ function MagneticIcon({ children, tooltip, href }: MagneticIconProps) {
     setHovered(false);
   };
 
+  // Hover states: TranslateY -6px, Scale 1.02, RotateX 2deg (adapted for circular icon)
+  const hoverProps = shouldReduceMotion ? {} : {
+    y: -6,
+    scale: 1.05,
+    transition: { duration: 0.25, ease: 'easeOut' as const }
+  };
+
   return (
     <motion.a
       href={href}
@@ -48,7 +58,7 @@ function MagneticIcon({ children, tooltip, href }: MagneticIconProps) {
       onMouseMove={handleMouseMove}
       onMouseLeave={handleMouseLeave}
       onMouseEnter={() => setHovered(true)}
-      whileHover={{ scale: 1.1 }}
+      whileHover={hoverProps}
       whileTap={{ scale: 0.95 }}
       style={{
         x: springX,
@@ -69,7 +79,13 @@ function MagneticIcon({ children, tooltip, href }: MagneticIconProps) {
       }}
       className="magnetic-icon-element"
     >
-      {children}
+      {/* Floating animation inside the icon parent */}
+      <motion.div
+        animate={getFloatingAnimation(delayIndex * 0.3)}
+        style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+      >
+        {children}
+      </motion.div>
 
       {/* Premium Tooltip */}
       {hovered && (
@@ -293,6 +309,15 @@ function NetworkNodesCanvas() {
 // ── MAIN COMMUNITY SECTION ───────────────────────────────────────────────────
 export function CommunitySection() {
   const [mounted, setMounted] = useState(false);
+  const {
+    revealHeading,
+    revealSubtitle,
+    revealButton,
+    fadeUp,
+    fadeIn,
+    shouldReduceMotion,
+  } = useMotionSystem();
+
   useEffect(() => {
     setMounted(true);
   }, []);
@@ -302,9 +327,6 @@ export function CommunitySection() {
 
   const isMobile = mounted ? isMobileQuery : false;
   const isTablet = mounted ? isTabletQuery : false;
-
-  const headingText = "Join the DotMarket Community";
-  const headingWords = headingText.split(" ");
 
   return (
     <section 
@@ -328,14 +350,15 @@ export function CommunitySection() {
           }}
         >
           {/* LEFT SIDE - CONTENT */}
-          <motion.div
-            initial={{ opacity: 0, y: 30 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true, margin: "-100px" }}
-            transition={{ duration: 0.6 }}
-          >
-            {/* Original DotMarket SVG Logo */}
-            <div style={{ marginBottom: 32, display: 'flex', alignItems: 'center' }}>
+          <div style={{ display: 'flex', flexDirection: 'column' }}>
+            {/* Original DotMarket SVG Logo - Reveal first */}
+            <motion.div 
+              initial="hidden"
+              whileInView="visible"
+              viewport={{ once: true, amount: 0.25 }}
+              variants={fadeIn}
+              style={{ marginBottom: 32, display: 'flex', alignItems: 'center' }}
+            >
               <svg viewBox="0 0 200 60" width="130" height="39" xmlns="http://www.w3.org/2000/svg">
                 <defs>
                   <mask id="communityLogoMask">
@@ -348,10 +371,14 @@ export function CommunitySection() {
                 <text x="54" y="38" fontFamily="system-ui, sans-serif" fontSize="26" fontWeight="800" fill="#ffffff" letterSpacing="-1">dot</text>
                 <text x="95" y="38" fontFamily="system-ui, sans-serif" fontSize="26" fontWeight="300" fill="#737373" letterSpacing="-1">Market</text>
               </svg>
-            </div>
+            </motion.div>
 
-            {/* Staggered Word Reveal Heading */}
-            <h2 
+            {/* Unified Heading reveal */}
+            <motion.h2 
+              initial="hidden"
+              whileInView="visible"
+              viewport={{ once: true, amount: 0.25 }}
+              variants={revealHeading}
               style={{ 
                 fontSize: isMobile ? '36px' : '54px', 
                 fontWeight: 400, 
@@ -362,40 +389,35 @@ export function CommunitySection() {
                 letterSpacing: '-1px'
               }}
             >
-              {headingWords.map((word, idx) => (
-                <motion.span
-                  key={idx}
-                  initial={{ opacity: 0, y: 15 }}
-                  whileInView={{ opacity: 1, y: 0 }}
-                  viewport={{ once: true }}
-                  transition={{ duration: 0.4, delay: idx * 0.08 }}
-                  style={{ display: 'inline-block', marginRight: '0.25em' }}
-                >
-                  {word}
-                </motion.span>
-              ))}
-            </h2>
+              Join the DotMarket Community
+            </motion.h2>
 
-            {/* Slide up description */}
+            {/* Unified Subtitle reveal */}
             <motion.p 
-              initial={{ opacity: 0, y: 15 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ duration: 0.5, delay: 0.4 }}
+              initial="hidden"
+              whileInView="visible"
+              viewport={{ once: true, amount: 0.25 }}
+              variants={revealSubtitle}
               style={{ color: 'var(--text-secondary)', fontSize: '16px', lineHeight: 1.6, marginBottom: 40, maxWidth: 540 }}
             >
               Trade together. Build together. Shape the future of decentralized prediction markets with traders, builders and contributors from around the world.
             </motion.p>
 
-            {/* Primary button & Social link details */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
+            {/* Unified Button & Social layout reveal */}
+            <motion.div 
+              initial="hidden"
+              whileInView="visible"
+              viewport={{ once: true, amount: 0.25 }}
+              variants={revealButton}
+              style={{ display: 'flex', flexDirection: 'column', gap: 24 }}
+            >
               <div style={{ display: 'flex', alignItems: 'center', gap: 24, flexWrap: 'wrap' }}>
                 <motion.a 
                   href="https://discord.com" 
                   target="_blank" 
                   rel="noopener noreferrer"
                   style={{ textDecoration: 'none' }}
-                  whileHover={{ scale: 1.02 }}
+                  whileHover={shouldReduceMotion ? {} : { scale: 1.02 }}
                   whileTap={{ scale: 0.98 }}
                 >
                   <button
@@ -412,7 +434,7 @@ export function CommunitySection() {
                       alignItems: 'center',
                       gap: 8,
                       boxShadow: '0 4px 20px rgba(255,255,255,0.15)',
-                      transition: 'box-shadow 0.2s ease',
+                      transition: 'box-shadow 0.2s ease, transform 0.2s ease',
                     }}
                     onMouseEnter={(e) => e.currentTarget.style.boxShadow = '0 0 30px rgba(255,255,255,0.3)'}
                     onMouseLeave={(e) => e.currentTarget.style.boxShadow = '0 4px 20px rgba(255,255,255,0.15)'}
@@ -430,7 +452,7 @@ export function CommunitySection() {
 
               {/* Social icons row */}
               <div style={{ display: 'flex', gap: 12, marginTop: 12 }}>
-                <MagneticIcon tooltip="Join Discord" href="https://discord.com">
+                <MagneticIcon tooltip="Join Discord" href="https://discord.com" delayIndex={0}>
                   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                     <path d="M7.5 4.2c-2.43 1.8-3.4 5.23-3.4 8.78c0 3.32.74 5.94 1.48 7.37c1.37 2.65 4.25 3.35 6.42 1.35v0c1.07-.98 2.93-.98 4 0v0c2.17 2 5.05 1.3 6.42-1.35c.74-1.43 1.48-4.05 1.48-7.37c0-3.55-.97-6.98-3.4-8.78c-2.73-2-6.52-2.28-9-1.95c-2.48-.33-6.27-.05-9 1.95z"></path>
                     <path d="M9 12h.01"></path>
@@ -438,29 +460,29 @@ export function CommunitySection() {
                   </svg>
                 </MagneticIcon>
                 
-                <MagneticIcon tooltip="Follow X (Twitter)" href="https://twitter.com">
+                <MagneticIcon tooltip="Follow X (Twitter)" href="https://twitter.com" delayIndex={1}>
                   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                     <path d="M4 4l11.733 16h4.267l-11.733 -16z"></path>
                     <path d="M4 20l6.768 -6.768m2.46 -2.46l6.772 -6.772"></path>
                   </svg>
                 </MagneticIcon>
 
-                <MagneticIcon tooltip="Join Telegram" href="https://telegram.org">
+                <MagneticIcon tooltip="Join Telegram" href="https://telegram.org" delayIndex={2}>
                   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                     <path d="M15 10l-4 4l6 6l4 -16l-18 7l4 2l2 6l3 -4"></path>
                   </svg>
                 </MagneticIcon>
               </div>
-            </div>
-          </motion.div>
+            </motion.div>
+          </div>
 
           {/* RIGHT SIDE - VISUAL */}
           {!isTablet && (
             <motion.div
-              initial={{ opacity: 0, scale: 0.95 }}
-              whileInView={{ opacity: 1, scale: 1 }}
-              viewport={{ once: true, margin: "-100px" }}
-              transition={{ duration: 0.8 }}
+              initial="hidden"
+              whileInView="visible"
+              viewport={{ once: true, amount: 0.25 }}
+              variants={fadeUp}
               style={{ position: 'relative', height: 400 }}
             >
               <NetworkNodesCanvas />

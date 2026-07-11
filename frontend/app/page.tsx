@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
+import { motion } from 'framer-motion';
 import { useReadContract } from 'wagmi';
 import { formatEther } from 'viem';
 import { ROUND_MARKET_ABI } from '@/lib/abi';
@@ -15,6 +16,7 @@ import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 import { Section } from '@/components/ui/Section';
 import { PageHeader } from '@/components/ui/PageHeader';
+import { useMotionSystem } from '@/hooks/useMotionSystem';
 
 // Minimal Web3 SVG Line-Art Icons
 interface IconProps {
@@ -288,6 +290,18 @@ function FAQItem({ question, answer }: FAQItemProps) {
 }
 
 export default function LandingPage() {
+  const {
+    revealHeading,
+    revealSubtitle,
+    revealCard,
+    revealButton,
+    staggerContainer,
+    staggerItem,
+    fadeIn,
+    fadeUp,
+    shouldReduceMotion,
+  } = useMotionSystem();
+
   const [sentiment, setSentiment] = useState(54);
   const [isMounted, setIsMounted] = useState(false);
   const [windowWidth, setWindowWidth] = useState(1200); // Default to desktop layout
@@ -630,40 +644,53 @@ export default function LandingPage() {
           padding: isDesktop ? '80px 24px 100px' : '60px 16px 60px',
         }}
       >
-        <AnimatedLogo />
-
-        {/* Redesigned Serif Headline */}
-        <h1
-          style={{
-            fontFamily: "'Cormorant Garamond', serif",
-            fontSize: isMobile ? '38px' : isTablet ? '56px' : '72px',
-            fontWeight: 400,
-            lineHeight: 1.1,
-            color: '#ffffff',
-            margin: '0 0 20px',
-            maxWidth: 950,
-            letterSpacing: '-1.5px',
-          }}
+        <motion.div
+          initial="hidden"
+          animate="visible"
+          variants={staggerContainer(0.1)}
+          style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', width: '100%' }}
         >
-          Trade the Next Minute of Crypto.
-        </h1>
+          <motion.div variants={fadeIn}>
+            <AnimatedLogo />
+          </motion.div>
 
-        {/* Updated Subtitle */}
-        <p
-          style={{
-            fontSize: isMobile ? '15px' : isTablet ? '17px' : '19px',
-            color: 'var(--text-secondary)',
-            margin: '0 0 40px',
-            maxWidth: 680,
-            lineHeight: 1.6,
-            fontWeight: 400,
-          }}
-        >
-          The Pari-Mutuel AMM for High-Frequency Binary Decentralized Prediction Markets.
-        </p>
+          {/* Redesigned Serif Headline */}
+          <motion.h1
+            variants={revealHeading}
+            style={{
+              fontFamily: "'Cormorant Garamond', serif",
+              fontSize: isMobile ? '38px' : isTablet ? '56px' : '72px',
+              fontWeight: 400,
+              lineHeight: 1.1,
+              color: '#ffffff',
+              margin: '0 0 20px',
+              maxWidth: 950,
+              letterSpacing: '-1.5px',
+            }}
+          >
+            Trade the Next Minute of Crypto.
+          </motion.h1>
 
-        {/* Actions Button Row */}
-        <div style={{ display: 'flex', flexDirection: isMobile ? 'column' : 'row', gap: 16, width: isMobile ? '100%' : 'auto', justifyContent: 'center', alignItems: 'center', marginBottom: 48 }}>
+          {/* Updated Subtitle */}
+          <motion.p
+            variants={revealSubtitle}
+            style={{
+              fontSize: isMobile ? '15px' : isTablet ? '17px' : '19px',
+              color: 'var(--text-secondary)',
+              margin: '0 0 40px',
+              maxWidth: 680,
+              lineHeight: 1.6,
+              fontWeight: 400,
+            }}
+          >
+            The Pari-Mutuel AMM for High-Frequency Binary Decentralized Prediction Markets.
+          </motion.p>
+
+          {/* Actions Button Row */}
+          <motion.div 
+            variants={revealButton}
+            style={{ display: 'flex', flexDirection: isMobile ? 'column' : 'row', gap: 16, width: isMobile ? '100%' : 'auto', justifyContent: 'center', alignItems: 'center', marginBottom: 48 }}
+          >
           <Link href="/trade" style={{ textDecoration: 'none', width: isMobile ? '100%' : 'auto' }}>
             <Button variant="primary" size="lg" style={{ width: isMobile ? '100%' : 'auto', letterSpacing: '1px' }}>
               Start Trading ↗
@@ -674,71 +701,75 @@ export default function LandingPage() {
               Explore Markets
             </Button>
           </a>
-        </div>
+          </motion.div>
 
-        {/* Minimal Sentiment Bar */}
-        <div
-          style={{
-            fontSize: 11,
-            fontFamily: 'var(--font-mono)',
-            color: 'var(--text-secondary)',
-            letterSpacing: '1px',
-            textTransform: 'uppercase',
-            marginBottom: 64,
-            display: 'flex',
-            alignItems: 'center',
-            flexWrap: 'wrap',
-            justifyContent: 'center',
-            gap: 12,
-            background: 'rgba(255, 255, 255, 0.02)',
-            padding: '8px 18px',
-            borderRadius: 8,
-            border: '1px solid rgba(255, 255, 255, 0.04)',
-          }}
-        >
-          <span>LIVE BTC FORECAST SENTIMENT:</span>
-          <span style={{ color: '#ffffff', fontWeight: 600 }}>⚪ {sentiment}% UP</span>
-          <span style={{ opacity: 0.2 }}>|</span>
-          <span style={{ color: 'var(--text-muted)', fontWeight: 600 }}>⚫ {100 - sentiment}% DOWN</span>
-        </div>
+          {/* Minimal Sentiment Bar */}
+          <motion.div
+            variants={staggerItem}
+            style={{
+              fontSize: 11,
+              fontFamily: 'var(--font-mono)',
+              color: 'var(--text-secondary)',
+              letterSpacing: '1px',
+              textTransform: 'uppercase',
+              marginBottom: 64,
+              display: 'flex',
+              alignItems: 'center',
+              flexWrap: 'wrap',
+              justifyContent: 'center',
+              gap: 12,
+              background: 'rgba(255, 255, 255, 0.02)',
+              padding: '8px 18px',
+              borderRadius: 8,
+              border: '1px solid rgba(255, 255, 255, 0.04)',
+            }}
+          >
+            <span>LIVE BTC FORECAST SENTIMENT:</span>
+            <span style={{ color: '#ffffff', fontWeight: 600 }}>⚪ {sentiment}% UP</span>
+            <span style={{ opacity: 0.2 }}>|</span>
+            <span style={{ color: 'var(--text-muted)', fontWeight: 600 }}>⚫ {100 - sentiment}% DOWN</span>
+          </motion.div>
 
-        {/* Trust Badges Row */}
-        <div 
-          style={{ 
-            display: 'flex', 
-            flexWrap: 'wrap', 
-            justifyContent: 'center', 
-            alignItems: 'center', 
-            gap: isMobile ? 12 : 24,
-            opacity: 0.85
-          }}
-        >
-          {[
-            { label: 'Non-Custodial', icon: <KeyIcon size={14} /> },
-            { label: 'Low Fees', icon: <DiamondIcon size={14} /> },
-            { label: 'Fast Settlement', icon: <LightningIcon size={14} /> },
-            { label: 'Multi-Chain', icon: <GlobeIcon size={14} /> }
-          ].map((badge, idx) => (
-            <div
-              key={idx}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: 8,
-                fontSize: 12,
-                fontWeight: 600,
-                color: 'var(--text-secondary)',
-                background: 'rgba(255, 255, 255, 0.01)',
-                border: '1px solid rgba(255, 255, 255, 0.03)',
-                padding: '6px 14px',
-                borderRadius: 20
-              }}
-            >
-              <span style={{ display: 'flex', alignItems: 'center', color: '#ffffff', opacity: 0.8 }}>{badge.icon}</span>
-              <span>{badge.label}</span>
-            </div>
-          ))}
-        </div>
+          {/* Trust Badges Row */}
+          <motion.div 
+            variants={staggerContainer(0.08)}
+            style={{ 
+              display: 'flex', 
+              flexWrap: 'wrap', 
+              justifyContent: 'center', 
+              alignItems: 'center', 
+              gap: isMobile ? 12 : 24,
+              opacity: 0.85
+            }}
+          >
+            {[
+              { label: 'Non-Custodial', icon: <KeyIcon size={14} /> },
+              { label: 'Low Fees', icon: <DiamondIcon size={14} /> },
+              { label: 'Fast Settlement', icon: <LightningIcon size={14} /> },
+              { label: 'Multi-Chain', icon: <GlobeIcon size={14} /> }
+            ].map((badge, idx) => (
+              <motion.div
+                key={idx}
+                variants={staggerItem}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 8,
+                  fontSize: 12,
+                  fontWeight: 600,
+                  color: 'var(--text-secondary)',
+                  background: 'rgba(255, 255, 255, 0.01)',
+                  border: '1px solid rgba(255, 255, 255, 0.03)',
+                  padding: '6px 14px',
+                  borderRadius: 20
+                }}
+              >
+                <span style={{ display: 'flex', alignItems: 'center', color: '#ffffff', opacity: 0.8 }}>{badge.icon}</span>
+                <span>{badge.label}</span>
+              </motion.div>
+            ))}
+          </motion.div>
+        </motion.div>
       </section>
 
       {/* ── 2. Live Markets Preview ──────────────────────────────── */}
@@ -749,7 +780,13 @@ export default function LandingPage() {
         />
 
         {/* Markets cards grid */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: 24 }}>
+        <motion.div
+          initial="hidden"
+          whileInView="visible"
+          viewport={{ once: true, amount: 0.25 }}
+          variants={staggerContainer(0.1)}
+          style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: 24 }}
+        >
           {[
             { 
               pair: 'BTC/USD', 
@@ -776,7 +813,7 @@ export default function LandingPage() {
               target: 'SOL/USD 1m Forecast' 
             }
           ].map((m, idx) => (
-            <ScrollFade key={idx} delay={`${idx * 0.1}s`}>
+            <ScrollFade key={idx}>
               <Card 
                 style={{ 
                   padding: 24, 
@@ -834,7 +871,7 @@ export default function LandingPage() {
               </Card>
             </ScrollFade>
           ))}
-        </div>
+        </motion.div>
       </Section>
 
 
@@ -850,7 +887,13 @@ export default function LandingPage() {
         />
 
         {/* Roadmap horizontal timeline container */}
-        <div className="roadmap-timeline-container">
+        <motion.div
+          initial="hidden"
+          whileInView="visible"
+          viewport={{ once: true, amount: 0.25 }}
+          variants={staggerContainer(0.1)}
+          className="roadmap-timeline-container"
+        >
           {[
             { phase: 'Q2', title: 'Protocol Launch', desc: 'Core smart contract pools deployed on testnet.' },
             { phase: 'Q3', title: 'Prediction Markets', desc: 'Launch multi-collateral and advanced metrics forecast pools.' },
@@ -859,19 +902,29 @@ export default function LandingPage() {
             { phase: 'Future', title: 'DAO Governance', desc: 'Transition protocol mechanics to token voting structures.' },
             { phase: 'Future', title: 'Cross-Chain', desc: 'Deploy on Arbitrum, Base, and Solana via bridging protocols.' }
           ].map((item, idx) => (
-            <Card 
+            <motion.div
               key={idx}
+              variants={revealCard}
               style={{
                 flex: '0 0 240px',
-                padding: '24px',
+                display: 'flex',
+                flexDirection: 'column',
               }}
             >
-              <span className="font-mono" style={{ fontSize: 11, color: 'var(--accent)', fontWeight: 700, display: 'block', marginBottom: 8 }}>{item.phase}</span>
-              <h3 style={{ fontSize: 15, fontWeight: 700, color: '#ffffff', marginBottom: 8 }}>{item.title}</h3>
-              <p style={{ fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.4 }}>{item.desc}</p>
-            </Card>
+              <Card 
+                style={{
+                  padding: '24px',
+                  height: '100%',
+                  width: '100%',
+                }}
+              >
+                <span className="font-mono" style={{ fontSize: 11, color: 'var(--accent)', fontWeight: 700, display: 'block', marginBottom: 8 }}>{item.phase}</span>
+                <h3 style={{ fontSize: 15, fontWeight: 700, color: '#ffffff', marginBottom: 8 }}>{item.title}</h3>
+                <p style={{ fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.4 }}>{item.desc}</p>
+              </Card>
+            </motion.div>
           ))}
-        </div>
+        </motion.div>
       </Section>
 
       {/* ── 10. Community Section ────────────────────────────────────────────── */}
@@ -886,38 +939,61 @@ export default function LandingPage() {
 
         {/* FAQ Accordion container */}
         <Card hoverEffect={false} style={{ overflow: 'hidden', padding: 0 }}>
-          <FAQItem 
-            question="What is dotMarket?" 
-            answer="dotMarket is a decentralized, high-frequency prediction platform. It allows users to place binary predictions (UP or DOWN) on asset prices with sub-minute resolutions using a pari-mutuel AMM structure." 
-          />
-          <FAQItem 
-            question="How do prediction markets work?" 
-            answer="Traders allocate collateral (USDC) into either the UP pool or the DOWN pool. When the prediction window locks, the ratio is set. Once the round resolves, the winning side takes the accumulated pool, split proportionally based on individual collateral contributions." 
-          />
-          <FAQItem 
-            question="How are markets resolved?" 
-            answer="Markets are settled on-chain via automated keeper bots that query real-time oracle price feeds (such as the Pyth Network Hermes feed). This ensures transparent, fast, and tamper-proof resolution." 
-          />
-          <FAQItem 
-            question="Is dotMarket non-custodial?" 
-            answer="Yes, completely. dotMarket is constructed of non-custodial smart contracts. All tokens remain in your personal Web3 wallet or in the locked smart contract escrow during active rounds, and can only be withdrawn by you." 
-          />
-          <FAQItem 
-            question="Which wallets are supported?" 
-            answer="Any Web3 EIP-1193 compatible wallet (like MetaMask, Coinbase Wallet, Rabby, or Rainbow) is supported through the standard wagmi connector suite." 
-          />
-          <FAQItem 
-            question="Is KYC required?" 
-            answer="No. dotMarket is a decentralized protocol. You only need to connect a compatible Web3 wallet and hold testnet gas (ETH/USDC) to begin trading." 
-          />
-          <FAQItem 
-            question="What fees are charged?" 
-            answer="dotMarket charges minimal protocol fees of 1-2% on winning payouts. These fees accumulate to fuel keeper gas buffers and support active community development rewards." 
-          />
-          <FAQItem 
-            question="When is mobile trading coming?" 
-            answer="Mobile-optimized terminal views are currently scheduled for release in Q4. However, you can currently view the landing page and read active stats from any mobile viewport." 
-          />
+          <motion.div
+            initial="hidden"
+            whileInView="visible"
+            viewport={{ once: true, amount: 0.25 }}
+            variants={staggerContainer(0.08)}
+          >
+            <motion.div variants={staggerItem}>
+              <FAQItem 
+                question="What is dotMarket?" 
+                answer="dotMarket is a decentralized, high-frequency prediction platform. It allows users to place binary predictions (UP or DOWN) on asset prices with sub-minute resolutions using a pari-mutuel AMM structure." 
+              />
+            </motion.div>
+            <motion.div variants={staggerItem}>
+              <FAQItem 
+                question="How do prediction markets work?" 
+                answer="Traders allocate collateral (USDC) into either the UP pool or the DOWN pool. When the prediction window locks, the ratio is set. Once the round resolves, the winning side takes the accumulated pool, split proportionally based on individual collateral contributions." 
+              />
+            </motion.div>
+            <motion.div variants={staggerItem}>
+              <FAQItem 
+                question="How are markets resolved?" 
+                answer="Markets are settled on-chain via automated keeper bots that query real-time oracle price feeds (such as the Pyth Network Hermes feed). This ensures transparent, fast, and tamper-proof resolution." 
+              />
+            </motion.div>
+            <motion.div variants={staggerItem}>
+              <FAQItem 
+                question="Is dotMarket non-custodial?" 
+                answer="Yes, completely. dotMarket is constructed of non-custodial smart contracts. All tokens remain in your personal Web3 wallet or in the locked smart contract escrow during active rounds, and can only be withdrawn by you." 
+              />
+            </motion.div>
+            <motion.div variants={staggerItem}>
+              <FAQItem 
+                question="Which wallets are supported?" 
+                answer="Any Web3 EIP-1193 compatible wallet (like MetaMask, Coinbase Wallet, Rabby, or Rainbow) is supported through the standard wagmi connector suite." 
+              />
+            </motion.div>
+            <motion.div variants={staggerItem}>
+              <FAQItem 
+                question="Is KYC required?" 
+                answer="No. dotMarket is a decentralized protocol. You only need to connect a compatible Web3 wallet and hold testnet gas (ETH/USDC) to begin trading." 
+              />
+            </motion.div>
+            <motion.div variants={staggerItem}>
+              <FAQItem 
+                question="What fees are charged?" 
+                answer="dotMarket charges minimal protocol fees of 1-2% on winning payouts. These fees accumulate to fuel keeper gas buffers and support active community development rewards." 
+              />
+            </motion.div>
+            <motion.div variants={staggerItem}>
+              <FAQItem 
+                question="When is mobile trading coming?" 
+                answer="Mobile-optimized terminal views are currently scheduled for release in Q4. However, you can currently view the landing page and read active stats from any mobile viewport." 
+              />
+            </motion.div>
+          </motion.div>
         </Card>
       </Section>
 

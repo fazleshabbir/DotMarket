@@ -1,8 +1,9 @@
 'use client';
 
 import React, { useRef, useState, useEffect } from 'react';
-import { motion, useScroll, useTransform, useSpring } from 'framer-motion';
+import { motion } from 'framer-motion';
 import { Wallet, CandlestickChart, Target, Trophy } from 'lucide-react';
+import { useMotionSystem } from '@/hooks/useMotionSystem';
 
 interface Step {
   num: string;
@@ -43,15 +44,26 @@ export function HowItWorksSection() {
   const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
   const [hoveredCard, setHoveredCard] = useState<number | null>(null);
   const [isMounted, setIsMounted] = useState(false);
-  const [prefersReducedMotion, setPrefersReducedMotion] = useState(false);
+
+  const {
+    revealHeading,
+    revealSubtitle,
+    revealCard,
+    getFloatingAnimation,
+    shouldReduceMotion,
+  } = useMotionSystem();
 
   useEffect(() => {
     setIsMounted(true);
-    const mediaQuery = window.matchMedia('(prefers-reduced-motion: reduce)');
-    setPrefersReducedMotion(mediaQuery.matches);
-    const handler = (e: MediaQueryListEvent) => setPrefersReducedMotion(e.matches);
-    mediaQuery.addEventListener('change', handler);
-    return () => mediaQuery.removeEventListener('change', handler);
+  }, []);
+
+  // Continuous light pulse state
+  const [pulseIndex, setPulseIndex] = useState(0);
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setPulseIndex((prev) => (prev + 1) % 4);
+    }, 2500);
+    return () => clearInterval(interval);
   }, []);
 
   const handleMouseMove = (e: React.MouseEvent) => {
@@ -63,22 +75,27 @@ export function HowItWorksSection() {
     });
   };
 
-  const { scrollYProgress } = useScroll({
-    target: sectionRef,
-    offset: ['start end', 'end start'],
-  });
+  // Timeline Connector Line Animation
+  const lineVariants = {
+    hidden: { scaleX: 0 },
+    visible: {
+      scaleX: 1,
+      transition: {
+        duration: 0.8,
+        ease: 'easeOut' as const,
+      },
+    },
+  };
 
-  const scrollLineProgress = useTransform(scrollYProgress, [0.2, 0.6], [0, 1]);
-  const lineWidthSpring = useSpring(scrollLineProgress, { stiffness: 100, damping: 30 });
-
-  // Continuous light pulse state
-  const [pulseIndex, setPulseIndex] = useState(0);
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setPulseIndex((prev) => (prev + 1) % 4);
-    }, 2500);
-    return () => clearInterval(interval);
-  }, []);
+  // Timeline Container holding both connector line and nodes
+  const timelineContainerVariants = {
+    hidden: {},
+    visible: {
+      transition: {
+        staggerChildren: shouldReduceMotion ? 0 : 0.15,
+      },
+    },
+  };
 
   return (
     <section
@@ -96,7 +113,6 @@ export function HowItWorksSection() {
       }}
       aria-labelledby="how-it-works-title"
     >
-      {/* ── Background Aesthetics ── */}
       {/* Subtle Noise Texture */}
       <div
         style={{
@@ -121,7 +137,7 @@ export function HowItWorksSection() {
       />
 
       {/* Floating particles */}
-      {isMounted && !prefersReducedMotion && (
+      {isMounted && !shouldReduceMotion && (
         <div style={{ position: 'absolute', inset: 0, pointerEvents: 'none', zIndex: 1 }}>
           {[...Array(6)].map((_, i) => (
             <motion.div
@@ -170,10 +186,10 @@ export function HowItWorksSection() {
       <div style={{ textAlign: 'center', marginBottom: '80px', position: 'relative', zIndex: 3 }}>
         <motion.h2
           id="how-it-works-title"
-          initial={prefersReducedMotion ? { opacity: 1, y: 0 } : { opacity: 0, y: 20, filter: 'blur(10px)' }}
-          whileInView={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
-          viewport={{ once: true, margin: '-100px' }}
-          transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
+          initial="hidden"
+          whileInView="visible"
+          viewport={{ once: true, amount: 0.25 }}
+          variants={revealHeading}
           style={{
             fontFamily: "'Cormorant Garamond', serif",
             fontSize: 'min(48px, 9vw)',
@@ -186,10 +202,10 @@ export function HowItWorksSection() {
           How DotMarket Works
         </motion.h2>
         <motion.p
-          initial={prefersReducedMotion ? { opacity: 1 } : { opacity: 0 }}
-          whileInView={{ opacity: 1 }}
-          viewport={{ once: true, margin: '-100px' }}
-          transition={{ duration: 0.6, delay: 0.2 }}
+          initial="hidden"
+          whileInView="visible"
+          viewport={{ once: true, amount: 0.25 }}
+          variants={revealSubtitle}
           style={{
             color: 'var(--text-secondary)',
             fontSize: '16px',
@@ -203,7 +219,13 @@ export function HowItWorksSection() {
       </div>
 
       {/* ── Timeline Section ── */}
-      <div style={{ position: 'relative', zIndex: 3 }}>
+      <motion.div 
+        initial="hidden"
+        whileInView="visible"
+        viewport={{ once: true, amount: 0.25 }}
+        variants={timelineContainerVariants}
+        style={{ position: 'relative', zIndex: 3 }}
+      >
         {/* Horizontal timeline connector line (desktop only) */}
         {isMounted && (
           <div
@@ -219,15 +241,15 @@ export function HowItWorksSection() {
             }}
           >
             <motion.div
+              variants={lineVariants}
               style={{
                 height: '100%',
                 background: 'linear-gradient(to right, rgba(255,255,255,0.05), rgba(255,255,255,0.3) 50%, rgba(255,255,255,0.05))',
-                width: prefersReducedMotion ? '100%' : lineWidthSpring,
                 transformOrigin: 'left',
               }}
             />
-            {/* Continuously moving pulse */}
-            {!prefersReducedMotion && (
+            {/* Continuously moving pulse (Starts after timeline nodes render) */}
+            {!shouldReduceMotion && (
               <motion.div
                 style={{
                   position: 'absolute',
@@ -242,6 +264,7 @@ export function HowItWorksSection() {
                   left: ['0%', '100%'],
                 }}
                 transition={{
+                  delay: 1.4, // Stagger delays complete around 0.6s + connector line animates 0.8s = 1.4s
                   duration: 6,
                   repeat: Infinity,
                   ease: 'linear',
@@ -291,14 +314,9 @@ export function HowItWorksSection() {
                 )}
 
                 <motion.div
-                  initial={prefersReducedMotion ? { opacity: 1, y: 0, scale: 1 } : { opacity: 0, y: 40, scale: 0.95 }}
-                  whileInView={{ opacity: 1, y: 0, scale: 1 }}
-                  viewport={{ once: true, margin: '-80px' }}
-                  transition={{
-                    duration: 0.6,
-                    delay: prefersReducedMotion ? 0 : idx * 0.12,
-                    ease: [0.16, 1, 0.3, 1],
-                  }}
+                  variants={revealCard}
+                  whileHover={shouldReduceMotion ? {} : { y: -6, scale: 1.02, rotateX: 2 }}
+                  transition={{ duration: 0.25, ease: 'easeOut' }}
                   style={{
                     background: isHovered ? 'rgba(255, 255, 255, 0.025)' : 'rgba(15, 15, 15, 0.4)',
                     backdropFilter: 'blur(16px)',
@@ -317,10 +335,7 @@ export function HowItWorksSection() {
                     boxShadow: isHovered
                       ? '0 20px 40px -15px rgba(0,0,0,0.7), inset 0 1px 0 rgba(255,255,255,0.1)'
                       : '0 10px 30px -20px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.03)',
-                    transition: 'border-color 250ms ease, background 250ms ease, box-shadow 250ms ease, transform 250ms ease',
-                    transform: isHovered 
-                      ? 'translateY(-8px) scale(1.03)' 
-                      : 'translateY(0px) scale(1)',
+                    transition: 'border-color 250ms ease, background 250ms ease, box-shadow 250ms ease',
                     height: '100%',
                     flex: 1,
                   }}
@@ -345,14 +360,7 @@ export function HowItWorksSection() {
                   >
                     {/* Slow floating motion for icon */}
                     <motion.div
-                      animate={prefersReducedMotion ? {} : {
-                        y: [0, -4, 0],
-                      }}
-                      transition={{
-                        duration: 3 + (idx % 2),
-                        repeat: Infinity,
-                        ease: 'easeInOut',
-                      }}
+                      animate={getFloatingAnimation(idx * 0.25)}
                       style={{
                         display: 'flex',
                         alignItems: 'center',
@@ -381,7 +389,7 @@ export function HowItWorksSection() {
                       fontFamily: 'var(--font-mono)',
                       fontWeight: 600,
                       marginBottom: '16px',
-                      boxShadow: (isHovered || isPulseActive) && !prefersReducedMotion
+                      boxShadow: (isHovered || isPulseActive) && !shouldReduceMotion
                         ? '0 0 12px rgba(255, 255, 255, 0.2), inset 0 1px 0 rgba(255,255,255,0.1)'
                         : 'none',
                       borderColor: isHovered || isPulseActive ? 'rgba(255,255,255,0.2)' : 'rgba(255,255,255,0.05)',
@@ -418,7 +426,7 @@ export function HowItWorksSection() {
             );
           })}
         </div>
-      </div>
+      </motion.div>
 
       <style jsx global>{`
         @media (max-width: 1023px) {

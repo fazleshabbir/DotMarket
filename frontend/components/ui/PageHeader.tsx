@@ -2,6 +2,7 @@
 
 import React from 'react';
 import { motion } from 'framer-motion';
+import { useMotionSystem } from '@/hooks/useMotionSystem';
 
 interface PageHeaderProps {
   title: string;
@@ -10,6 +11,8 @@ interface PageHeaderProps {
 }
 
 export function PageHeader({ title, subtitle, align = 'center' }: PageHeaderProps) {
+  const { revealHeading, revealSubtitle } = useMotionSystem();
+
   return (
     <div
       style={{
@@ -38,10 +41,10 @@ export function PageHeader({ title, subtitle, align = 'center' }: PageHeaderProp
       )}
 
       <motion.h2
-        initial={{ opacity: 0, y: 20, filter: 'blur(10px)' }}
-        whileInView={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
-        viewport={{ once: true, margin: '-100px' }}
-        transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
+        initial="hidden"
+        whileInView="visible"
+        viewport={{ once: true, amount: 0.25 }}
+        variants={revealHeading}
         style={{
           fontFamily: "'Cormorant Garamond', serif",
           fontSize: '42px',
@@ -58,10 +61,10 @@ export function PageHeader({ title, subtitle, align = 'center' }: PageHeaderProp
 
       {subtitle && (
         <motion.p
-          initial={{ opacity: 0 }}
-          whileInView={{ opacity: 1 }}
-          viewport={{ once: true, margin: '-100px' }}
-          transition={{ duration: 0.6, delay: 0.2 }}
+          initial="hidden"
+          whileInView="visible"
+          viewport={{ once: true, amount: 0.25 }}
+          variants={revealSubtitle}
           style={{
             color: 'var(--text-secondary)',
             fontSize: '15px',

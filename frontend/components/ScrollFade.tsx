@@ -1,6 +1,8 @@
 'use client';
 
 import React from 'react';
+import { motion } from 'framer-motion';
+import { useMotionSystem } from '@/hooks/useMotionSystem';
 
 interface ScrollFadeProps {
   children: React.ReactNode;
@@ -9,9 +11,17 @@ interface ScrollFadeProps {
 }
 
 export function ScrollFade({ children, style = {} }: ScrollFadeProps) {
+  const { revealCard } = useMotionSystem();
+
   return (
-    <div style={style}>
+    <motion.div
+      initial="hidden"
+      whileInView="visible"
+      viewport={{ once: true, amount: 0.25 }}
+      variants={revealCard}
+      style={style}
+    >
       {children}
-    </div>
+    </motion.div>
   );
 }
