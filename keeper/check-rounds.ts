@@ -37,7 +37,7 @@ const ROUND_MARKET_ABI = [
 
 async function checkAddress(address: string) {
   const client = createPublicClient({
-    transport: http("https://5042002.rpc.thirdweb.com")
+    transport: http("https://rpc.testnet.arc.network")
   });
   
   try {

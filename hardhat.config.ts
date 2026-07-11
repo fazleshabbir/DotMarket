@@ -20,7 +20,7 @@ const config: HardhatUserConfig = {
   networks: {
     hardhat: {},
     arcTestnet: {
-      url: process.env.ARC_TESTNET_RPC || "https://5042002.rpc.thirdweb.com",
+      url: process.env.ARC_TESTNET_RPC || "https://rpc.testnet.arc.network",
       chainId: 5042002,
       accounts: [DEPLOYER_PRIVATE_KEY],
     },
