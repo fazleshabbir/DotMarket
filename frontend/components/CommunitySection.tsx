@@ -5,6 +5,7 @@ import { motion, useMotionValue, useSpring } from 'framer-motion';
 import { ArrowRight } from 'lucide-react';
 import { useMediaQuery } from '@/hooks/useMediaQuery';
 import { useMotionSystem } from '@/hooks/useMotionSystem';
+import { Button } from '@/components/ui/Button';
 
 // ── MAGNETIC SOCIAL ICON COMPONENT ───────────────────────────────────────────
 interface MagneticIconProps {
@@ -373,7 +374,7 @@ export function CommunitySection() {
             <motion.div 
               initial="hidden"
               whileInView="visible"
-              viewport={{ once: true, amount: 0.02 }}
+              viewport={{ once: true, amount: 0.2 }}
               variants={fadeIn}
               style={{ marginBottom: 32, display: 'flex', alignItems: 'center' }}
             >
@@ -395,7 +396,7 @@ export function CommunitySection() {
             <motion.h2 
               initial="hidden"
               whileInView="visible"
-              viewport={{ once: true, amount: 0.02 }}
+              viewport={{ once: true, amount: 0.2 }}
               variants={revealHeading}
               style={{ 
                 fontSize: isMobile ? '36px' : '54px', 
@@ -414,7 +415,7 @@ export function CommunitySection() {
             <motion.p 
               initial="hidden"
               whileInView="visible"
-              viewport={{ once: true, amount: 0.02 }}
+              viewport={{ once: true, amount: 0.2 }}
               variants={revealSubtitle}
               style={{ color: 'var(--text-secondary)', fontSize: '16px', lineHeight: 1.6, marginBottom: 40, maxWidth: 540 }}
             >
@@ -425,42 +426,21 @@ export function CommunitySection() {
             <motion.div 
               initial="hidden"
               whileInView="visible"
-              viewport={{ once: true, amount: 0.02 }}
+              viewport={{ once: true, amount: 0.2 }}
               variants={revealButton}
               style={{ display: 'flex', flexDirection: 'column', gap: 24 }}
             >
               <div style={{ display: 'flex', alignItems: 'center', gap: 24, flexWrap: 'wrap' }}>
-                <motion.a 
+                <a 
                   href="https://discord.com" 
                   target="_blank" 
                   rel="noopener noreferrer"
                   style={{ textDecoration: 'none' }}
-                  whileHover={shouldReduceMotion ? {} : { scale: 1.02 }}
-                  whileTap={{ scale: 0.98 }}
                 >
-                  <button
-                    style={{
-                      background: '#ffffff',
-                      color: '#000000',
-                      border: 'none',
-                      padding: '14px 32px',
-                      borderRadius: '12px',
-                      fontWeight: 600,
-                      fontSize: '14px',
-                      cursor: 'pointer',
-                      display: 'inline-flex',
-                      alignItems: 'center',
-                      gap: 8,
-                      boxShadow: '0 4px 20px rgba(255,255,255,0.15)',
-                      transition: 'box-shadow 0.2s ease, transform 0.2s ease',
-                    }}
-                    onMouseEnter={(e) => e.currentTarget.style.boxShadow = '0 0 30px rgba(255,255,255,0.3)'}
-                    onMouseLeave={(e) => e.currentTarget.style.boxShadow = '0 4px 20px rgba(255,255,255,0.15)'}
-                  >
-                    <span>Join Discord</span>
-                    <ArrowRight size={16} />
-                  </button>
-                </motion.a>
+                  <Button variant="primary" size="lg" showArrow={true}>
+                    Join Discord
+                  </Button>
+                </a>
 
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
                   <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>Secondary Platforms</span>
@@ -499,7 +479,7 @@ export function CommunitySection() {
             <motion.div
               initial="hidden"
               whileInView="visible"
-              viewport={{ once: true, amount: 0.02 }}
+              viewport={{ once: true, amount: 0.2 }}
               variants={fadeUp}
               style={{ position: 'relative', height: 400 }}
             >

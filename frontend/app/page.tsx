@@ -2,22 +2,22 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
+import dynamic from 'next/dynamic';
 import { motion } from 'framer-motion';
-import { useReadContract } from 'wagmi';
-import { formatEther } from 'viem';
-import { ROUND_MARKET_ABI } from '@/lib/abi';
-import { useContracts } from '@/hooks/useNetworkConfig';
 import { StarryBackground } from '@/components/StarryBackground';
 import { AnimatedLogo } from '@/components/AnimatedLogo';
 import { ScrollFade } from '@/components/ScrollFade';
-import { HowItWorksSection } from '@/components/HowItWorksSection';
-import { CommunitySection } from '@/components/CommunitySection';
-import { RoadmapSection } from '@/components/roadmap/RoadmapSection';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 import { Section } from '@/components/ui/Section';
 import { PageHeader } from '@/components/ui/PageHeader';
 import { useMotionSystem } from '@/hooks/useMotionSystem';
+
+// Lazy load below-the-fold sections to optimize initial bundle size & performance
+const HowItWorksSection = dynamic(() => import('@/components/HowItWorksSection').then(m => m.HowItWorksSection), { ssr: false });
+const CommunitySection = dynamic(() => import('@/components/CommunitySection').then(m => m.CommunitySection), { ssr: false });
+const RoadmapSection = dynamic(() => import('@/components/roadmap/RoadmapSection').then(m => m.RoadmapSection), { ssr: false });
+const LiveMarketsSection = dynamic(() => import('@/components/LiveMarketsSection').then(m => m.LiveMarketsSection), { ssr: false });
 
 // Minimal Web3 SVG Line-Art Icons
 interface IconProps {
@@ -307,97 +307,6 @@ export default function LandingPage() {
   const [isMounted, setIsMounted] = useState(false);
   const [windowWidth, setWindowWidth] = useState(1200); // Default to desktop layout
   const [menuOpen, setMenuOpen] = useState(false);
-  const contracts = useContracts();
-  const MARKET_ADDRESS = contracts.predictionMarket;
-
-  // Wagmi reads for live BTC stats
-  const { data: currentRoundId } = useReadContract({
-    address: MARKET_ADDRESS,
-    abi: ROUND_MARKET_ABI,
-    functionName: 'currentRoundId',
-    query: { refetchInterval: 2000 },
-  });
-
-  const activeRoundId = currentRoundId ? BigInt(currentRoundId.toString()) : 0n;
-
-  const { data: activeRoundData } = useReadContract({
-    address: MARKET_ADDRESS,
-    abi: ROUND_MARKET_ABI,
-    functionName: 'getRound',
-    args: [activeRoundId],
-    query: { enabled: activeRoundId > 0n, refetchInterval: 2000 },
-  });
-  const activeRound = activeRoundData as any;
-
-  const [btcTimeLeft, setBtcTimeLeft] = useState<string>('0:00');
-
-  useEffect(() => {
-    if (!activeRound) return;
-    const updateBtcTimeLeft = () => {
-      const nowSec = Math.floor(Date.now() / 1000);
-      const lockTs = Number(activeRound.lockTimestamp);
-      const timeLeft = lockTs - nowSec;
-
-      if (timeLeft <= 0) {
-        setBtcTimeLeft('LOCKED');
-      } else {
-        const mins = Math.floor(timeLeft / 60);
-        const secs = timeLeft % 60;
-        setBtcTimeLeft(`${mins}:${secs < 10 ? '0' : ''}${secs}`);
-      }
-    };
-    updateBtcTimeLeft();
-    const interval = setInterval(updateBtcTimeLeft, 1000);
-    return () => clearInterval(interval);
-  }, [activeRound]);
-
-  const btcVolume = activeRound 
-    ? parseFloat(formatEther(activeRound.totalUpAmount + activeRound.totalDownAmount)).toFixed(2)
-    : '0.00';
-
-  const btcTotalPool = activeRound ? activeRound.totalUpAmount + activeRound.totalDownAmount : 0n;
-  const btcUpPercent = btcTotalPool > 0n 
-    ? Math.round(Number((activeRound.totalUpAmount * 100n) / btcTotalPool))
-    : 50;
-  const btcDownPercent = 100 - btcUpPercent;
-
-  // Live simulation stats for other pairs
-  const [ethStats, setEthStats] = useState({ vol: 7830, upPct: 48, timeLeft: 148 });
-  const [solStats, setSolStats] = useState({ vol: 4920, upPct: 65, timeLeft: 72 });
-
-  useEffect(() => {
-    const timer = setInterval(() => {
-      setEthStats((prev) => {
-        const nextTime = prev.timeLeft <= 1 ? 240 : prev.timeLeft - 1;
-        const volChange = Math.random() > 0.9 ? Math.floor(Math.random() * 5) + 1 : 0;
-        const pctChange = Math.random() > 0.9 ? (Math.random() > 0.5 ? 1 : -1) : 0;
-        return {
-          vol: prev.vol + volChange,
-          upPct: Math.max(30, Math.min(70, prev.upPct + pctChange)),
-          timeLeft: nextTime,
-        };
-      });
-
-      setSolStats((prev) => {
-        const nextTime = prev.timeLeft <= 1 ? 240 : prev.timeLeft - 1;
-        const volChange = Math.random() > 0.9 ? Math.floor(Math.random() * 5) + 1 : 0;
-        const pctChange = Math.random() > 0.9 ? (Math.random() > 0.5 ? 1 : -1) : 0;
-        return {
-          vol: prev.vol + volChange,
-          upPct: Math.max(35, Math.min(75, prev.upPct + pctChange)),
-          timeLeft: nextTime,
-        };
-      });
-    }, 1000);
-
-    return () => clearInterval(timer);
-  }, []);
-
-  const formatMinsSecs = (seconds: number) => {
-    const mins = Math.floor(seconds / 60);
-    const secs = seconds % 60;
-    return `${mins}:${secs < 10 ? '0' : ''}${secs}`;
-  };
 
   useEffect(() => {
     setIsMounted(true);
@@ -520,15 +429,7 @@ export default function LandingPage() {
               <a
                 key={tab}
                 href={`#${tab.toLowerCase().replace(/\s+/g, '-')}`}
-                style={{
-                  fontSize: 13,
-                  color: 'var(--text-secondary)',
-                  textDecoration: 'none',
-                  fontWeight: 500,
-                  transition: 'color 0.2s',
-                }}
-                onMouseEnter={(e) => (e.currentTarget.style.color = '#ffffff')}
-                onMouseLeave={(e) => (e.currentTarget.style.color = 'var(--text-secondary)')}
+                className="premium-text-link"
               >
                 {tab}
               </a>
@@ -600,11 +501,9 @@ export default function LandingPage() {
                 key={tab}
                 href={`#${tab.toLowerCase().replace(/\s+/g, '-')}`}
                 onClick={() => setMenuOpen(false)}
+                className="premium-text-link"
                 style={{
                   fontSize: 16,
-                  color: 'var(--text-secondary)',
-                  textDecoration: 'none',
-                  fontWeight: 600,
                   padding: '8px 0',
                   borderBottom: '1px solid rgba(255, 255, 255, 0.03)',
                 }}
@@ -693,12 +592,12 @@ export default function LandingPage() {
             style={{ display: 'flex', flexDirection: isMobile ? 'column' : 'row', gap: 16, width: isMobile ? '100%' : 'auto', justifyContent: 'center', alignItems: 'center', marginBottom: 48 }}
           >
           <Link href="/trade" style={{ textDecoration: 'none', width: isMobile ? '100%' : 'auto' }}>
-            <Button variant="primary" size="lg" style={{ width: isMobile ? '100%' : 'auto', letterSpacing: '1px' }}>
-              Start Trading ↗
+            <Button variant="primary" size="lg" showArrow={true} arrowDirection="up-right" style={{ width: isMobile ? '100%' : 'auto' }}>
+              Start Trading
             </Button>
           </Link>
           <a href="#markets" style={{ textDecoration: 'none', width: isMobile ? '100%' : 'auto' }}>
-            <Button variant="secondary" size="lg" style={{ width: isMobile ? '100%' : 'auto' }}>
+            <Button variant="secondary" size="lg" showArrow={true} style={{ width: isMobile ? '100%' : 'auto' }}>
               Explore Markets
             </Button>
           </a>
@@ -774,106 +673,7 @@ export default function LandingPage() {
       </section>
 
       {/* ── 2. Live Markets Preview ──────────────────────────────── */}
-      <Section id="markets">
-        <PageHeader
-          title="Live Markets"
-          subtitle="Real-time binary predictions currently active on the testnet."
-        />
-
-        {/* Markets cards grid */}
-        <motion.div
-          initial="hidden"
-          whileInView="visible"
-          viewport={{ once: true, amount: 0.02 }}
-          variants={staggerContainer(0.1)}
-          style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: 24 }}
-        >
-          {[
-            { 
-              pair: 'BTC/USD', 
-              id: activeRound ? `BTC-USD-${activeRound.roundId.toString()}` : 'BTC-USD-0', 
-              vol: `${parseFloat(btcVolume).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})} USDC`, 
-              upPct: btcUpPercent, 
-              time: btcTimeLeft, 
-              target: 'BTC/USD 1m Forecast' 
-            },
-            { 
-              pair: 'ETH/USD', 
-              id: 'ETH-USD-26', 
-              vol: `${ethStats.vol.toLocaleString()} USDC`, 
-              upPct: ethStats.upPct, 
-              time: formatMinsSecs(ethStats.timeLeft), 
-              target: 'ETH/USD 1m Forecast' 
-            },
-            { 
-              pair: 'SOL/USD', 
-              id: 'SOL-USD-26', 
-              vol: `${solStats.vol.toLocaleString()} USDC`, 
-              upPct: solStats.upPct, 
-              time: formatMinsSecs(solStats.timeLeft), 
-              target: 'SOL/USD 1m Forecast' 
-            }
-          ].map((m, idx) => (
-            <ScrollFade key={idx}>
-              <Card 
-                style={{ 
-                  padding: 24, 
-                  display: 'flex', 
-                  flexDirection: 'column', 
-                  gap: 20 
-                }}
-              >
-                {/* Header info */}
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                    <div style={{ width: 8, height: 8, borderRadius: '50%', background: 'var(--up)' }} className="animate-pulse-live" />
-                    <span style={{ fontSize: 14, fontWeight: 700 }}>{m.pair}</span>
-                  </div>
-                  <span style={{ fontSize: 11, fontFamily: 'var(--font-mono)', color: 'var(--text-muted)' }}>ID: {m.id}</span>
-                </div>
-
-                {/* Main Forecast Title */}
-                <div>
-                  <h3 style={{ fontSize: 17, fontWeight: 600, color: '#ffffff', marginBottom: 4 }}>{m.target}</h3>
-                  <span style={{ fontSize: 12, color: 'var(--text-secondary)' }}>Will price settle higher than current?</span>
-                </div>
-
-                {/* Probability bar distribution */}
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, fontWeight: 600 }}>
-                    <span style={{ color: '#ffffff' }}>YES {m.upPct}%</span>
-                    <span style={{ color: 'var(--text-secondary)' }}>NO {100 - m.upPct}%</span>
-                  </div>
-                  {/* Visual ratio bar */}
-                  <div style={{ height: 6, width: '100%', background: 'rgba(82, 82, 82, 0.2)', borderRadius: 3, display: 'flex', overflow: 'hidden' }}>
-                    <div style={{ width: `${m.upPct}%`, background: '#ffffff', height: '100%' }} />
-                    <div style={{ width: `${100 - m.upPct}%`, background: '#525252', height: '100%' }} />
-                  </div>
-                </div>
-
-                {/* Vol / Time stats */}
-                <div style={{ display: 'flex', justifyContent: 'space-between', borderTop: '1px solid rgba(255,255,255,0.05)', paddingTop: 16, fontSize: 12 }}>
-                  <div>
-                    <span style={{ color: 'var(--text-muted)' }}>VOLUME:</span>{' '}
-                    <strong style={{ color: '#ffffff', fontFamily: 'var(--font-mono)' }}>{m.vol}</strong>
-                  </div>
-                  <div>
-                    <span style={{ color: 'var(--text-muted)' }}>TIME LEFT:</span>{' '}
-                    <strong style={{ color: '#ffffff', fontFamily: 'var(--font-mono)' }}>{m.time}</strong>
-                  </div>
-                </div>
-
-                {/* Trade Button */}
-                <Link href="/trade" style={{ textDecoration: 'none', width: '100%' }}>
-                  <Button variant="secondary" style={{ width: '100%', padding: '10px 0', borderRadius: '8px' }}>
-                    Place Prediction ↗
-                  </Button>
-                </Link>
-              </Card>
-            </ScrollFade>
-          ))}
-        </motion.div>
-      </Section>
+      <LiveMarketsSection />
 
 
       {/* ── 4. How It Works ──────────────────────────────────────── */}
@@ -898,7 +698,7 @@ export default function LandingPage() {
           <motion.div
             initial="hidden"
             whileInView="visible"
-            viewport={{ once: true, amount: 0.02 }}
+            viewport={{ once: true, amount: 0.2 }}
             variants={staggerContainer(0.08)}
           >
             <motion.div variants={staggerItem}>
@@ -1000,7 +800,7 @@ export default function LandingPage() {
             <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
               <strong style={{ fontSize: 13, color: '#ffffff', letterSpacing: '0.5px' }}>PRODUCT</strong>
               {['Start Trading', 'Leaderboard', 'Portfolio'].map((link) => (
-                <Link key={link} href="/trade" style={{ textDecoration: 'none', fontSize: 13, color: 'var(--text-secondary)' }}>
+                <Link key={link} href="/trade" className="premium-text-link">
                   {link}
                 </Link>
               ))}
@@ -1010,7 +810,7 @@ export default function LandingPage() {
             <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
               <strong style={{ fontSize: 13, color: '#ffffff', letterSpacing: '0.5px' }}>RESOURCES</strong>
               {['Documentation', 'Brand Kit', 'Privacy Policy', 'Terms of Service'].map((link) => (
-                <a key={link} href="#" style={{ textDecoration: 'none', fontSize: 13, color: 'var(--text-secondary)' }}>
+                <a key={link} href="#" className="premium-text-link">
                   {link}
                 </a>
               ))}
@@ -1020,7 +820,7 @@ export default function LandingPage() {
             <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
               <strong style={{ fontSize: 13, color: '#ffffff', letterSpacing: '0.5px' }}>COMMUNITY</strong>
               {['X (Twitter)', 'Discord', 'Telegram', 'GitHub'].map((link) => (
-                <a key={link} href="#" style={{ textDecoration: 'none', fontSize: 13, color: 'var(--text-secondary)' }}>
+                <a key={link} href="#" className="premium-text-link">
                   {link}
                 </a>
               ))}

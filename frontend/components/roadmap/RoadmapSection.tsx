@@ -87,8 +87,6 @@ function TiltCard({ children, isActive, shouldReduceMotion }: TiltCardProps) {
   const rotateXSpring = useSpring(useTransform(y, [0, 1], [5, -5]), { damping: 20, stiffness: 150 });
   const rotateYSpring = useSpring(useTransform(x, [0, 1], [-5, 5]), { damping: 20, stiffness: 150 });
 
-  const [spotlight, setSpotlight] = useState({ x: 0, y: 0 });
-
   const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
     if (shouldReduceMotion) return;
     const rect = e.currentTarget.getBoundingClientRect();
@@ -98,7 +96,8 @@ function TiltCard({ children, isActive, shouldReduceMotion }: TiltCardProps) {
     const mouseY = e.clientY - rect.top;
     x.set(mouseX / width);
     y.set(mouseY / height);
-    setSpotlight({ x: mouseX, y: mouseY });
+    e.currentTarget.style.setProperty('--spotlight-x', `${mouseX}px`);
+    e.currentTarget.style.setProperty('--spotlight-y', `${mouseY}px`);
   };
 
   const handleMouseLeave = () => {
@@ -127,8 +126,8 @@ function TiltCard({ children, isActive, shouldReduceMotion }: TiltCardProps) {
           border: '1px solid rgba(255,255,255,0.08)',
           borderColor: isActive ? 'rgba(255,255,255,0.22)' : 'rgba(255,255,255,0.08)',
           borderRadius: '20px',
-          backdropFilter: 'blur(12px)',
-          WebkitBackdropFilter: 'blur(12px)',
+          backdropFilter: 'blur(8px)',
+          WebkitBackdropFilter: 'blur(8px)',
           padding: '40px 32px',
           height: '100%',
           display: 'flex',
@@ -148,7 +147,7 @@ function TiltCard({ children, isActive, shouldReduceMotion }: TiltCardProps) {
               position: 'absolute',
               inset: 0,
               pointerEvents: 'none',
-              background: `radial-gradient(220px circle at ${spotlight.x}px ${spotlight.y}px, rgba(255,255,255,0.05), transparent 80%)`,
+              background: 'radial-gradient(220px circle at var(--spotlight-x, 0px) var(--spotlight-y, 0px), rgba(255,255,255,0.04), transparent 80%)',
               mixBlendMode: 'overlay',
             }}
           />
@@ -502,7 +501,7 @@ export function RoadmapSection() {
         ref={containerRef}
         initial="hidden"
         whileInView="visible"
-        viewport={{ once: true, amount: 0.02 }}
+        viewport={{ once: true, amount: 0.2 }}
         variants={staggerContainer(0.08)}
         className="roadmap-track"
         style={{

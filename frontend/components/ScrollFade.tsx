@@ -17,7 +17,7 @@ export function ScrollFade({ children, style = {} }: ScrollFadeProps) {
     <motion.div
       initial="hidden"
       whileInView="visible"
-      viewport={{ once: true, amount: 0.02 }}
+      viewport={{ once: true, amount: 0.2 }}
       variants={revealCard}
       style={style}
     >

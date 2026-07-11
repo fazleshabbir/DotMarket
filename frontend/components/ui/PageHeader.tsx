@@ -43,7 +43,7 @@ export function PageHeader({ title, subtitle, align = 'center' }: PageHeaderProp
       <motion.h2
         initial="hidden"
         whileInView="visible"
-        viewport={{ once: true, amount: 0.02 }}
+        viewport={{ once: true, amount: 0.2 }}
         variants={revealHeading}
         style={{
           fontFamily: "'Cormorant Garamond', serif",
@@ -63,7 +63,7 @@ export function PageHeader({ title, subtitle, align = 'center' }: PageHeaderProp
         <motion.p
           initial="hidden"
           whileInView="visible"
-          viewport={{ once: true, amount: 0.02 }}
+          viewport={{ once: true, amount: 0.2 }}
           variants={revealSubtitle}
           style={{
             color: 'var(--text-secondary)',

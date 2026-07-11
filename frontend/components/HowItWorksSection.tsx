@@ -41,7 +41,6 @@ const steps: Step[] = [
 
 export function HowItWorksSection() {
   const sectionRef = useRef<HTMLDivElement>(null);
-  const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
   const [hoveredCard, setHoveredCard] = useState<number | null>(null);
   const [isMounted, setIsMounted] = useState(false);
 
@@ -57,22 +56,13 @@ export function HowItWorksSection() {
     setIsMounted(true);
   }, []);
 
-  // Continuous light pulse state
-  const [pulseIndex, setPulseIndex] = useState(0);
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setPulseIndex((prev) => (prev + 1) % 4);
-    }, 2500);
-    return () => clearInterval(interval);
-  }, []);
-
   const handleMouseMove = (e: React.MouseEvent) => {
     if (!sectionRef.current) return;
     const rect = sectionRef.current.getBoundingClientRect();
-    setMousePos({
-      x: e.clientX - rect.left,
-      y: e.clientY - rect.top,
-    });
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
+    sectionRef.current.style.setProperty('--spotlight-x', `${x}px`);
+    sectionRef.current.style.setProperty('--spotlight-y', `${y}px`);
   };
 
   // Timeline Connector Line Animation
@@ -130,7 +120,7 @@ export function HowItWorksSection() {
         style={{
           position: 'absolute',
           inset: 0,
-          background: `radial-gradient(700px circle at ${mousePos.x}px ${mousePos.y}px, rgba(255,255,255,0.015), transparent 40%)`,
+          background: 'radial-gradient(700px circle at var(--spotlight-x, -1000px) var(--spotlight-y, -1000px), rgba(255,255,255,0.015), transparent 40%)',
           pointerEvents: 'none',
           zIndex: 2,
         }}
@@ -182,7 +172,7 @@ export function HowItWorksSection() {
           id="how-it-works-title"
           initial="hidden"
           whileInView="visible"
-          viewport={{ once: true, amount: 0.02 }}
+          viewport={{ once: true, amount: 0.2 }}
           variants={revealHeading}
           style={{
             fontFamily: "'Cormorant Garamond', serif",
@@ -198,7 +188,7 @@ export function HowItWorksSection() {
         <motion.p
           initial="hidden"
           whileInView="visible"
-          viewport={{ once: true, amount: 0.02 }}
+          viewport={{ once: true, amount: 0.2 }}
           variants={revealSubtitle}
           style={{
             color: 'var(--text-secondary)',
@@ -216,7 +206,7 @@ export function HowItWorksSection() {
       <motion.div 
         initial="hidden"
         whileInView="visible"
-        viewport={{ once: true, amount: 0.02 }}
+        viewport={{ once: true, amount: 0.2 }}
         variants={timelineContainerVariants}
         style={{ position: 'relative', zIndex: 3 }}
       >
@@ -258,7 +248,6 @@ export function HowItWorksSection() {
         >
           {steps.map((step, idx) => {
             const isHovered = hoveredCard === idx;
-            const isPulseActive = pulseIndex === idx;
             const StepIcon = step.icon;
 
             return (
@@ -349,6 +338,7 @@ export function HowItWorksSection() {
 
                   {/* Circular Step Badge */}
                   <div
+                    className={`pulse-badge-css-${idx}`}
                     style={{
                       width: '32px',
                       height: '32px',
@@ -362,11 +352,11 @@ export function HowItWorksSection() {
                       fontFamily: 'var(--font-mono)',
                       fontWeight: 600,
                       marginBottom: '16px',
-                      boxShadow: (isHovered || isPulseActive) && !shouldReduceMotion
+                      boxShadow: isHovered && !shouldReduceMotion
                         ? '0 0 12px rgba(255, 255, 255, 0.2), inset 0 1px 0 rgba(255,255,255,0.1)'
-                        : 'none',
-                      borderColor: isHovered || isPulseActive ? 'rgba(255,255,255,0.2)' : 'rgba(255,255,255,0.05)',
-                      color: isHovered || isPulseActive ? '#ffffff' : 'var(--text-secondary)',
+                        : undefined,
+                      borderColor: isHovered ? 'rgba(255,255,255,0.2)' : undefined,
+                      color: isHovered ? '#ffffff' : undefined,
                       transition: 'all 250ms ease',
                     }}
                   >
@@ -444,6 +434,22 @@ export function HowItWorksSection() {
           animation-duration: inherit;
           animation-delay: inherit;
         }
+        @keyframes badgePulse {
+          0%, 100% {
+            box-shadow: none;
+            border-color: rgba(255,255,255,0.05);
+            color: var(--text-secondary);
+          }
+          30%, 70% {
+            box-shadow: 0 0 12px rgba(255, 255, 255, 0.2), inset 0 1px 0 rgba(255,255,255,0.1);
+            border-color: rgba(255,255,255,0.2);
+            color: #ffffff;
+          }
+        }
+        .pulse-badge-css-0 { animation: badgePulse 10s ease-in-out infinite; }
+        .pulse-badge-css-1 { animation: badgePulse 10s ease-in-out infinite 2.5s; }
+        .pulse-badge-css-2 { animation: badgePulse 10s ease-in-out infinite 5s; }
+        .pulse-badge-css-3 { animation: badgePulse 10s ease-in-out infinite 7.5s; }
       `}</style>
     </section>
   );

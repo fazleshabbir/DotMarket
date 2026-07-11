@@ -13,7 +13,7 @@ export function useMotionSystem() {
       opacity: 1,
       y: 0,
       transition: {
-        duration: 0.8,
+        duration: 0.7,
         ease: 'easeOut',
       },
     },
@@ -29,8 +29,8 @@ export function useMotionSystem() {
       opacity: 1,
       y: 0,
       transition: {
-        duration: 0.6,
-        delay: 0.15,
+        duration: 0.5,
+        delay: 0.1,
         ease: 'easeOut',
       },
     },
@@ -48,7 +48,7 @@ export function useMotionSystem() {
       y: 0,
       scale: 1,
       transition: {
-        duration: 0.55,
+        duration: 0.5,
         ease: 'easeOut',
       },
     },
@@ -66,7 +66,7 @@ export function useMotionSystem() {
       y: 0,
       scale: 1,
       transition: {
-        duration: 0.45,
+        duration: 0.35,
         ease: 'easeOut',
       },
     },
@@ -82,7 +82,7 @@ export function useMotionSystem() {
       opacity: 1,
       y: 0,
       transition: {
-        duration: 0.6,
+        duration: 0.5,
         ease: 'easeOut',
       },
     },
@@ -94,13 +94,13 @@ export function useMotionSystem() {
     visible: {
       opacity: 1,
       transition: {
-        duration: 0.4,
+        duration: 0.35,
       },
     },
   };
 
   // STAGGER CONTAINER
-  const staggerContainer = (staggerDelay = 0.1): Variants => ({
+  const staggerContainer = (staggerDelay = 0.08): Variants => ({
     hidden: {},
     visible: {
       transition: {

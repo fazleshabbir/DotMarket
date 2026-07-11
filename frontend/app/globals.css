@@ -376,8 +376,40 @@ body::before {
   scrollbar-width: none;
 }
 
-.roadmap-timeline-container::-webkit-scrollbar {
-  display: none;
+/* Premium Link Text Style with growing underline from left to right */
+.premium-text-link {
+  position: relative;
+  font-size: 13px;
+  color: var(--text-secondary) !important;
+  text-decoration: none;
+  font-weight: 600;
+  transition: opacity 250ms ease, color 250ms ease;
+  letter-spacing: -0.1px;
+  display: inline-flex;
+  align-items: center;
 }
+
+.premium-text-link:hover {
+  color: #ffffff !important;
+  opacity: 0.85;
+}
+
+.premium-text-link::after {
+  content: '';
+  position: absolute;
+  bottom: -4px;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: #ffffff;
+  transform: scaleX(0);
+  transform-origin: left;
+  transition: transform 250ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.premium-text-link:hover::after {
+  transform: scaleX(1);
+}
+
 
 

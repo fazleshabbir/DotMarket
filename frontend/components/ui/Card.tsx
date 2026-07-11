@@ -16,8 +16,8 @@ export function Card({ children, hoverEffect = true, innerHighlight = true, styl
       onMouseLeave={() => hoverEffect && setHovered(false)}
       style={{
         background: hovered ? 'rgba(255, 255, 255, 0.025)' : 'rgba(15, 15, 15, 0.4)',
-        backdropFilter: 'blur(16px)',
-        WebkitBackdropFilter: 'blur(16px)',
+        backdropFilter: 'blur(8px)',
+        WebkitBackdropFilter: 'blur(8px)',
         border: '1px solid',
         borderColor: hovered ? 'rgba(255, 255, 255, 0.2)' : 'rgba(255, 255, 255, 0.08)',
         borderRadius: '20px',
