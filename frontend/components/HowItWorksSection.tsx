@@ -182,7 +182,7 @@ export function HowItWorksSection() {
           id="how-it-works-title"
           initial="hidden"
           whileInView="visible"
-          viewport={{ once: true, amount: 0.25 }}
+          viewport={{ once: true, amount: 0.02 }}
           variants={revealHeading}
           style={{
             fontFamily: "'Cormorant Garamond', serif",
@@ -198,7 +198,7 @@ export function HowItWorksSection() {
         <motion.p
           initial="hidden"
           whileInView="visible"
-          viewport={{ once: true, amount: 0.25 }}
+          viewport={{ once: true, amount: 0.02 }}
           variants={revealSubtitle}
           style={{
             color: 'var(--text-secondary)',
@@ -216,7 +216,7 @@ export function HowItWorksSection() {
       <motion.div 
         initial="hidden"
         whileInView="visible"
-        viewport={{ once: true, amount: 0.25 }}
+        viewport={{ once: true, amount: 0.02 }}
         variants={timelineContainerVariants}
         style={{ position: 'relative', zIndex: 3 }}
       >

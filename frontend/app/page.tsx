@@ -784,7 +784,7 @@ export default function LandingPage() {
         <motion.div
           initial="hidden"
           whileInView="visible"
-          viewport={{ once: true, amount: 0.25 }}
+          viewport={{ once: true, amount: 0.02 }}
           variants={staggerContainer(0.1)}
           style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: 24 }}
         >
@@ -898,7 +898,7 @@ export default function LandingPage() {
           <motion.div
             initial="hidden"
             whileInView="visible"
-            viewport={{ once: true, amount: 0.25 }}
+            viewport={{ once: true, amount: 0.02 }}
             variants={staggerContainer(0.08)}
           >
             <motion.div variants={staggerItem}>

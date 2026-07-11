@@ -373,7 +373,7 @@ export function CommunitySection() {
             <motion.div 
               initial="hidden"
               whileInView="visible"
-              viewport={{ once: true, amount: 0.25 }}
+              viewport={{ once: true, amount: 0.02 }}
               variants={fadeIn}
               style={{ marginBottom: 32, display: 'flex', alignItems: 'center' }}
             >
@@ -395,7 +395,7 @@ export function CommunitySection() {
             <motion.h2 
               initial="hidden"
               whileInView="visible"
-              viewport={{ once: true, amount: 0.25 }}
+              viewport={{ once: true, amount: 0.02 }}
               variants={revealHeading}
               style={{ 
                 fontSize: isMobile ? '36px' : '54px', 
@@ -414,7 +414,7 @@ export function CommunitySection() {
             <motion.p 
               initial="hidden"
               whileInView="visible"
-              viewport={{ once: true, amount: 0.25 }}
+              viewport={{ once: true, amount: 0.02 }}
               variants={revealSubtitle}
               style={{ color: 'var(--text-secondary)', fontSize: '16px', lineHeight: 1.6, marginBottom: 40, maxWidth: 540 }}
             >
@@ -425,7 +425,7 @@ export function CommunitySection() {
             <motion.div 
               initial="hidden"
               whileInView="visible"
-              viewport={{ once: true, amount: 0.25 }}
+              viewport={{ once: true, amount: 0.02 }}
               variants={revealButton}
               style={{ display: 'flex', flexDirection: 'column', gap: 24 }}
             >
@@ -499,7 +499,7 @@ export function CommunitySection() {
             <motion.div
               initial="hidden"
               whileInView="visible"
-              viewport={{ once: true, amount: 0.25 }}
+              viewport={{ once: true, amount: 0.02 }}
               variants={fadeUp}
               style={{ position: 'relative', height: 400 }}
             >
