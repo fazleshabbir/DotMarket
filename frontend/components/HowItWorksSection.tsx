@@ -242,29 +242,7 @@ export function HowItWorksSection() {
                 transformOrigin: 'left',
               }}
             />
-            {/* Continuously moving pulse (Starts after timeline nodes render) */}
-            {!shouldReduceMotion && (
-              <motion.div
-                style={{
-                  position: 'absolute',
-                  top: '-3px',
-                  width: '80px',
-                  height: '8px',
-                  borderRadius: '4px',
-                  background: 'linear-gradient(to right, transparent, rgba(255,255,255,0.8), transparent)',
-                  filter: 'blur(2px)',
-                }}
-                animate={{
-                  left: ['0%', '100%'],
-                }}
-                transition={{
-                  delay: 1.4, // Stagger delays complete around 0.6s + connector line animates 0.8s = 1.4s
-                  duration: 6,
-                  repeat: Infinity,
-                  ease: 'linear',
-                }}
-              />
-            )}
+
           </div>
         )}
 

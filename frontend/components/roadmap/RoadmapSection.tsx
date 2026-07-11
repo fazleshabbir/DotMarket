@@ -387,26 +387,7 @@ export function RoadmapSection() {
                 transformOrigin: 'left',
               }}
             />
-            {/* Travelling pulse light */}
-            {!shouldReduceMotion && (
-              <motion.div
-                animate={isMobile ? { top: ['0%', '100%'] } : { left: ['0%', '100%'] }}
-                transition={{
-                  duration: 5,
-                  repeat: Infinity,
-                  ease: 'easeInOut',
-                }}
-                style={{
-                  position: 'absolute',
-                  top: isMobile ? '0px' : '-2px',
-                  left: isMobile ? '-1px' : '0px',
-                  width: isMobile ? '4px' : '80px',
-                  height: isMobile ? '80px' : '4px',
-                  background: 'linear-gradient(to right, transparent, #ffffff, transparent)',
-                  filter: 'blur(1px)',
-                }}
-              />
-            )}
+
           </div>
 
           {/* Interactive Milestone Indicator circles */}
