@@ -91,46 +91,32 @@ export const ActiveRoundCard = memo(function ActiveRoundCard({
           style={{
             background: 'rgba(255,255,255,0.015)',
             border: '1px solid rgba(255,255,255,0.06)',
-            borderRadius: 14,
-            padding: '16px 14px',
+            borderRadius: 12,
+            padding: '10px 12px',
             display: 'flex',
             flexDirection: 'column',
             alignItems: 'center',
-            gap: 8,
-            marginBottom: 12,
+            gap: 4,
+            marginBottom: 10,
             transition: 'all 300ms ease-out',
           }}
         >
-          {/* Divider strip */}
-          <div style={{
-            width: '100%', height: 1,
-            background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.08), transparent)',
-            marginBottom: 4,
-          }} />
-
-          <LockIcon size={24} />
+          <LockIcon size={18} />
 
           <div style={{
-            fontSize: 12, fontWeight: 600,
+            fontSize: 11, fontWeight: 600,
             color: 'rgba(255,255,255,0.7)',
-            letterSpacing: '0.14em',
+            letterSpacing: '0.12em',
             fontFamily: 'var(--font-mono)',
           }}>
             MARKET LOCKED
           </div>
           <div style={{
-            fontSize: 11, color: 'rgba(255,255,255,0.35)',
-            textAlign: 'center', lineHeight: 1.5,
+            fontSize: 10, color: 'rgba(255,255,255,0.35)',
+            textAlign: 'center', lineHeight: 1.4,
           }}>
-            Betting is closed. Live price movement<br />determines the outcome.
+            Betting is closed. Live price movement determines the outcome.
           </div>
-
-          {/* Divider strip */}
-          <div style={{
-            width: '100%', height: 1,
-            background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.06), transparent)',
-            marginTop: 2,
-          }} />
         </div>
       )}
 
