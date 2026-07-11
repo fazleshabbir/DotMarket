@@ -29,7 +29,7 @@ async function simulate() {
       address: marketAddress,
       abi,
       functionName: 'lockAndOpenRound',
-      args: [16n, 6200000000000n],
+      args: [45n, 6200000000000n],
       account,
     });
     console.log("Simulation succeeded!");

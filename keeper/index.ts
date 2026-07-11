@@ -357,12 +357,14 @@ async function main() {
   // ─── Main Loop ─────────────────────────────────────────────────────────
   while (isRunning) {
     try {
-      // 1. Read current round ID
-      const currentRoundId = await publicClient.readContract({
-        address: config.marketAddress,
-        abi: ROUND_MARKET_ABI,
-        functionName: "currentRoundId",
-      });
+      // 1. Read current round ID with retry
+      const currentRoundId = await withRetry("Read currentRoundId", () =>
+        publicClient.readContract({
+          address: config.marketAddress,
+          abi: ROUND_MARKET_ABI,
+          functionName: "currentRoundId",
+        })
+      );
 
       log("📊", `Current round ID: ${currentRoundId}`);
 
@@ -376,22 +378,25 @@ async function main() {
             address: config.marketAddress,
             abi: ROUND_MARKET_ABI,
             functionName: "openRound",
+            gas: 1000000n,
           });
           log("📤", `openRound tx sent: ${hash}`);
           const receipt = await publicClient.waitForTransactionReceipt({ hash });
           log("✅", `Genesis round opened! Gas used: ${receipt.gasUsed} | Block: ${receipt.blockNumber}`);
         });
-        await sleep(2000);
+        await sleep(5000);
         continue;
       }
 
-      // 3. Fetch current round data
-      const currentRound = (await publicClient.readContract({
-        address: config.marketAddress,
-        abi: ROUND_MARKET_ABI,
-        functionName: "getRound",
-        args: [currentRoundId],
-      })) as unknown as RoundData;
+      // 3. Fetch current round data with retry
+      const currentRound = await withRetry(`Fetch currentRound #${currentRoundId}`, () =>
+        publicClient.readContract({
+          address: config.marketAddress,
+          abi: ROUND_MARKET_ABI,
+          functionName: "getRound",
+          args: [currentRoundId],
+        })
+      ) as unknown as RoundData;
 
       log(
         "📋",
@@ -406,12 +411,13 @@ async function main() {
             address: config.marketAddress,
             abi: ROUND_MARKET_ABI,
             functionName: "openRound",
+            gas: 1000000n,
           });
           log("📤", `openRound tx sent: ${hash}`);
           const receipt = await publicClient.waitForTransactionReceipt({ hash });
           log("✅", `New round opened! Gas used: ${receipt.gasUsed} | Block: ${receipt.blockNumber}`);
         });
-        await sleep(2000);
+        await sleep(5000);
         continue;
       }
 
@@ -434,6 +440,7 @@ async function main() {
             abi: ROUND_MARKET_ABI,
             functionName: "resolveRound",
             args: [currentRoundId, price],
+            gas: 1000000n,
           });
           log("📤", `resolveRound #${currentRoundId} tx sent: ${hash}`);
           const receipt = await publicClient.waitForTransactionReceipt({ hash });
@@ -448,13 +455,14 @@ async function main() {
             address: config.marketAddress,
             abi: ROUND_MARKET_ABI,
             functionName: "openRound",
+            gas: 1000000n,
           });
           log("📤", `openRound tx sent: ${hash}`);
           const receipt = await publicClient.waitForTransactionReceipt({ hash });
           log("✅", `New round opened! Gas used: ${receipt.gasUsed} | Block: ${receipt.blockNumber}`);
         });
 
-        await sleep(2000);
+        await sleep(5000);
         continue;
       }
 
@@ -474,26 +482,30 @@ async function main() {
             abi: ROUND_MARKET_ABI,
             functionName: "lockAndOpenRound",
             args: [currentRoundId, price],
+            gas: 1000000n,
           });
           log("📤", `lockAndOpenRound tx sent: ${hash}`);
           const receipt = await publicClient.waitForTransactionReceipt({ hash });
           log("✅", `Round #${currentRoundId} locked & next opened! Gas used: ${receipt.gasUsed} | Block: ${receipt.blockNumber}`);
         });
-        await sleep(2000);
+        await sleep(5000);
         continue;
       }
 
       // ── STEP C: Check and resolve previous rounds that slipped through ─────
-      for (let prevId = currentRoundId - 1n; prevId > 0n; prevId--) {
-        let prevRound = (await publicClient.readContract({
-          address: config.marketAddress,
-          abi: ROUND_MARKET_ABI,
-          functionName: "getRound",
-          args: [prevId],
-        })) as unknown as RoundData;
+      // Scan up to 10 rounds back. Use continue instead of break so a single stuck round doesn't block resolution of others.
+      const scanLimit = currentRoundId - 10n > 0n ? currentRoundId - 10n : 1n;
+      for (let prevId = currentRoundId - 1n; prevId >= scanLimit; prevId--) {
+        let prevRound = await withRetry(`Fetch prevRound #${prevId}`, () =>
+          publicClient.readContract({
+            address: config.marketAddress,
+            abi: ROUND_MARKET_ABI,
+            functionName: "getRound",
+            args: [prevId],
+          })
+        ) as unknown as RoundData;
 
-        // Stop scanning once we hit an already-settled round
-        if (prevRound.resolved || prevRound.canceled) break;
+        if (prevRound.resolved || prevRound.canceled) continue;
 
         if (nowSec >= prevRound.endTimestamp + BigInt(END_BUFFER_MS / 1000)) {
           // If the previous round was never locked, lock it first!
@@ -506,18 +518,21 @@ async function main() {
                 abi: ROUND_MARKET_ABI,
                 functionName: "lockRound",
                 args: [prevId, price],
+                gas: 1000000n,
               });
               log("📤", `lockRound #${prevId} tx sent: ${hash}`);
               const receipt = await publicClient.waitForTransactionReceipt({ hash });
               log("✅", `Round #${prevId} locked! Gas used: ${receipt.gasUsed} | Block: ${receipt.blockNumber}`);
             });
             // Refresh round details
-            prevRound = (await publicClient.readContract({
-              address: config.marketAddress,
-              abi: ROUND_MARKET_ABI,
-              functionName: "getRound",
-              args: [prevId],
-            })) as unknown as RoundData;
+            prevRound = await withRetry(`Refetch prevRound #${prevId}`, () =>
+              publicClient.readContract({
+                address: config.marketAddress,
+                abi: ROUND_MARKET_ABI,
+                functionName: "getRound",
+                args: [prevId],
+              })
+            ) as unknown as RoundData;
           }
 
           log("⏰", `Previous Round #${prevId} has ended. Resolving...`);
@@ -528,6 +543,7 @@ async function main() {
               abi: ROUND_MARKET_ABI,
               functionName: "resolveRound",
               args: [prevId, price],
+              gas: 1000000n,
             });
             log("📤", `resolveRound #${prevId} tx sent: ${hash}`);
             const receipt = await publicClient.waitForTransactionReceipt({ hash });
@@ -536,8 +552,8 @@ async function main() {
         }
       }
 
-      // 6. Sleep for a short polling interval
-      await sleep(2000);
+      // 6. Sleep for a short polling interval (10 seconds to avoid RPC rate limiting)
+      await sleep(10000);
     } catch (err) {
       log(
         "❌",
