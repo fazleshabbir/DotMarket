@@ -1,7 +1,7 @@
 import { useReducedMotion, Variants } from 'framer-motion';
 
 export function useMotionSystem() {
-  const shouldReduceMotion = useReducedMotion();
+  const shouldReduceMotion = !!useReducedMotion();
 
   // HEADING REVEAL
   const revealHeading: Variants = {

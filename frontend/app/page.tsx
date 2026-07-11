@@ -12,6 +12,7 @@ import { AnimatedLogo } from '@/components/AnimatedLogo';
 import { ScrollFade } from '@/components/ScrollFade';
 import { HowItWorksSection } from '@/components/HowItWorksSection';
 import { CommunitySection } from '@/components/CommunitySection';
+import { RoadmapSection } from '@/components/roadmap/RoadmapSection';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 import { Section } from '@/components/ui/Section';
@@ -880,52 +881,7 @@ export default function LandingPage() {
 
 
       {/* ── 8. Roadmap ───────────────────────────────────────────── */}
-      <Section id="roadmap">
-        <PageHeader
-          title="Development Roadmap"
-          subtitle="The future of high-frequency prediction markets."
-        />
-
-        {/* Roadmap horizontal timeline container */}
-        <motion.div
-          initial="hidden"
-          whileInView="visible"
-          viewport={{ once: true, amount: 0.25 }}
-          variants={staggerContainer(0.1)}
-          className="roadmap-timeline-container"
-        >
-          {[
-            { phase: 'Q2', title: 'Protocol Launch', desc: 'Core smart contract pools deployed on testnet.' },
-            { phase: 'Q3', title: 'Prediction Markets', desc: 'Launch multi-collateral and advanced metrics forecast pools.' },
-            { phase: 'Q4', title: 'Mobile Trading', desc: 'Launch dedicated responsive mobile terminal app views.' },
-            { phase: 'Future', title: 'Market Creation', desc: 'Allow user-created custom prediction pools.' },
-            { phase: 'Future', title: 'DAO Governance', desc: 'Transition protocol mechanics to token voting structures.' },
-            { phase: 'Future', title: 'Cross-Chain', desc: 'Deploy on Arbitrum, Base, and Solana via bridging protocols.' }
-          ].map((item, idx) => (
-            <motion.div
-              key={idx}
-              variants={revealCard}
-              style={{
-                flex: '0 0 240px',
-                display: 'flex',
-                flexDirection: 'column',
-              }}
-            >
-              <Card 
-                style={{
-                  padding: '24px',
-                  height: '100%',
-                  width: '100%',
-                }}
-              >
-                <span className="font-mono" style={{ fontSize: 11, color: 'var(--accent)', fontWeight: 700, display: 'block', marginBottom: 8 }}>{item.phase}</span>
-                <h3 style={{ fontSize: 15, fontWeight: 700, color: '#ffffff', marginBottom: 8 }}>{item.title}</h3>
-                <p style={{ fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.4 }}>{item.desc}</p>
-              </Card>
-            </motion.div>
-          ))}
-        </motion.div>
-      </Section>
+      <RoadmapSection />
 
       {/* ── 10. Community Section ────────────────────────────────────────────── */}
       <CommunitySection />
