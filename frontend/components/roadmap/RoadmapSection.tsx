@@ -186,59 +186,40 @@ export function RoadmapSection() {
     setMounted(true);
   }, []);
 
-  // Update active index based on horizontal or vertical scroll alignment
-  const handleScroll = () => {
+  // IntersectionObserver to track visible cards asynchronously without scroll blocking or layout thrashing
+  useEffect(() => {
+    if (!mounted) return;
     const container = containerRef.current;
     if (!container) return;
     const children = container.children;
 
-    if (window.innerWidth >= 1024) {
-      // Horizontal Center Scroll Tracking (Desktop)
-      const containerCenter = container.scrollLeft + container.clientWidth / 2;
-      let closestIdx = 2;
-      let minDiff = Infinity;
+    const isDesktop = window.innerWidth >= 1024;
 
-      for (let i = 0; i < children.length; i++) {
-        const child = children[i] as HTMLElement;
-        const childCenter = child.offsetLeft + child.clientWidth / 2;
-        const diff = Math.abs(containerCenter - childCenter);
-        if (diff < minDiff) {
-          minDiff = diff;
-          closestIdx = i;
-        }
-      }
-      setActiveIdx(closestIdx);
-    }
-  };
-
-  useEffect(() => {
-    // Scroll window tracker for Vertical Layout (Mobile/Tablet)
-    const handleVerticalScroll = () => {
-      if (window.innerWidth >= 1024) return;
-      const container = containerRef.current;
-      if (!container) return;
-      const children = container.children;
-      const viewportCenter = window.scrollY + window.innerHeight / 2;
-
-      let closestIdx = 0;
-      let minDiff = Infinity;
-
-      for (let i = 0; i < children.length; i++) {
-        const child = children[i] as HTMLElement;
-        const rect = child.getBoundingClientRect();
-        const childCenter = rect.top + rect.height / 2 + window.scrollY;
-        const diff = Math.abs(viewportCenter - childCenter);
-        if (diff < minDiff) {
-          minDiff = diff;
-          closestIdx = i;
-        }
-      }
-      setActiveIdx(closestIdx);
+    const observerOptions = {
+      root: isDesktop ? container : null,
+      rootMargin: isDesktop ? '0px -35% 0px -35%' : '-35% 0px -35% 0px',
+      threshold: 0.15,
     };
 
-    window.addEventListener('scroll', handleVerticalScroll);
-    return () => window.removeEventListener('scroll', handleVerticalScroll);
-  }, [mounted]);
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach((entry) => {
+        if (entry.isIntersecting) {
+          const idx = Array.from(children).indexOf(entry.target);
+          if (idx !== -1) {
+            setActiveIdx(idx);
+          }
+        }
+      });
+    }, observerOptions);
+
+    Array.from(children).forEach((child) => {
+      observer.observe(child);
+    });
+
+    return () => {
+      observer.disconnect();
+    };
+  }, [mounted, isMobile, isTablet]);
 
   // Click handler on top nodes to scroll them into viewport view
   const scrollToMilestone = (idx: number) => {
@@ -481,7 +462,6 @@ export function RoadmapSection() {
       {/* ── TIMELINE CARDS TRACK CONTAINER ── */}
       <motion.div
         ref={containerRef}
-        onScroll={handleScroll}
         initial="hidden"
         whileInView="visible"
         viewport={{ once: true, amount: 0.15 }}
