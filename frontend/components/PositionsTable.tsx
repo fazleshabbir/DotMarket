@@ -80,29 +80,64 @@ export function PositionsTable() {
 
   if (!mounted) {
     return (
-      <Card hoverEffect={false} style={{ padding: '48px 24px', textAlign: 'center', minHeight: '180px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-        <p style={{ color: 'var(--text-secondary)', fontSize: 13 }}>Loading positions...</p>
+      <Card hoverEffect={false} style={{ padding: '24px 20px', textAlign: 'center', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', boxSizing: 'border-box' }}>
+        <p style={{ color: 'var(--text-secondary)', fontSize: 12, fontFamily: 'var(--font-mono)' }}>LOADING TERMINAL ACTIVITY...</p>
       </Card>
     );
   }
 
   if (!isConnected) {
     return (
-      <Card hoverEffect={false} style={{ padding: '48px 24px', textAlign: 'center', minHeight: '180px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-        <p style={{ color: 'var(--text-secondary)', fontSize: 13, maxWidth: '320px', lineHeight: 1.6 }}>Connect your wallet to view active positions and claim history.</p>
+      <Card
+        hoverEffect={false}
+        style={{
+          height: '100%',
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          justifyContent: 'center',
+          padding: '24px 20px',
+          boxSizing: 'border-box',
+          gap: 12,
+        }}
+      >
+        <svg
+          viewBox="0 0 24 24"
+          width="24"
+          height="24"
+          fill="none"
+          stroke="rgba(255, 255, 255, 0.4)"
+          strokeWidth="1.5"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        >
+          <rect x="2" y="4" width="20" height="16" rx="2" ry="2" />
+          <path d="M16 11h.01M22 10h-6a2 2 0 0 0-2 2v2a2 2 0 0 0 2 2h6" />
+        </svg>
+        <div style={{ textAlign: 'center' }}>
+          <strong style={{ display: 'block', fontSize: 13, color: '#ffffff', marginBottom: 4, letterSpacing: '0.5px' }}>
+            No Active Bets
+          </strong>
+          <p style={{ margin: 0, fontSize: 11, color: 'var(--text-secondary)', maxWidth: 280, lineHeight: 1.4 }}>
+            Connect your wallet to place your first prediction.
+          </p>
+        </div>
       </Card>
     );
   }
 
+  // Helper check to see if any rows will actually render for the active tab
+  // (we can determine this by checking if the tab matches and rendering would be non-null)
   return (
     <Card 
       hoverEffect={false} 
       style={{ 
         overflow: 'hidden',
-        marginTop: 16,
         padding: 0,
         display: 'flex',
-        flexDirection: 'column'
+        flexDirection: 'column',
+        height: '100%',
+        boxSizing: 'border-box'
       }}
     >
       {/* Table Header Section */}
@@ -113,20 +148,21 @@ export function PositionsTable() {
           alignItems: 'center',
           borderBottom: '1px solid rgba(255, 255, 255, 0.06)',
           background: 'rgba(255, 255, 255, 0.005)',
-          padding: '14px 20px'
+          padding: '10px 16px',
+          flexShrink: 0
         }}
       >
-        <span style={{ fontSize: '11px', fontWeight: 700, letterSpacing: '1px', textTransform: 'uppercase', color: '#ffffff' }}>
-          Your Activity
+        <span style={{ fontSize: '11px', fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#ffffff' }}>
+          YOUR ACTIVITY
         </span>
-        <div style={{ display: 'flex', gap: '8px', background: 'rgba(255,255,255,0.02)', padding: '3px', borderRadius: '20px', border: '1px solid rgba(255,255,255,0.05)' }}>
+        <div style={{ display: 'flex', gap: '6px', background: 'rgba(255,255,255,0.02)', padding: '2px', borderRadius: '20px', border: '1px solid rgba(255,255,255,0.05)' }}>
           <button
             onClick={() => setActiveTab('positions')}
             style={{
-              padding: '6px 14px',
-              fontSize: '11px',
+              padding: '4px 10px',
+              fontSize: '10px',
               fontWeight: 600,
-              borderRadius: '16px',
+              borderRadius: '12px',
               border: 'none',
               cursor: 'pointer',
               background: activeTab === 'positions' ? '#ffffff' : 'transparent',
@@ -139,10 +175,10 @@ export function PositionsTable() {
           <button
             onClick={() => setActiveTab('history')}
             style={{
-              padding: '6px 14px',
-              fontSize: '11px',
+              padding: '4px 10px',
+              fontSize: '10px',
               fontWeight: 600,
-              borderRadius: '16px',
+              borderRadius: '12px',
               border: 'none',
               cursor: 'pointer',
               background: activeTab === 'history' ? '#ffffff' : 'transparent',
@@ -156,10 +192,26 @@ export function PositionsTable() {
       </div>
 
       {/* Table Content */}
-      <div style={{ overflowX: 'auto', minHeight: '140px' }}>
+      <div style={{ flex: 1, overflowY: 'auto', minHeight: 0 }}>
         {recentIds.length === 0 ? (
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '140px', color: 'var(--text-secondary)', fontSize: 13 }}>
-            No active positions found
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', gap: 10, padding: 20 }}>
+            <svg
+              viewBox="0 0 24 24"
+              width="20"
+              height="20"
+              fill="none"
+              stroke="rgba(255, 255, 255, 0.3)"
+              strokeWidth="1.5"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <rect x="2" y="4" width="20" height="16" rx="2" ry="2" />
+              <path d="M16 11h.01M22 10h-6a2 2 0 0 0-2 2v2a2 2 0 0 0 2 2h6" />
+            </svg>
+            <div style={{ textAlign: 'center' }}>
+              <span style={{ display: 'block', fontSize: 12, color: '#ffffff', fontWeight: 600 }}>No Active Bets</span>
+              <span style={{ fontSize: 10, color: 'var(--text-secondary)' }}>Connect your wallet to place your first prediction.</span>
+            </div>
           </div>
         ) : (
           <Table headers={['ROUND ID', 'FORECAST', 'AMOUNT', 'LOCK PRICE', 'CLOSE PRICE', 'STATUS', 'ACTION']}>
@@ -179,7 +231,7 @@ export function PositionsTable() {
       </div>
 
       {claimStatus && (
-        <div style={{ padding: '10px 16px', background: 'rgba(255, 255, 255, 0.02)', borderTop: '1px solid rgba(255,255,255,0.06)', color: '#ffffff', fontSize: 11, textAlign: 'center', fontFamily: 'var(--font-mono)' }}>
+        <div style={{ padding: '8px 12px', background: 'rgba(255, 255, 255, 0.02)', borderTop: '1px solid rgba(255,255,255,0.06)', color: '#ffffff', fontSize: 10, textAlign: 'center', fontFamily: 'var(--font-mono)' }}>
           {claimStatus}
         </div>
       )}

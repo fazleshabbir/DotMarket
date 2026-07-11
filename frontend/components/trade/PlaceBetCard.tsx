@@ -29,9 +29,9 @@ export const PlaceBetCard = memo(function PlaceBetCard({
   connectWalletCTA,
 }: PlaceBetCardProps) {
   return (
-    <Card hoverEffect={false} style={{ padding: '24px 20px' }}>
+    <Card hoverEffect={false} style={{ padding: '12px 16px', height: '100%', boxSizing: 'border-box', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
       {/* Header with READY status badge */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
         <div style={{ fontSize: 13, fontWeight: 700, letterSpacing: '0.08em', color: '#ffffff' }}>
           PLACE BET
         </div>

@@ -221,50 +221,56 @@ export function BettingPanel({ currentBtcPrice }: BettingPanelProps) {
   }
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 16, width: '100%' }}>
-      {/* 1. Action Panel: Place Bet Card */}
-      <PlaceBetCard
-        betAmount={betAmount}
-        setBetAmount={setBetAmount}
-        onPlaceBet={handlePlaceBet}
-        canBet={canBet}
-        isPending={isPending}
-        isConfirming={isConfirming}
-        txStatus={txStatus}
-        isConnected={isConnected}
-        connectWalletCTA={<ConnectButton />}
-      />
-
-      {/* 2. Prominent Visual Panel: Live Market Card */}
-      <ActiveRoundCard
-        hasValidActiveRound={hasValidActiveRound}
-        activeRoundId={activeRoundId}
-        activeRound={activeRound}
-        isActiveLocked={isActiveLocked}
-        isActiveResolved={isActiveResolved}
-        activeUpPercent={activeUpPercent}
-        activeDownPercent={activeDownPercent}
-        activeTotalPool={activeTotalPool}
-        activeUpMultiplier={activeUpMultiplier}
-        activeDownMultiplier={activeDownMultiplier}
-        currentBtcPrice={currentBtcPrice}
-      />
-
-      {/* 3. Secondary Info Panel: Previous Market Card */}
-      {prevRoundId > 0n && prevRound && (
-        <LastRoundCard
-          prevRoundId={prevRoundId}
-          prevRound={prevRound}
-          outcome={outcome}
-          hasPlacedPrevBet={hasPlacedPrevBet}
-          prevUserBet={prevUserBet}
-          isClaimable={isClaimable as boolean}
-          onClaim={handleClaim}
-          isClaimingPending={isPending}
-          isClaimingConfirming={isConfirming}
-          claimStatus={null}
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 16, height: '100%', boxSizing: 'border-box', overflow: 'hidden' }}>
+      {/* 1. Action Panel: Place Bet Card (34% height) */}
+      <div style={{ height: '34%', minHeight: 0 }}>
+        <PlaceBetCard
+          betAmount={betAmount}
+          setBetAmount={setBetAmount}
+          onPlaceBet={handlePlaceBet}
+          canBet={canBet}
+          isPending={isPending}
+          isConfirming={isConfirming}
+          txStatus={txStatus}
+          isConnected={isConnected}
+          connectWalletCTA={<ConnectButton />}
         />
-      )}
+      </div>
+
+      {/* 2. Prominent Visual Panel: Live Market Card (42% height) */}
+      <div style={{ height: '42%', minHeight: 0 }}>
+        <ActiveRoundCard
+          hasValidActiveRound={hasValidActiveRound}
+          activeRoundId={activeRoundId}
+          activeRound={activeRound}
+          isActiveLocked={isActiveLocked}
+          isActiveResolved={isActiveResolved}
+          activeUpPercent={activeUpPercent}
+          activeDownPercent={activeDownPercent}
+          activeTotalPool={activeTotalPool}
+          activeUpMultiplier={activeUpMultiplier}
+          activeDownMultiplier={activeDownMultiplier}
+          currentBtcPrice={currentBtcPrice}
+        />
+      </div>
+
+      {/* 3. Secondary Info Panel: Previous Market Card (24% height) */}
+      <div style={{ height: '24%', minHeight: 0 }}>
+        {prevRoundId > 0n && prevRound && (
+          <LastRoundCard
+            prevRoundId={prevRoundId}
+            prevRound={prevRound}
+            outcome={outcome}
+            hasPlacedPrevBet={hasPlacedPrevBet}
+            prevUserBet={prevUserBet}
+            isClaimable={isClaimable as boolean}
+            onClaim={handleClaim}
+            isClaimingPending={isPending}
+            isClaimingConfirming={isConfirming}
+            claimStatus={null}
+          />
+        )}
+      </div>
     </div>
   );
 }

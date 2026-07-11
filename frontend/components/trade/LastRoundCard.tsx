@@ -32,8 +32,8 @@ export const LastRoundCard = memo(function LastRoundCard({
 }: LastRoundCardProps) {
   if (!prevRound || prevRoundId === 0n) {
     return (
-      <Card hoverEffect={false} style={{ padding: '20px', textAlign: 'center', color: 'var(--text-secondary)' }}>
-        No previous market data available.
+      <Card hoverEffect={false} style={{ padding: '12px 16px', textAlign: 'center', height: '100%', boxSizing: 'border-box', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <span style={{ fontSize: 11, color: 'var(--text-secondary)' }}>No previous market data.</span>
       </Card>
     );
   }
@@ -49,10 +49,21 @@ export const LastRoundCard = memo(function LastRoundCard({
   const canClaim = isClaimable && !userClaimed && !isClaimingPending && !isClaimingConfirming;
 
   return (
-    <Card hoverEffect={false} style={{ padding: '24px 20px', opacity: 0.8 }}>
+    <Card
+      hoverEffect={false}
+      style={{
+        padding: '10px 16px',
+        opacity: 0.8,
+        height: '100%',
+        boxSizing: 'border-box',
+        display: 'flex',
+        flexDirection: 'column',
+        justifyContent: 'center',
+      }}
+    >
       {/* Header with SETTLED status badge */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-        <div style={{ fontSize: 13, fontWeight: 700, letterSpacing: '0.08em', color: '#ffffff' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+        <div style={{ fontSize: 12, fontWeight: 700, letterSpacing: '0.08em', color: '#ffffff' }}>
           PREVIOUS MARKET
         </div>
         <StatusBadge status="resolved" label="✓ SETTLED" />
@@ -66,36 +77,36 @@ export const LastRoundCard = memo(function LastRoundCard({
           alignItems: 'center',
           background: 'rgba(255, 255, 255, 0.02)',
           border: '1px solid rgba(255, 255, 255, 0.05)',
-          padding: '12px 16px',
-          borderRadius: '12px',
-          marginBottom: 16,
+          padding: '4px 8px',
+          borderRadius: '8px',
+          marginBottom: 6,
         }}
       >
-        <span style={{ fontSize: 11, color: 'var(--text-secondary)', fontWeight: 600 }}>WINNING SIDE</span>
-        <strong style={{ fontSize: 13, color: '#ffffff', fontFamily: 'var(--font-mono)', letterSpacing: '0.5px' }}>
+        <span style={{ fontSize: 10, color: 'var(--text-secondary)', fontWeight: 600 }}>WINNING SIDE</span>
+        <strong style={{ fontSize: 11, color: '#ffffff', fontFamily: 'var(--font-mono)', letterSpacing: '0.5px' }}>
           {outcome.text}
         </strong>
       </div>
 
       {/* Details list */}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 12, width: '100%', marginBottom: 16 }}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 4, width: '100%', marginBottom: 6 }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <span style={{ fontSize: 11, color: 'var(--text-secondary)' }}>ENTRY PRICE</span>
-          <span style={{ fontSize: 12, color: '#ffffff', fontFamily: 'var(--font-mono)' }}>
+          <span style={{ fontSize: 10, color: 'var(--text-secondary)' }}>ENTRY PRICE</span>
+          <span style={{ fontSize: 11, color: '#ffffff', fontFamily: 'var(--font-mono)' }}>
             ${startPrice.toLocaleString(undefined, { minimumFractionDigits: 2 })}
           </span>
         </div>
 
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <span style={{ fontSize: 11, color: 'var(--text-secondary)' }}>SETTLEMENT PRICE</span>
-          <span style={{ fontSize: 12, color: '#ffffff', fontFamily: 'var(--font-mono)' }}>
+          <span style={{ fontSize: 10, color: 'var(--text-secondary)' }}>SETTLEMENT PRICE</span>
+          <span style={{ fontSize: 11, color: '#ffffff', fontFamily: 'var(--font-mono)' }}>
             {isResolved ? `$${closePrice.toLocaleString(undefined, { minimumFractionDigits: 2 })}` : 'calculating...'}
           </span>
         </div>
 
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <span style={{ fontSize: 11, color: 'var(--text-secondary)' }}>POOL SIZE</span>
-          <span style={{ fontSize: 12, color: '#ffffff', fontFamily: 'var(--font-mono)' }}>
+          <span style={{ fontSize: 10, color: 'var(--text-secondary)' }}>POOL SIZE</span>
+          <span style={{ fontSize: 11, color: '#ffffff', fontFamily: 'var(--font-mono)' }}>
             {totalPool} USDC
           </span>
         </div>
@@ -106,23 +117,23 @@ export const LastRoundCard = memo(function LastRoundCard({
         <div
           style={{
             borderTop: '1px dashed rgba(255, 255, 255, 0.08)',
-            paddingTop: 16,
+            paddingTop: 6,
             display: 'flex',
             flexDirection: 'column',
-            gap: 12,
+            gap: 4,
             width: '100%',
           }}
         >
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <span style={{ fontSize: 11, color: 'var(--text-secondary)' }}>YOUR BET</span>
-            <span style={{ fontSize: 12, color: '#ffffff', fontFamily: 'var(--font-mono)' }}>
+            <span style={{ fontSize: 10, color: 'var(--text-secondary)' }}>YOUR BET</span>
+            <span style={{ fontSize: 11, color: '#ffffff', fontFamily: 'var(--font-mono)' }}>
               {userBetAmount} ETH ({prevUserBet.position === 0 ? 'UP' : 'DOWN'})
             </span>
           </div>
 
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <span style={{ fontSize: 11, color: 'var(--text-secondary)' }}>ROUND RESULT</span>
-            <strong style={{ fontSize: 11, color: outcome.userColor || '#ffffff', fontFamily: 'var(--font-mono)' }}>
+            <span style={{ fontSize: 10, color: 'var(--text-secondary)' }}>ROUND RESULT</span>
+            <strong style={{ fontSize: 10, color: outcome.userColor || '#ffffff', fontFamily: 'var(--font-mono)' }}>
               {outcome.userText || 'LOST'}
             </strong>
           </div>
@@ -131,15 +142,16 @@ export const LastRoundCard = memo(function LastRoundCard({
           {canClaim && (
             <Button
               variant="primary"
-              size="md"
+              size="sm"
               onClick={onClaim}
               style={{
                 width: '100%',
                 background: '#ffffff',
                 color: '#000000',
                 fontWeight: 700,
-                borderRadius: '12px',
-                marginTop: 8,
+                borderRadius: '8px',
+                height: '28px',
+                marginTop: 2,
               }}
             >
               Claim Winnings
@@ -150,15 +162,15 @@ export const LastRoundCard = memo(function LastRoundCard({
             <div
               style={{
                 textAlign: 'center',
-                fontSize: '11px',
+                fontSize: '10px',
                 color: 'var(--text-secondary)',
                 fontFamily: 'var(--font-mono)',
-                padding: '8px 12px',
+                padding: '4px 8px',
                 background: 'rgba(255,255,255,0.01)',
                 border: '1px dashed rgba(255,255,255,0.05)',
-                borderRadius: '8px',
+                borderRadius: '6px',
                 width: '100%',
-                marginTop: 4,
+                marginTop: 2,
               }}
             >
               ✓ Payout Claimed
@@ -168,15 +180,15 @@ export const LastRoundCard = memo(function LastRoundCard({
           {claimStatus && (
             <div
               style={{
-                fontSize: '11px',
+                fontSize: '10px',
                 color: 'var(--text-secondary)',
                 fontFamily: 'var(--font-mono)',
                 textAlign: 'center',
-                padding: '8px 12px',
+                padding: '4px 8px',
                 background: 'rgba(255,255,255,0.02)',
                 border: '1px solid rgba(255,255,255,0.05)',
-                borderRadius: '8px',
-                marginTop: 4,
+                borderRadius: '6px',
+                marginTop: 2,
               }}
             >
               {claimStatus}

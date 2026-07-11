@@ -6,30 +6,37 @@ import { PositionsTable } from '../PositionsTable';
 
 export const TradingPanel = memo(function TradingPanel() {
   return (
-    <div style={{ flex: '1 1 65%', display: 'flex', flexDirection: 'column', gap: 16, minWidth: 500 }}>
-      {/* Chart container with premium glass framing */}
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 16, height: '100%', boxSizing: 'border-box', overflow: 'hidden' }}>
+      {/* Chart container with premium glass framing (65% height) */}
       <div
         className="premium-card"
         style={{
-          padding: '16px',
+          height: '65%',
+          padding: '12px 16px',
           display: 'flex',
           flexDirection: 'column',
-          gap: 12,
+          gap: 8,
+          boxSizing: 'border-box',
+          overflow: 'hidden',
         }}
       >
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0 4px' }}>
-          <strong style={{ fontSize: 13, color: '#ffffff', letterSpacing: '0.5px' }}>
+          <strong style={{ fontSize: 12, color: '#ffffff', letterSpacing: '0.08em' }}>
             BTC-USD LIVE INDEX CHART
           </strong>
-          <span style={{ fontSize: 10, color: 'var(--text-secondary)', fontFamily: 'var(--font-mono)' }}>
+          <span style={{ fontSize: 9, color: 'var(--text-secondary)', fontFamily: 'var(--font-mono)' }}>
             1M INTERVAL
           </span>
         </div>
-        <TradingViewChart />
+        <div style={{ flex: 1, minHeight: 0 }}>
+          <TradingViewChart />
+        </div>
       </div>
 
-      {/* Positions & Claim Logs Table */}
-      <PositionsTable />
+      {/* Positions & Claim Logs Table (35% height) */}
+      <div style={{ height: '35%', display: 'flex', flexDirection: 'column', minHeight: 0 }}>
+        <PositionsTable />
+      </div>
     </div>
   );
 });

@@ -40,14 +40,14 @@ export const BetActions = memo(function BetActions({
 
   if (!isConnected) {
     return (
-      <div style={{ marginTop: 16 }}>
+      <div style={{ marginTop: 10 }}>
         {connectWalletCTA}
       </div>
     );
   }
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 16, marginTop: 16 }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginTop: 10 }}>
       {/* Bet input */}
       <Input
         type="number"
@@ -84,10 +84,10 @@ export const BetActions = memo(function BetActions({
       </div>
 
       {/* Primary triggers: UP vs DOWN */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
         <Button
           variant="primary"
-          size="lg"
+          size="md"
           onClick={() => onPlaceBet(0)}
           disabled={!canBet || isWorking || !betAmount}
           style={{
@@ -95,6 +95,7 @@ export const BetActions = memo(function BetActions({
             color: '#000000',
             fontWeight: 700,
             borderRadius: '12px',
+            height: 36,
           }}
         >
           ▲ UP
@@ -102,7 +103,7 @@ export const BetActions = memo(function BetActions({
 
         <Button
           variant="secondary"
-          size="lg"
+          size="md"
           onClick={() => onPlaceBet(1)}
           disabled={!canBet || isWorking || !betAmount}
           style={{
@@ -111,6 +112,7 @@ export const BetActions = memo(function BetActions({
             color: '#ffffff',
             fontWeight: 700,
             borderRadius: '12px',
+            height: 36,
           }}
         >
           ▼ DOWN

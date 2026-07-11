@@ -51,17 +51,22 @@ export const ActiveRoundCard = memo(function ActiveRoundCard({
     <Card
       hoverEffect={false}
       style={{
-        padding: '28px 24px',
-        border: '1px solid rgba(255, 255, 255, 0.12)', // visually prominent border
+        padding: '12px 16px',
+        border: '1px solid rgba(255, 255, 255, 0.12)', 
         background: 'rgba(255, 255, 255, 0.03)',
-        boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.9), inset 0 1px 0 rgba(255,255,255,0.08)',
+        boxShadow: '0 20px 40px -10px rgba(0, 0, 0, 0.9), inset 0 1px 0 rgba(255,255,255,0.08)',
+        height: '100%',
+        boxSizing: 'border-box',
+        display: 'flex',
+        flexDirection: 'column',
+        justifyContent: 'center',
       }}
     >
       {/* Header with ACTIVE badge */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
         <div
           style={{
-            fontSize: 14,
+            fontSize: 13,
             fontWeight: 700,
             letterSpacing: '0.08em',
             color: '#ffffff',
@@ -74,7 +79,7 @@ export const ActiveRoundCard = memo(function ActiveRoundCard({
 
       {/* Countdown Timer */}
       {hasValidActiveRound ? (
-        <div style={{ marginBottom: 16 }}>
+        <div style={{ marginBottom: 8 }}>
           <RoundTimer
             startTimestamp={Number(activeRound!.startTimestamp)}
             endTimestamp={Number(activeRound!.endTimestamp)}
@@ -86,14 +91,14 @@ export const ActiveRoundCard = memo(function ActiveRoundCard({
       ) : (
         <div
           style={{
-            fontSize: 11,
+            fontSize: 10,
             color: 'var(--text-secondary)',
             fontFamily: 'var(--font-mono)',
-            padding: '16px 0',
+            padding: '10px 0',
             textAlign: 'center',
             border: '1px dashed rgba(255, 255, 255, 0.06)',
             borderRadius: '8px',
-            marginBottom: 16,
+            marginBottom: 8,
           }}
         >
           Awaiting active round creation...
@@ -111,20 +116,20 @@ export const ActiveRoundCard = memo(function ActiveRoundCard({
               background: 'rgba(255, 255, 255, 0.02)',
               border: '1px solid rgba(255, 255, 255, 0.04)',
               borderRadius: '12px',
-              padding: '10px 16px',
-              marginBottom: 16,
+              padding: '6px 12px',
+              marginBottom: 8,
             }}
           >
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-              <span style={{ fontSize: 9, color: 'var(--text-secondary)', fontWeight: 600 }}>CURRENT PRICE</span>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+              <span style={{ fontSize: 8, color: 'var(--text-secondary)', fontWeight: 600 }}>CURRENT PRICE</span>
               <PriceTicker price={currentBtcPrice} />
             </div>
 
-            <div style={{ width: 1, height: 24, background: 'rgba(255,255,255,0.06)' }} />
+            <div style={{ width: 1, height: 20, background: 'rgba(255,255,255,0.06)' }} />
 
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 2, alignItems: 'flex-end' }}>
-              <span style={{ fontSize: 9, color: 'var(--text-secondary)', fontWeight: 600 }}>LOCKED PRICE</span>
-              <strong style={{ fontSize: 12, color: '#ffffff', fontFamily: 'var(--font-mono)' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 1, alignItems: 'flex-end' }}>
+              <span style={{ fontSize: 8, color: 'var(--text-secondary)', fontWeight: 600 }}>LOCKED PRICE</span>
+              <strong style={{ fontSize: 11, color: '#ffffff', fontFamily: 'var(--font-mono)' }}>
                 {startPrice > 0 ? `$${startPrice.toLocaleString(undefined, { minimumFractionDigits: 2 })}` : '—'}
               </strong>
             </div>
@@ -151,8 +156,8 @@ export const ActiveRoundCard = memo(function ActiveRoundCard({
               display: 'flex',
               justifyContent: 'space-between',
               alignItems: 'center',
-              marginTop: 16,
-              fontSize: 10,
+              marginTop: 8,
+              fontSize: 9,
               fontFamily: 'var(--font-mono)',
             }}
           >

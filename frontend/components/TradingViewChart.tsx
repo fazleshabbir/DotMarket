@@ -37,7 +37,7 @@ export const TradingViewChart = memo(function TradingViewChart() {
       className="tradingview-widget-container" 
       ref={container} 
       style={{ 
-        height: '420px', 
+        height: '100%', 
         width: '100%',
         borderRadius: 8,
         overflow: 'hidden',

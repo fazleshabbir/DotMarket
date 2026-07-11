@@ -270,26 +270,27 @@ export default function TradePage() {
       </div>
 
       {/* ── Main Layout ─────────────────────────────────────────── */}
-      <ScrollFade style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
+      <ScrollFade style={{ flex: 1, display: 'flex', flexDirection: 'column', height: 'calc(100vh - 170px)', overflow: 'hidden' }}>
         <main
           style={{
             flex: 1,
-            display: 'flex',
-            flexDirection: 'row',
-            flexWrap: 'wrap',
-            gap: 16,
-            padding: 24,
+            display: 'grid',
+            gridTemplateColumns: '70fr 30fr',
+            gap: 24,
+            padding: '12px 24px 24px 24px',
             background: '#000000',
             width: '100%',
-            maxWidth: 1200,
+            maxWidth: 1400,
             margin: '0 auto',
+            height: '100%',
+            boxSizing: 'border-box',
           }}
         >
-          {/* Left Panel: Chart & Positions Table (65% width) */}
+          {/* Left Panel: Chart & Positions Table (70% width) */}
           <TradingPanel />
 
-          {/* Right Panel: Betting Controller & Round Stats (35% width) */}
-          <div style={{ flex: '0 0 350px', display: 'flex', flexDirection: 'column', gap: 16 }}>
+          {/* Right Panel: Betting Controller & Round Stats (30% width) */}
+          <div style={{ display: 'flex', flexDirection: 'column', height: '100%', boxSizing: 'border-box' }}>
             <BettingPanel currentBtcPrice={btcPrice} />
           </div>
         </main>
