@@ -201,6 +201,10 @@ export default function TradePage() {
 
   const round = roundData as unknown as RoundData | undefined;
 
+  const activeTotalPool = round ? round.totalUpAmount + round.totalDownAmount : 0n;
+  const activeUpPercent = activeTotalPool > 0n ? Number((round!.totalUpAmount * 10000n) / activeTotalPool) / 100 : 50;
+  const activeDownPercent = activeTotalPool > 0n ? 100 - activeUpPercent : 50;
+
   // Fetch live price from Binance API to match chart exactly
   useEffect(() => {
     const fetchBtcPrice = async () => {
@@ -287,7 +291,7 @@ export default function TradePage() {
           }}
         >
           {/* Left Panel: Chart & Positions Table (70% width) */}
-          <TradingPanel />
+          <TradingPanel btcPrice={btcPrice} round={round} activeUpPercent={activeUpPercent} activeDownPercent={activeDownPercent} />
 
           {/* Right Panel: Betting Controller & Round Stats (30% width) */}
           <div style={{ display: 'flex', flexDirection: 'column', height: '100%', boxSizing: 'border-box' }}>

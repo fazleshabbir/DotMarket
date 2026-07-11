@@ -2,7 +2,11 @@
 
 import React, { useEffect, useRef, memo } from 'react';
 
-export const TradingViewChart = memo(function TradingViewChart() {
+interface TradingViewChartProps {
+  interval?: string; // TV intervals: '1', '5', '15', '60', 'D', etc.
+}
+
+export const TradingViewChart = memo(function TradingViewChart({ interval = '1' }: TradingViewChartProps) {
   const container = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -14,23 +18,26 @@ export const TradingViewChart = memo(function TradingViewChart() {
       script.innerHTML = JSON.stringify({
         autosize: true,
         symbol: 'BINANCE:BTCUSDT',
-        interval: '1',
+        interval: interval,
         timezone: 'Etc/UTC',
         theme: 'dark',
         style: '1', // Candlestick style
         locale: 'en',
         enable_publishing: false,
-        hide_side_toolbar: false,
-        allow_symbol_change: true,
+        hide_side_toolbar: true, // Hide side drawing panel
+        hide_top_toolbar: true, // Hide TV native top header
+        saveimage: false, // Hide TV screenshot button
         calendar: false,
         support_host: 'https://www.tradingview.com',
         backgroundColor: '#000000',
-        gridColor: 'rgba(255, 255, 255, 0.03)',
+        gridColor: 'rgba(255, 255, 255, 0.01)', // Faint grid lines to match custom backdrop grid
+        withdateranges: true,
+        hide_volume: false,
       });
       container.current.innerHTML = '';
       container.current.appendChild(script);
     }
-  }, []);
+  }, [interval]);
 
   return (
     <div 
@@ -39,9 +46,9 @@ export const TradingViewChart = memo(function TradingViewChart() {
       style={{ 
         height: '100%', 
         width: '100%',
-        borderRadius: 8,
+        borderRadius: 12,
         overflow: 'hidden',
-        border: '1px solid rgba(255, 255, 255, 0.05)',
+        border: '1px solid rgba(255, 255, 255, 0.04)',
         background: '#000000',
       }}
     >
