@@ -253,7 +253,7 @@ export default function TradePage() {
   }
 
   return (
-    <div style={{ position: 'relative', minHeight: '100vh', display: 'flex', flexDirection: 'column', background: '#000000', color: '#ffffff', overflowX: 'clip', width: '100%', maxWidth: '100%' }}>
+    <div style={{ position: 'relative', height: '100vh', display: 'flex', flexDirection: 'column', background: '#000000', color: '#ffffff', overflow: 'hidden', width: '100%', maxWidth: '100%' }}>
       {/* Top sticky blurred navigation header */}
       <TradeHeader />
 
@@ -316,12 +316,11 @@ export default function TradePage() {
       </div>
 
       {/* ── Main Layout Workspace ───────────────────────────────── */}
-      <ScrollFade style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
+      <ScrollFade style={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0 }}>
         <div
           style={{
             flex: 1,
             display: 'flex',
-            flexDirection: 'column',
             gap: 16,
             padding: '12px 16px 24px 16px',
             background: '#000000',
@@ -329,6 +328,7 @@ export default function TradePage() {
             maxWidth: 1600,
             margin: '0 auto',
             boxSizing: 'border-box',
+            minHeight: 0,
           }}
         >
           {/* Main workspace Grid */}
@@ -338,18 +338,32 @@ export default function TradePage() {
               gridTemplateColumns: '76fr 24fr',
               gap: 16,
               width: '100%',
+              height: '100%',
+              minHeight: 0,
             }}
           >
-            {/* Left Column: Chart Container (70% width) */}
-            <TradingPanel btcPrice={btcPrice} round={round} activeUpPercent={activeUpPercent} activeDownPercent={activeDownPercent} />
+            {/* Left Column: Chart Container + Activity (76% width, Fixed) */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 16, height: '100%', minHeight: 0 }}>
+              <div style={{ flex: 1, minHeight: 0 }}>
+                <TradingPanel btcPrice={btcPrice} round={round} activeUpPercent={activeUpPercent} activeDownPercent={activeDownPercent} />
+              </div>
+              <div style={{ flexShrink: 0, minHeight: 0 }}>
+                <PositionsTable />
+              </div>
+            </div>
 
-            {/* Right Column: Unified Betting Sidebar (30% width) */}
-            <BettingPanel currentBtcPrice={btcPrice} />
-          </div>
-
-          {/* Bottom Section: Full Width Activity Section */}
-          <div style={{ width: '100%' }}>
-            <PositionsTable />
+            {/* Right Column: Unified Betting Sidebar (24% width, Scrollable) */}
+            <div
+              style={{
+                height: '100%',
+                overflowY: 'auto',
+                minHeight: 0,
+                paddingRight: 4,
+              }}
+              className="custom-scrollbar"
+            >
+              <BettingPanel currentBtcPrice={btcPrice} />
+            </div>
           </div>
         </div>
       </ScrollFade>
