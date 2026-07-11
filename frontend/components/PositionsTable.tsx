@@ -80,7 +80,7 @@ export function PositionsTable() {
 
   if (!mounted) {
     return (
-      <Card hoverEffect={false} style={{ padding: '24px 20px', textAlign: 'center', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', boxSizing: 'border-box' }}>
+      <Card hoverEffect={false} style={{ padding: '24px 20px', textAlign: 'center', minHeight: '220px', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', boxSizing: 'border-box' }}>
         <p style={{ color: 'var(--text-secondary)', fontSize: 12, fontFamily: 'var(--font-mono)' }}>LOADING TERMINAL ACTIVITY...</p>
       </Card>
     );
@@ -91,6 +91,7 @@ export function PositionsTable() {
       <Card
         hoverEffect={false}
         style={{
+          minHeight: '220px',
           height: '100%',
           display: 'flex',
           flexDirection: 'column',
@@ -136,6 +137,7 @@ export function PositionsTable() {
         padding: 0,
         display: 'flex',
         flexDirection: 'column',
+        minHeight: '220px',
         height: '100%',
         boxSizing: 'border-box'
       }}

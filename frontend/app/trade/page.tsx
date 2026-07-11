@@ -12,6 +12,28 @@ import { Card } from '@/components/ui/Card';
 import { TradeHeader } from '@/components/trade/TradeHeader';
 import { TradingPanel } from '@/components/trade/TradingPanel';
 import { PriceTicker } from '@/components/trade/PriceTicker';
+import { PositionsTable } from '@/components/PositionsTable';
+
+function CountdownText({ lockTimestamp }: { lockTimestamp: number }) {
+  const [now, setNow] = useState(Math.floor(Date.now() / 1000));
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setNow(Math.floor(Date.now() / 1000));
+    }, 1000);
+    return () => clearInterval(interval);
+  }, []);
+
+  const timeLeft = Math.max(0, lockTimestamp - now);
+  const minutes = Math.floor(timeLeft / 60);
+  const seconds = timeLeft % 60;
+
+  return (
+    <strong style={{ color: '#ffffff', fontFamily: 'var(--font-mono)' }}>
+      {timeLeft > 0 ? `${minutes}:${seconds.toString().padStart(2, '0')}` : 'CLOSED'}
+    </strong>
+  );
+}
 
 interface RoundData {
   roundId: bigint;
@@ -235,7 +257,7 @@ export default function TradePage() {
       {/* Top sticky blurred navigation header */}
       <TradeHeader />
 
-      {/* ── Sub-Header Ticker Details ──────────────────────────── */}
+      {/* ── Sub-Header Live Market strip ───────────────────────── */}
       <div
         style={{
           display: 'flex',
@@ -253,11 +275,28 @@ export default function TradePage() {
         }}
       >
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          <strong style={{ color: '#ffffff', letterSpacing: '0.5px' }}>★ BTC-USD ROUND FORECAST</strong>
+          <strong style={{ color: '#ffffff', letterSpacing: '0.08em' }}>★ BTC-USD</strong>
         </div>
-        
+
         <div style={{ width: 1, height: 12, background: 'rgba(255,255,255,0.1)' }} />
 
+        {/* Live Status Badge */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+          <div className="animate-pulse-live" style={{ width: 6, height: 6, borderRadius: '50%', background: '#ffffff' }} />
+          <span style={{ fontWeight: 700, letterSpacing: '0.08em' }}>LIVE</span>
+        </div>
+
+        <div style={{ width: 1, height: 12, background: 'rgba(255,255,255,0.1)' }} />
+
+        {/* Countdown */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+          <span style={{ color: 'var(--text-muted)' }}>TIME LEFT:</span>{' '}
+          <CountdownText lockTimestamp={round ? Number(round.lockTimestamp) : 0} />
+        </div>
+
+        <div style={{ width: 1, height: 12, background: 'rgba(255,255,255,0.1)' }} />
+
+        {/* Current Price */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
           <span style={{ color: 'var(--text-muted)' }}>CURRENT PRICE:</span>{' '}
           <PriceTicker price={btcPrice} />
@@ -265,39 +304,63 @@ export default function TradePage() {
 
         <div style={{ width: 1, height: 12, background: 'rgba(255,255,255,0.1)' }} />
 
+        {/* Pool */}
         <div>
           <span style={{ color: 'var(--text-muted)' }}>ROUND POOL:</span>{' '}
           <strong style={{ color: '#ffffff', fontFamily: 'var(--font-mono)' }}>
-            {round ? `${(Number(round.totalUpAmount + round.totalDownAmount) / 1e18).toFixed(2)} USDC` : '0.00 USDC'}
+            {round ? `${(Number(round.totalUpAmount + round.totalDownAmount) / 1e18).toFixed(2)} ETH` : '0.00 ETH'}
           </strong>
         </div>
+
+        <div style={{ flexGrow: 1 }} />
+
+        {/* Network */}
+        <span style={{ fontSize: 10, color: 'var(--text-secondary)', fontFamily: 'var(--font-mono)', letterSpacing: '0.5px' }}>
+          ROBINHOOD TESTNET
+        </span>
       </div>
 
-      {/* ── Main Layout ─────────────────────────────────────────── */}
-      <ScrollFade style={{ flex: 1, display: 'flex', flexDirection: 'column', height: 'calc(100vh - 170px)', overflow: 'hidden' }}>
-        <main
+      {/* ── Main Layout Workspace ───────────────────────────────── */}
+      <ScrollFade style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
+        <div
           style={{
             flex: 1,
-            display: 'grid',
-            gridTemplateColumns: '70fr 30fr',
+            display: 'flex',
+            flexDirection: 'column',
             gap: 24,
-            padding: '12px 24px 24px 24px',
+            padding: '16px 24px 32px 24px',
             background: '#000000',
             width: '100%',
             maxWidth: 1400,
             margin: '0 auto',
-            height: '100%',
             boxSizing: 'border-box',
           }}
         >
-          {/* Left Panel: Chart & Positions Table (70% width) */}
-          <TradingPanel btcPrice={btcPrice} round={round} activeUpPercent={activeUpPercent} activeDownPercent={activeDownPercent} />
+          {/* Main workspace Grid */}
+          <div
+            style={{
+              display: 'grid',
+              gridTemplateColumns: '70fr 30fr',
+              gap: 24,
+              width: '100%',
+            }}
+          >
+            {/* Left Column: Chart Container (70% width) */}
+            <div style={{ height: 'clamp(460px, 55vh, 580px)', minHeight: 0 }}>
+              <TradingPanel btcPrice={btcPrice} round={round} activeUpPercent={activeUpPercent} activeDownPercent={activeDownPercent} />
+            </div>
 
-          {/* Right Panel: Betting Controller & Round Stats (30% width) */}
-          <div style={{ display: 'flex', flexDirection: 'column', height: '100%', boxSizing: 'border-box' }}>
-            <BettingPanel currentBtcPrice={btcPrice} />
+            {/* Right Column: Unified Betting Sidebar (30% width) */}
+            <div style={{ height: 'clamp(460px, 55vh, 580px)', minHeight: 0 }}>
+              <BettingPanel currentBtcPrice={btcPrice} />
+            </div>
           </div>
-        </main>
+
+          {/* Bottom Section: Full Width Activity Section */}
+          <div style={{ width: '100%' }}>
+            <PositionsTable />
+          </div>
+        </div>
       </ScrollFade>
     </div>
   );

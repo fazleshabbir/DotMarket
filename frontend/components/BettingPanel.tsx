@@ -222,22 +222,7 @@ export function BettingPanel({ currentBtcPrice }: BettingPanelProps) {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 16, height: '100%', boxSizing: 'border-box', overflow: 'hidden' }}>
-      {/* 1. Action Panel: Place Bet Card (34% height) */}
-      <div style={{ height: '34%', minHeight: 0 }}>
-        <PlaceBetCard
-          betAmount={betAmount}
-          setBetAmount={setBetAmount}
-          onPlaceBet={handlePlaceBet}
-          canBet={canBet}
-          isPending={isPending}
-          isConfirming={isConfirming}
-          txStatus={txStatus}
-          isConnected={isConnected}
-          connectWalletCTA={<ConnectButton />}
-        />
-      </div>
-
-      {/* 2. Prominent Visual Panel: Live Market Card (42% height) */}
+      {/* 1. Prominent Visual Panel: Live Market Card (42% height) */}
       <div style={{ height: '42%', minHeight: 0 }}>
         <ActiveRoundCard
           hasValidActiveRound={hasValidActiveRound}
@@ -251,6 +236,21 @@ export function BettingPanel({ currentBtcPrice }: BettingPanelProps) {
           activeUpMultiplier={activeUpMultiplier}
           activeDownMultiplier={activeDownMultiplier}
           currentBtcPrice={currentBtcPrice}
+        />
+      </div>
+
+      {/* 2. Action Panel: Place Bet Card (34% height) */}
+      <div style={{ height: '34%', minHeight: 0 }}>
+        <PlaceBetCard
+          betAmount={betAmount}
+          setBetAmount={setBetAmount}
+          onPlaceBet={handlePlaceBet}
+          canBet={canBet}
+          isPending={isPending}
+          isConfirming={isConfirming}
+          txStatus={txStatus}
+          isConnected={isConnected}
+          connectWalletCTA={<ConnectButton />}
         />
       </div>
 
