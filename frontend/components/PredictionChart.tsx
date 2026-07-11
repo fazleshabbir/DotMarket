@@ -3,14 +3,24 @@
 import React, { useEffect, useRef, useState, useCallback, memo } from 'react';
 import { createChart, AreaSeries, IChartApi, ISeriesApi, Time, LineStyle } from 'lightweight-charts';
 
+interface Bet {
+  betId: bigint;
+  user: string;
+  position: number; // 0 = UP, 1 = DOWN
+  stake: bigint;
+  entryTime: bigint;
+  expiryTime: bigint;
+  entryPrice: bigint;
+  settlementPrice: bigint;
+  lockedMultiplier: bigint;
+  status: number; // 0 = Running, 1 = Won, 2 = Lost, 3 = Push
+  payout: bigint;
+  claimed: boolean;
+}
+
 interface PredictionChartProps {
-  lockPrice?: number;          // 0 if betting still open
-  roundStartTime?: number;     // unix seconds
-  roundEndTime?: number;       // unix seconds (settlement)
-  roundLockTime?: number;      // unix seconds (betting closes)
   btcPrice: number;            // live price from parent
-  isLocked?: boolean;
-  isResolved?: boolean;
+  activeBets?: Bet[];
 }
 
 interface KlinePoint {
@@ -25,7 +35,6 @@ async function fetchKlines(limit = 300): Promise<KlinePoint[]> {
       `https://api.binance.com/api/v3/klines?symbol=BTCUSDT&interval=1s&limit=${limit}`
     );
     const data: any[][] = await res.json();
-    // Deduplicate by second timestamp (take last value for each second)
     const seen = new Map<number, number>();
     for (const k of data) {
       const t = Math.floor(k[0] / 1000);
@@ -40,13 +49,8 @@ async function fetchKlines(limit = 300): Promise<KlinePoint[]> {
 }
 
 export const PredictionChart = memo(function PredictionChart({
-  lockPrice = 0,
-  roundStartTime = 0,
-  roundEndTime = 0,
-  roundLockTime = 0,
   btcPrice,
-  isLocked = false,
-  isResolved = false,
+  activeBets = [],
 }: PredictionChartProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const chartRef = useRef<IChartApi | null>(null);
@@ -54,8 +58,7 @@ export const PredictionChart = memo(function PredictionChart({
   const wsRef = useRef<WebSocket | null>(null);
   const liveDotRef = useRef<HTMLDivElement>(null);
   const pricePillRef = useRef<HTMLDivElement>(null);
-  const lockLineRef = useRef<HTMLDivElement>(null);
-  const lockPillRef = useRef<HTMLDivElement>(null);
+  const activePriceLinesRef = useRef<any[]>([]);
   const latestPrice = useRef<number>(btcPrice);
   const updateDotAndPillRef = useRef<((price: number) => void) | null>(null);
   const [chartReady, setChartReady] = useState(false);
@@ -126,7 +129,6 @@ export const PredictionChart = memo(function PredictionChart({
     chartRef.current = chart;
     seriesRef.current = series;
 
-    // Resize observer
     const ro = new ResizeObserver(() => {
       if (containerRef.current) {
         chart.applyOptions({
@@ -137,14 +139,12 @@ export const PredictionChart = memo(function PredictionChart({
     });
     ro.observe(containerRef.current);
 
-    // Load last 300 seconds of history
     fetchKlines(300).then((points) => {
       if (seriesRef.current && points.length > 0) {
         seriesRef.current.setData(points);
         chart.timeScale().fitContent();
         setChartReady(true);
       } else {
-        // Still mark ready even if fetch failed so WS can start
         setChartReady(true);
       }
     });
@@ -164,7 +164,6 @@ export const PredictionChart = memo(function PredictionChart({
     const container = containerRef.current;
     if (!chart || !series || !container) return;
 
-    // Get coordinate of latest time
     const timeScale = chart.timeScale();
     const now = Math.floor(Date.now() / 1000) as Time;
     const x = timeScale.timeToCoordinate(now);
@@ -182,35 +181,22 @@ export const PredictionChart = memo(function PredictionChart({
         pricePillRef.current.textContent = `$${price.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
       }
     }
-
-    // Update lock line position
-    if (lockPrice > 0 && lockLineRef.current && lockPillRef.current) {
-      const lockY = series.priceToCoordinate(lockPrice);
-      if (lockY !== null) {
-        lockLineRef.current.style.top = `${lockY}px`;
-        lockLineRef.current.style.opacity = '1';
-        lockPillRef.current.style.top = `${lockY - 11}px`;
-        lockPillRef.current.style.opacity = '1';
-      }
-    }
-  }, [lockPrice]);
+  }, []);
 
   useEffect(() => {
     updateDotAndPillRef.current = updateDotAndPill;
   }, [updateDotAndPill]);
 
-  // ── Live aggTrade WebSocket — fires on every trade (~tick level) ───────────
+  // ── Live aggTrade WebSocket ──
   useEffect(() => {
     if (!chartReady) return;
 
-    // aggTrade fires on every matched trade; we bucket into 1-second bars
     const ws = new WebSocket('wss://stream.binance.com:9443/ws/btcusdt@aggTrade');
     wsRef.current = ws;
 
     ws.onmessage = (evt) => {
       try {
         const msg = JSON.parse(evt.data);
-        // aggTrade fields: T = trade time ms, p = price
         const price = parseFloat(msg.p);
         const t = Math.floor(msg.T / 1000) as Time;
         const point: KlinePoint = { time: t, value: price };
@@ -233,9 +219,37 @@ export const PredictionChart = memo(function PredictionChart({
     updateDotAndPill(btcPrice);
   }, [btcPrice, updateDotAndPill]);
 
+  // ── Draw Price Lines for Active Bets ──
+  useEffect(() => {
+    const series = seriesRef.current;
+    if (!series) return;
+
+    // Remove old price lines
+    activePriceLinesRef.current.forEach((line) => {
+      try {
+        series.removePriceLine(line);
+      } catch {}
+    });
+    activePriceLinesRef.current = [];
+
+    // Add new price lines
+    activeBets.forEach((bet) => {
+      const price = Number(bet.entryPrice) / 1e8;
+      const isUp = bet.position === 0;
+      const line = series.createPriceLine({
+        price,
+        color: isUp ? '#ffffff' : 'rgba(255,255,255,0.45)',
+        lineWidth: 1,
+        lineStyle: LineStyle.Dashed,
+        axisLabelVisible: true,
+        title: `${isUp ? '▲ UP' : '▼ DOWN'} (Bet #${bet.betId})`,
+      });
+      activePriceLinesRef.current.push(line);
+    });
+  }, [activeBets]);
+
   return (
     <div style={{ position: 'relative', width: '100%', height: '100%' }}>
-      {/* Lightweight Charts canvas container */}
       <div
         ref={containerRef}
         style={{ width: '100%', height: '100%', borderRadius: 12, overflow: 'hidden' }}
@@ -284,128 +298,12 @@ export const PredictionChart = memo(function PredictionChart({
         }}
       />
 
-      {/* ── Lock price horizontal line ── */}
-      {lockPrice > 0 && (
-        <>
-          <div
-            ref={lockLineRef}
-            style={{
-              position: 'absolute',
-              left: 0,
-              right: 52,
-              height: 0,
-              borderTop: '1px dashed rgba(255,255,255,0.3)',
-              opacity: 0,
-              pointerEvents: 'none',
-              zIndex: 9,
-              transition: 'top 0.4s ease',
-            }}
-          />
-          <div
-            ref={lockPillRef}
-            style={{
-              position: 'absolute',
-              left: 8,
-              padding: '2px 8px',
-              borderRadius: 8,
-              background: 'rgba(0,0,0,0.85)',
-              backdropFilter: 'blur(8px)',
-              border: '1px solid rgba(255,255,255,0.12)',
-              color: '#ffffff',
-              fontSize: 9,
-              fontFamily: 'var(--font-mono)',
-              opacity: 0,
-              pointerEvents: 'none',
-              zIndex: 10,
-              whiteSpace: 'nowrap',
-              transition: 'top 0.4s ease',
-            }}
-          >
-            🔒 Lock&nbsp;
-            <strong>
-              ${lockPrice.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-            </strong>
-          </div>
-        </>
-      )}
-
-      {/* ── Prediction zone column overlays ── */}
-      <div
-        style={{
-          position: 'absolute',
-          inset: 0,
-          display: 'flex',
-          pointerEvents: 'none',
-          zIndex: 8,
-          borderRadius: 12,
-          overflow: 'hidden',
-        }}
-      >
-        {/* Previous zone */}
-        <div style={{ flex: 1, borderRight: '1px dashed rgba(255,255,255,0.07)', position: 'relative' }}>
-          <div style={{
-            position: 'absolute', top: 8, left: 10,
-            fontSize: 9, fontFamily: 'var(--font-mono)',
-            color: 'rgba(255,255,255,0.25)', letterSpacing: '0.08em'
-          }}>
-            ← Previous Market
-          </div>
-        </div>
-
-        {/* Active zone */}
-        <div style={{
-          flex: 1.4,
-          borderLeft: '1px solid rgba(255,255,255,0.07)',
-          borderRight: '1px solid rgba(255,255,255,0.07)',
-          background: 'rgba(255,255,255,0.015)',
-          position: 'relative',
-          animation: 'breatheZone 5s ease-in-out infinite',
-        }}>
-          {/* Top glow bar */}
-          <div style={{
-            position: 'absolute', top: 0, left: 0, right: 0, height: 1,
-            background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent)'
-          }} />
-          <div style={{
-            position: 'absolute', top: 8, left: 0, right: 0,
-            display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 5
-          }}>
-            <span style={{
-              width: 5, height: 5, borderRadius: '50%', background: '#ffffff',
-              animation: 'liveDotPulse 2s ease-in-out infinite', display: 'inline-block'
-            }} />
-            <span style={{
-              fontSize: 9, fontFamily: 'var(--font-mono)',
-              color: '#ffffff', letterSpacing: '0.1em', fontWeight: 700
-            }}>
-              ● LIVE MARKET
-            </span>
-          </div>
-        </div>
-
-        {/* Next zone */}
-        <div style={{ flex: 1, borderLeft: '1px dashed rgba(255,255,255,0.07)', position: 'relative' }}>
-          <div style={{
-            position: 'absolute', top: 8, right: 10,
-            fontSize: 9, fontFamily: 'var(--font-mono)',
-            color: 'rgba(255,255,255,0.25)', letterSpacing: '0.08em'
-          }}>
-            Next Market →
-          </div>
-        </div>
-      </div>
-
       {/* ── Keyframe style block ── */}
       <style dangerouslySetInnerHTML={{ __html: `
         @keyframes liveDotPulse {
           0%   { box-shadow: 0 0 0 0px rgba(255,255,255,0.3), 0 0 12px rgba(255,255,255,0.2); }
           50%  { box-shadow: 0 0 0 6px rgba(255,255,255,0.05), 0 0 20px rgba(255,255,255,0.15); }
           100% { box-shadow: 0 0 0 0px rgba(255,255,255,0.3), 0 0 12px rgba(255,255,255,0.2); }
-        }
-        @keyframes breatheZone {
-          0%   { background: rgba(255,255,255,0.010); }
-          50%  { background: rgba(255,255,255,0.025); }
-          100% { background: rgba(255,255,255,0.010); }
         }
       ` }} />
     </div>

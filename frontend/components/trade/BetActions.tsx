@@ -14,6 +14,8 @@ interface BetActionsProps {
   txStatus: string | null;
   isConnected: boolean;
   connectWalletCTA: React.ReactNode;
+  upMultiplier: number;
+  downMultiplier: number;
 }
 
 export const BetActions = memo(function BetActions({
@@ -26,14 +28,12 @@ export const BetActions = memo(function BetActions({
   txStatus,
   isConnected,
   connectWalletCTA,
+  upMultiplier,
+  downMultiplier,
 }: BetActionsProps) {
-  // Simple quick actions
-  const handleQuickPercent = (pct: number) => {
-    // For testnet, let's hardcode easy mock values (e.g. 0.05, 0.1, 0.25, 0.5 ETH)
-    if (pct === 25) setBetAmount('0.05');
-    if (pct === 50) setBetAmount('0.10');
-    if (pct === 75) setBetAmount('0.25');
-    if (pct === 100) setBetAmount('0.50');
+  // Simple quick actions in USDC
+  const handleQuickAmount = (amount: string) => {
+    setBetAmount(amount);
   };
 
   const isWorking = isPending || isConfirming;
@@ -51,23 +51,23 @@ export const BetActions = memo(function BetActions({
       {/* Bet input */}
       <Input
         type="number"
-        step="0.01"
-        placeholder="0.00"
-        prefixSymbol="Ξ"
+        step="1"
+        placeholder="10"
+        prefixSymbol="USDC"
         value={betAmount}
         onChange={(e) => setBetAmount(e.target.value)}
         disabled={!canBet || isWorking}
-        label="Bet Amount (ETH)"
+        label="Bet Amount (USDC)"
       />
 
-      {/* Percentage triggers */}
+      {/* Quick amounts */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 8 }}>
-        {[25, 50, 75, 100].map((pct) => (
+        {['10', '50', '250', '1000'].map((amt) => (
           <Button
-            key={pct}
+            key={amt}
             variant="ghost"
             size="sm"
-            onClick={() => handleQuickPercent(pct)}
+            onClick={() => handleQuickAmount(amt)}
             disabled={!canBet || isWorking}
             style={{
               padding: '6px 0',
@@ -78,7 +78,7 @@ export const BetActions = memo(function BetActions({
               borderRadius: '8px',
             }}
           >
-            {pct === 100 ? 'MAX' : `${pct}%`}
+            {amt}
           </Button>
         ))}
       </div>
@@ -95,10 +95,17 @@ export const BetActions = memo(function BetActions({
             color: '#000000',
             fontWeight: 700,
             borderRadius: '12px',
-            height: 36,
+            height: 38,
+            display: 'flex',
+            flexDirection: 'column',
+            justifyContent: 'center',
+            alignItems: 'center',
           }}
         >
-          ▲ UP
+          <span style={{ fontSize: 12, fontWeight: 700 }}>▲ UP</span>
+          <span style={{ fontSize: 9, opacity: 0.6, fontFamily: 'var(--font-mono)' }}>
+            {upMultiplier > 0 ? `${upMultiplier.toFixed(2)}x` : '—'}
+          </span>
         </Button>
 
         <Button
@@ -112,10 +119,17 @@ export const BetActions = memo(function BetActions({
             color: '#ffffff',
             fontWeight: 700,
             borderRadius: '12px',
-            height: 36,
+            height: 38,
+            display: 'flex',
+            flexDirection: 'column',
+            justifyContent: 'center',
+            alignItems: 'center',
           }}
         >
-          ▼ DOWN
+          <span style={{ fontSize: 12, fontWeight: 700 }}>▼ DOWN</span>
+          <span style={{ fontSize: 9, opacity: 0.6, fontFamily: 'var(--font-mono)' }}>
+            {downMultiplier > 0 ? `${downMultiplier.toFixed(2)}x` : '—'}
+          </span>
         </Button>
       </div>
 
