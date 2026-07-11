@@ -18,17 +18,22 @@ interface KlinePoint {
   value: number;
 }
 
-// Fetch recent 1-minute klines from Binance REST
-async function fetchKlines(limit = 60): Promise<KlinePoint[]> {
+// Fetch recent 1-second klines from Binance REST
+async function fetchKlines(limit = 300): Promise<KlinePoint[]> {
   try {
     const res = await fetch(
-      `https://api.binance.com/api/v3/klines?symbol=BTCUSDT&interval=1m&limit=${limit}`
+      `https://api.binance.com/api/v3/klines?symbol=BTCUSDT&interval=1s&limit=${limit}`
     );
     const data: any[][] = await res.json();
-    return data.map((k) => ({
-      time: Math.floor(k[0] / 1000) as Time,
-      value: parseFloat(k[4]), // close price
-    }));
+    // Deduplicate by second timestamp (take last value for each second)
+    const seen = new Map<number, number>();
+    for (const k of data) {
+      const t = Math.floor(k[0] / 1000);
+      seen.set(t, parseFloat(k[4]));
+    }
+    return Array.from(seen.entries())
+      .sort((a, b) => a[0] - b[0])
+      .map(([t, v]) => ({ time: t as Time, value: v }));
   } catch {
     return [];
   }
@@ -52,6 +57,7 @@ export const PredictionChart = memo(function PredictionChart({
   const lockLineRef = useRef<HTMLDivElement>(null);
   const lockPillRef = useRef<HTMLDivElement>(null);
   const latestPrice = useRef<number>(btcPrice);
+  const updateDotAndPillRef = useRef<((price: number) => void) | null>(null);
   const [chartReady, setChartReady] = useState(false);
 
   // ── Chart initialization ────────────────────────────────────────────────────
@@ -91,10 +97,13 @@ export const PredictionChart = memo(function PredictionChart({
       timeScale: {
         borderColor: 'rgba(255, 255, 255, 0.06)',
         timeVisible: true,
-        secondsVisible: false,
+        secondsVisible: true,
         tickMarkFormatter: (time: number) => {
           const d = new Date(time * 1000);
-          return `${d.getHours().toString().padStart(2, '0')}:${d.getMinutes().toString().padStart(2, '0')}`;
+          const hh = d.getHours().toString().padStart(2, '0');
+          const mm = d.getMinutes().toString().padStart(2, '0');
+          const ss = d.getSeconds().toString().padStart(2, '0');
+          return `${hh}:${mm}:${ss}`;
         },
       },
       handleScroll: { mouseWheel: true, pressedMouseMove: true },
@@ -128,11 +137,14 @@ export const PredictionChart = memo(function PredictionChart({
     });
     ro.observe(containerRef.current);
 
-    // Load historical data
-    fetchKlines(80).then((points) => {
+    // Load last 300 seconds of history
+    fetchKlines(300).then((points) => {
       if (seriesRef.current && points.length > 0) {
         seriesRef.current.setData(points);
         chart.timeScale().fitContent();
+        setChartReady(true);
+      } else {
+        // Still mark ready even if fetch failed so WS can start
         setChartReady(true);
       }
     });
@@ -144,36 +156,6 @@ export const PredictionChart = memo(function PredictionChart({
       seriesRef.current = null;
     };
   }, []);
-
-  // ── Live WebSocket price feed ───────────────────────────────────────────────
-  useEffect(() => {
-    if (!chartReady) return;
-
-    const ws = new WebSocket('wss://stream.binance.com:9443/ws/btcusdt@kline_1m');
-    wsRef.current = ws;
-
-    ws.onmessage = (evt) => {
-      try {
-        const msg = JSON.parse(evt.data);
-        const kline = msg.k;
-        if (!kline) return;
-        const point: KlinePoint = {
-          time: Math.floor(kline.t / 1000) as Time,
-          value: parseFloat(kline.c),
-        };
-        seriesRef.current?.update(point);
-        latestPrice.current = point.value;
-        updateDotAndPill(point.value);
-      } catch {}
-    };
-
-    ws.onerror = () => ws.close();
-
-    return () => {
-      ws.close();
-      wsRef.current = null;
-    };
-  }, [chartReady]);
 
   // ── Update live dot and price pill positions ────────────────────────────────
   const updateDotAndPill = useCallback((price: number) => {
@@ -212,6 +194,39 @@ export const PredictionChart = memo(function PredictionChart({
       }
     }
   }, [lockPrice]);
+
+  useEffect(() => {
+    updateDotAndPillRef.current = updateDotAndPill;
+  }, [updateDotAndPill]);
+
+  // ── Live aggTrade WebSocket — fires on every trade (~tick level) ───────────
+  useEffect(() => {
+    if (!chartReady) return;
+
+    // aggTrade fires on every matched trade; we bucket into 1-second bars
+    const ws = new WebSocket('wss://stream.binance.com:9443/ws/btcusdt@aggTrade');
+    wsRef.current = ws;
+
+    ws.onmessage = (evt) => {
+      try {
+        const msg = JSON.parse(evt.data);
+        // aggTrade fields: T = trade time ms, p = price
+        const price = parseFloat(msg.p);
+        const t = Math.floor(msg.T / 1000) as Time;
+        const point: KlinePoint = { time: t, value: price };
+        seriesRef.current?.update(point);
+        latestPrice.current = price;
+        updateDotAndPillRef.current?.(price);
+      } catch {}
+    };
+
+    ws.onerror = () => ws.close();
+
+    return () => {
+      ws.close();
+      wsRef.current = null;
+    };
+  }, [chartReady]);
 
   // Update overlays whenever btcPrice prop changes from parent polling
   useEffect(() => {

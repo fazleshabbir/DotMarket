@@ -322,11 +322,11 @@ export default function TradePage() {
             flex: 1,
             display: 'flex',
             flexDirection: 'column',
-            gap: 24,
-            padding: '16px 24px 32px 24px',
+            gap: 16,
+            padding: '12px 16px 24px 16px',
             background: '#000000',
             width: '100%',
-            maxWidth: 1400,
+            maxWidth: 1600,
             margin: '0 auto',
             boxSizing: 'border-box',
           }}
@@ -335,8 +335,8 @@ export default function TradePage() {
           <div
             style={{
               display: 'grid',
-              gridTemplateColumns: '70fr 30fr',
-              gap: 24,
+              gridTemplateColumns: '76fr 24fr',
+              gap: 16,
               width: '100%',
             }}
           >
