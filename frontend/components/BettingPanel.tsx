@@ -513,10 +513,26 @@ export function BettingPanel({ currentBtcPrice: _unusedProps }: { currentBtcPric
             )}
           </div>
 
-          {/* Shared Countdown Timer — Displays only when user has placed an active prediction bet */}
-          {hasPlacedActiveBet ? (
+          {/* Shared Countdown Timer — Displays only when user has placed an active prediction bet and betting is closed */}
+          {hasPlacedActiveBet && (marketStatus === 'LOCKED' || marketStatus === 'SETTLING') ? (
             <div style={{ marginBottom: 10 }}>
               <GlobalRoundTimer />
+            </div>
+          ) : hasPlacedActiveBet && marketStatus === 'OPEN' ? (
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 12,
+              padding: '10px 12px',
+              borderRadius: 12,
+              background: 'rgba(255,255,255,0.01)',
+              border: '1px solid rgba(255,255,255,0.03)',
+              marginBottom: 10,
+            }}>
+              <div className="animate-pulse-live" style={{ width: 6, height: 6, borderRadius: '50%', background: 'rgba(255,255,255,0.5)' }} />
+              <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.6)', fontFamily: 'var(--font-mono)' }}>
+                Prediction received. Waiting for lock...
+              </span>
             </div>
           ) : (
             <div style={{
