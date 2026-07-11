@@ -212,7 +212,20 @@ export function BettingPanel({ currentBtcPrice }: BettingPanelProps) {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 16, boxSizing: 'border-box' }}>
-      {/* 1. Prominent Visual Panel: Live Market Card */}
+      {/* 1. Action Panel: Place Bet Card */}
+      <PlaceBetCard
+        betAmount={betAmount}
+        setBetAmount={setBetAmount}
+        onPlaceBet={handlePlaceBet}
+        canBet={canBet}
+        isPending={isPending}
+        isConfirming={isConfirming}
+        txStatus={txStatus}
+        isConnected={isConnected}
+        connectWalletCTA={<ConnectButton />}
+      />
+
+      {/* 2. Prominent Visual Panel: Live Market Card */}
       <ActiveRoundCard
         hasValidActiveRound={hasValidActiveRound}
         activeRoundId={activeRoundId}
@@ -225,19 +238,6 @@ export function BettingPanel({ currentBtcPrice }: BettingPanelProps) {
         activeUpMultiplier={activeUpMultiplier}
         activeDownMultiplier={activeDownMultiplier}
         currentBtcPrice={currentBtcPrice}
-      />
-
-      {/* 2. Action Panel: Place Bet Card */}
-      <PlaceBetCard
-        betAmount={betAmount}
-        setBetAmount={setBetAmount}
-        onPlaceBet={handlePlaceBet}
-        canBet={canBet}
-        isPending={isPending}
-        isConfirming={isConfirming}
-        txStatus={txStatus}
-        isConnected={isConnected}
-        connectWalletCTA={<ConnectButton />}
       />
 
       {/* 3. Secondary Info Panel: Previous Market Card */}
