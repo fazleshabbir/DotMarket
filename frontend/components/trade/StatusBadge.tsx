@@ -2,86 +2,160 @@
 
 import React, { memo } from 'react';
 
+// ── SVG icon primitives ────────────────────────────────────────────────────────
+const IconLock = () => (
+  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" style={{ opacity: 0.9 }}>
+    <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
+    <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+  </svg>
+);
+const IconCheck = () => (
+  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" style={{ opacity: 0.9 }}>
+    <polyline points="20 6 9 17 4 12" />
+  </svg>
+);
+const IconZap = () => (
+  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" style={{ opacity: 0.9 }}>
+    <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
+  </svg>
+);
+const IconClock = () => (
+  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" style={{ opacity: 0.9 }}>
+    <circle cx="12" cy="12" r="10" />
+    <polyline points="12 6 12 12 16 14" />
+  </svg>
+);
+const IconX = () => (
+  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" style={{ opacity: 0.9 }}>
+    <line x1="18" y1="6" x2="6" y2="18" />
+    <line x1="6" y1="6" x2="18" y2="18" />
+  </svg>
+);
+const IconLoader = () => (
+  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" style={{ opacity: 0.9 }}>
+    <line x1="12" y1="2" x2="12" y2="6" />
+    <line x1="12" y1="18" x2="12" y2="22" />
+    <line x1="4.93" y1="4.93" x2="7.76" y2="7.76" />
+    <line x1="16.24" y1="16.24" x2="19.07" y2="19.07" />
+    <line x1="2" y1="12" x2="6" y2="12" />
+    <line x1="18" y1="12" x2="22" y2="12" />
+  </svg>
+);
+
+// ── Unified Status Type ────────────────────────────────────────────────────────
+export type StatusType =
+  | 'live'
+  | 'active'
+  | 'ready'
+  | 'locked'
+  | 'settling'
+  | 'settled'
+  | 'canceled'
+  | 'upcoming'
+  | 'pending';
+
 interface StatusBadgeProps {
-  status: 'active' | 'locked' | 'resolved' | 'canceled' | 'ready';
+  status: StatusType;
   label?: string;
+  showPulse?: boolean;
 }
 
-export const StatusBadge = memo(function StatusBadge({ status, label }: StatusBadgeProps) {
-  const getColors = () => {
-    switch (status) {
-      case 'active':
-        return {
-          bg: 'rgba(255, 255, 255, 0.04)',
-          border: '1px solid rgba(255, 255, 255, 0.15)',
-          text: '#ffffff',
-          dot: '#ffffff',
-        };
-      case 'locked':
-        return {
-          bg: 'rgba(255, 255, 255, 0.02)',
-          border: '1px solid rgba(255, 255, 255, 0.06)',
-          text: 'rgba(255, 255, 255, 0.5)',
-          dot: 'rgba(255, 255, 255, 0.3)',
-        };
-      case 'resolved':
-        return {
-          bg: 'rgba(255, 255, 255, 0.04)',
-          border: '1px solid rgba(255, 255, 255, 0.2)',
-          text: '#ffffff',
-          dot: null,
-        };
-      case 'canceled':
-        return {
-          bg: 'rgba(255, 255, 255, 0.02)',
-          border: '1px solid rgba(255, 255, 255, 0.05)',
-          text: 'rgba(255, 255, 255, 0.4)',
-          dot: null,
-        };
-      case 'ready':
-      default:
-        return {
-          bg: 'rgba(255, 255, 255, 0.03)',
-          border: '1px solid rgba(255, 255, 255, 0.08)',
-          text: '#ffffff',
-          dot: null,
-        };
-    }
-  };
+const STATUS_CONFIG: Record<StatusType, {
+  label: string;
+  icon: React.ReactNode;
+  textOpacity: string;
+  pulse?: boolean;
+}> = {
+  live: {
+    label: 'LIVE',
+    icon: null, // uses pulse dot
+    textOpacity: '#ffffff',
+    pulse: true,
+  },
+  active: {
+    label: 'ACTIVE',
+    icon: <IconZap />,
+    textOpacity: '#ffffff',
+    pulse: true,
+  },
+  ready: {
+    label: 'READY',
+    icon: <IconZap />,
+    textOpacity: '#ffffff',
+  },
+  locked: {
+    label: 'LOCKED',
+    icon: <IconLock />,
+    textOpacity: 'rgba(255,255,255,0.7)',
+  },
+  settling: {
+    label: 'SETTLING',
+    icon: <IconLoader />,
+    textOpacity: 'rgba(255,255,255,0.6)',
+  },
+  settled: {
+    label: 'SETTLED',
+    icon: <IconCheck />,
+    textOpacity: 'rgba(255,255,255,0.55)',
+  },
+  canceled: {
+    label: 'CANCELED',
+    icon: <IconX />,
+    textOpacity: 'rgba(255,255,255,0.35)',
+  },
+  upcoming: {
+    label: 'UPCOMING',
+    icon: <IconClock />,
+    textOpacity: 'rgba(255,255,255,0.45)',
+  },
+  pending: {
+    label: 'PENDING',
+    icon: <IconLoader />,
+    textOpacity: 'rgba(255,255,255,0.5)',
+  },
+};
 
-  const colors = getColors();
-  const displayLabel = label || status.toUpperCase();
+export const StatusBadge = memo(function StatusBadge({
+  status,
+  label,
+  showPulse,
+}: StatusBadgeProps) {
+  const cfg = STATUS_CONFIG[status] ?? STATUS_CONFIG.ready;
+  const displayLabel = label || cfg.label;
+  const hasPulse = showPulse ?? cfg.pulse;
 
   return (
     <span
       style={{
         display: 'inline-flex',
         alignItems: 'center',
-        gap: 6,
-        padding: '4px 10px',
-        borderRadius: 20,
+        gap: 5,
+        height: 26,
+        padding: '0 12px',
+        borderRadius: 999,
+        background: 'rgba(255,255,255,0.03)',
+        border: '1px solid rgba(255,255,255,0.08)',
+        color: cfg.textOpacity,
         fontSize: 10,
-        fontWeight: 700,
+        fontWeight: 600,
         fontFamily: 'var(--font-mono)',
-        letterSpacing: '0.5px',
-        background: colors.bg,
-        border: colors.border,
-        color: colors.text,
+        letterSpacing: '0.12em',
         textTransform: 'uppercase',
+        whiteSpace: 'nowrap',
+        transition: 'border-color 300ms ease, opacity 300ms ease',
+        flexShrink: 0,
       }}
     >
-      {colors.dot && (
+      {hasPulse ? (
         <span
-          className={status === 'active' ? 'animate-pulse-live' : ''}
-          style={{
-            width: 5,
-            height: 5,
-            borderRadius: '50%',
-            background: colors.dot,
-            boxShadow: status === 'active' ? '0 0 6px #ffffff' : 'none',
-          }}
+          className="animate-pulse-live"
+          style={{ width: 5, height: 5, borderRadius: '50%', background: 'currentColor', display: 'inline-block', flexShrink: 0 }}
         />
-      )}
+      ) : cfg.icon ? (
+        <span style={{ display: 'inline-flex', alignItems: 'center', flexShrink: 0 }}>
+          {cfg.icon}
+        </span>
+      ) : null}
       {displayLabel}
     </span>
   );

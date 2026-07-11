@@ -22,6 +22,23 @@ interface ActiveRoundCardProps {
   currentBtcPrice: number;
 }
 
+// Inline lock SVG for the locked state panel
+const LockIcon = ({ size = 28 }: { size?: number }) => (
+  <svg
+    width={size}
+    height={size}
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="rgba(255,255,255,0.5)"
+    strokeWidth="1.5"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+  >
+    <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
+    <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+  </svg>
+);
+
 export const ActiveRoundCard = memo(function ActiveRoundCard({
   hasValidActiveRound,
   activeRoundId,
@@ -40,46 +57,86 @@ export const ActiveRoundCard = memo(function ActiveRoundCard({
   const formattedTotal = (Number(activeTotalPool) / 1e18).toFixed(2);
   const startPrice = activeRound ? Number(activeRound.startPrice) / 1e8 : 0;
 
-  // Determine market sub-status
-  const getMarketStatusText = () => {
-    if (isActiveResolved) return 'RESOLVED';
-    if (isActiveLocked) return 'LOCKED (LIVE MOVEMENT)';
-    return 'BETTING OPEN';
-  };
+  const badgeStatus = isActiveResolved ? 'settled' : isActiveLocked ? 'locked' : 'active';
+  const badgeLabel = isActiveResolved ? 'SETTLED' : isActiveLocked ? 'LOCKED' : '● LIVE';
 
   return (
     <Card
       hoverEffect={false}
       style={{
-        padding: '12px 16px',
-        border: '1px solid rgba(255, 255, 255, 0.12)', 
-        background: 'rgba(255, 255, 255, 0.03)',
-        boxShadow: '0 20px 40px -10px rgba(0, 0, 0, 0.9), inset 0 1px 0 rgba(255,255,255,0.08)',
+        padding: '16px',
+        border: '1px solid rgba(255,255,255,0.08)',
+        background: 'rgba(255,255,255,0.025)',
+        boxShadow: '0 20px 40px -10px rgba(0,0,0,0.9)',
+        borderRadius: 22,
         height: '100%',
         boxSizing: 'border-box',
         display: 'flex',
         flexDirection: 'column',
-        justifyContent: 'center',
+        gap: 0,
+        transition: 'border-color 300ms ease',
       }}
     >
-      {/* Header with ACTIVE badge */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
-        <div
-          style={{
-            fontSize: 13,
-            fontWeight: 700,
-            letterSpacing: '0.08em',
-            color: '#ffffff',
-          }}
-        >
+      {/* ── Section: Header ── */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
+        <div style={{ fontSize: 13, fontWeight: 600, letterSpacing: '0.06em', color: '#ffffff' }}>
           LIVE MARKET
         </div>
-        <StatusBadge status="active" label="● ACTIVE" />
+        <StatusBadge status={badgeStatus} label={badgeLabel} />
       </div>
 
-      {/* Countdown Timer */}
-      {hasValidActiveRound ? (
-        <div style={{ marginBottom: 8 }}>
+      {/* ── Section: Locked State Panel ── */}
+      {isActiveLocked && !isActiveResolved && (
+        <div
+          style={{
+            background: 'rgba(255,255,255,0.015)',
+            border: '1px solid rgba(255,255,255,0.06)',
+            borderRadius: 14,
+            padding: '16px 14px',
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            gap: 8,
+            marginBottom: 12,
+            transition: 'all 300ms ease-out',
+          }}
+        >
+          {/* Divider strip */}
+          <div style={{
+            width: '100%', height: 1,
+            background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.08), transparent)',
+            marginBottom: 4,
+          }} />
+
+          <LockIcon size={24} />
+
+          <div style={{
+            fontSize: 12, fontWeight: 600,
+            color: 'rgba(255,255,255,0.7)',
+            letterSpacing: '0.14em',
+            fontFamily: 'var(--font-mono)',
+          }}>
+            MARKET LOCKED
+          </div>
+          <div style={{
+            fontSize: 11, color: 'rgba(255,255,255,0.35)',
+            textAlign: 'center', lineHeight: 1.5,
+          }}>
+            Betting is closed. Live price movement<br />determines the outcome.
+          </div>
+
+          {/* Divider strip */}
+          <div style={{
+            width: '100%', height: 1,
+            background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.06), transparent)',
+            marginTop: 2,
+          }} />
+        </div>
+      )}
+
+      {/* ── Section: Countdown ── */}
+      {hasValidActiveRound && (
+        <div style={{ marginBottom: 12 }}>
           <RoundTimer
             startTimestamp={Number(activeRound!.startTimestamp)}
             endTimestamp={Number(activeRound!.endTimestamp)}
@@ -88,17 +145,19 @@ export const ActiveRoundCard = memo(function ActiveRoundCard({
             targetMode="lock"
           />
         </div>
-      ) : (
+      )}
+
+      {!hasValidActiveRound && (
         <div
           style={{
             fontSize: 10,
             color: 'var(--text-secondary)',
             fontFamily: 'var(--font-mono)',
-            padding: '10px 0',
+            padding: '12px 0',
             textAlign: 'center',
-            border: '1px dashed rgba(255, 255, 255, 0.06)',
-            borderRadius: '8px',
-            marginBottom: 8,
+            border: '1px dashed rgba(255,255,255,0.06)',
+            borderRadius: 10,
+            marginBottom: 12,
           }}
         >
           Awaiting active round creation...
@@ -107,41 +166,38 @@ export const ActiveRoundCard = memo(function ActiveRoundCard({
 
       {activeRound && (
         <>
-          {/* Prices row */}
+          {/* ── Section: Prices ── */}
           <div
             style={{
               display: 'flex',
               justifyContent: 'space-between',
               alignItems: 'center',
-              background: 'rgba(255, 255, 255, 0.02)',
-              border: '1px solid rgba(255, 255, 255, 0.04)',
-              borderRadius: '12px',
-              padding: '6px 12px',
-              marginBottom: 8,
+              background: 'rgba(255,255,255,0.02)',
+              border: '1px solid rgba(255,255,255,0.05)',
+              borderRadius: 12,
+              padding: '8px 12px',
+              marginBottom: 12,
             }}
           >
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
-              <span style={{ fontSize: 8, color: 'var(--text-secondary)', fontWeight: 600 }}>CURRENT PRICE</span>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+              <span style={{ fontSize: 9, color: 'var(--text-secondary)', fontWeight: 600, letterSpacing: '0.08em' }}>CURRENT PRICE</span>
               <PriceTicker price={currentBtcPrice} />
             </div>
 
-            <div style={{ width: 1, height: 20, background: 'rgba(255,255,255,0.06)' }} />
+            <div style={{ width: 1, height: 24, background: 'rgba(255,255,255,0.06)' }} />
 
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 1, alignItems: 'flex-end' }}>
-              <span style={{ fontSize: 8, color: 'var(--text-secondary)', fontWeight: 600 }}>LOCKED PRICE</span>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 2, alignItems: 'flex-end' }}>
+              <span style={{ fontSize: 9, color: 'var(--text-secondary)', fontWeight: 600, letterSpacing: '0.08em' }}>LOCK PRICE</span>
               <strong style={{ fontSize: 11, color: '#ffffff', fontFamily: 'var(--font-mono)' }}>
                 {startPrice > 0 ? `$${startPrice.toLocaleString(undefined, { minimumFractionDigits: 2 })}` : '—'}
               </strong>
             </div>
           </div>
 
-          {/* YES/NO slider distribution */}
-          <ProgressBar
-            upPercent={activeUpPercent}
-            downPercent={activeDownPercent}
-          />
+          {/* ── Section: Distribution ── */}
+          <ProgressBar upPercent={activeUpPercent} downPercent={activeDownPercent} />
 
-          {/* Sizing statistics / potential payouts */}
+          {/* ── Section: Pool Stats ── */}
           <PoolStats
             totalPool={formattedTotal}
             upAmount={formattedUp}
@@ -150,20 +206,22 @@ export const ActiveRoundCard = memo(function ActiveRoundCard({
             downMultiplier={activeDownMultiplier}
           />
 
-          {/* Market state badge label */}
+          {/* ── Section: Market State footer ── */}
           <div
             style={{
               display: 'flex',
               justifyContent: 'space-between',
               alignItems: 'center',
-              marginTop: 8,
+              marginTop: 12,
+              paddingTop: 10,
+              borderTop: '1px solid rgba(255,255,255,0.04)',
               fontSize: 9,
               fontFamily: 'var(--font-mono)',
             }}
           >
-            <span style={{ color: 'var(--text-secondary)' }}>MARKET STATUS</span>
-            <span style={{ color: '#ffffff', fontWeight: 700 }}>
-              {getMarketStatusText()}
+            <span style={{ color: 'var(--text-secondary)', letterSpacing: '0.08em' }}>MARKET STATUS</span>
+            <span style={{ color: isActiveLocked ? 'rgba(255,255,255,0.5)' : '#ffffff', fontWeight: 700, letterSpacing: '0.08em' }}>
+              {isActiveResolved ? 'SETTLED' : isActiveLocked ? 'LOCKED · LIVE MOVEMENT' : 'BETTING OPEN'}
             </span>
           </div>
         </>

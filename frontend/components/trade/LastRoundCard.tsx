@@ -32,7 +32,21 @@ export const LastRoundCard = memo(function LastRoundCard({
 }: LastRoundCardProps) {
   if (!prevRound || prevRoundId === 0n) {
     return (
-      <Card hoverEffect={false} style={{ padding: '12px 16px', textAlign: 'center', height: '100%', boxSizing: 'border-box', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+      <Card
+        hoverEffect={false}
+        style={{
+          padding: '16px',
+          textAlign: 'center',
+          border: '1px solid rgba(255,255,255,0.08)',
+          background: 'rgba(255,255,255,0.025)',
+          borderRadius: 22,
+          height: '100%',
+          boxSizing: 'border-box',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+        }}
+      >
         <span style={{ fontSize: 11, color: 'var(--text-secondary)' }}>No previous market data.</span>
       </Card>
     );
@@ -48,97 +62,91 @@ export const LastRoundCard = memo(function LastRoundCard({
   const userClaimed = prevUserBet?.claimed || false;
   const canClaim = isClaimable && !userClaimed && !isClaimingPending && !isClaimingConfirming;
 
+  const badgeStatus = isCanceled ? 'canceled' : isResolved ? 'settled' : 'settling';
+  const badgeLabel = isCanceled ? 'CANCELED' : isResolved ? '✓ SETTLED' : 'SETTLING';
+
   return (
     <Card
       hoverEffect={false}
       style={{
-        padding: '10px 16px',
-        opacity: 0.8,
+        padding: '16px',
+        border: '1px solid rgba(255,255,255,0.08)',
+        background: 'rgba(255,255,255,0.025)',
+        borderRadius: 22,
         height: '100%',
         boxSizing: 'border-box',
         display: 'flex',
         flexDirection: 'column',
-        justifyContent: 'center',
+        opacity: 0.85,
+        transition: 'border-color 300ms ease, opacity 300ms ease',
       }}
     >
-      {/* Header with SETTLED status badge */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
-        <div style={{ fontSize: 12, fontWeight: 700, letterSpacing: '0.08em', color: '#ffffff' }}>
+      {/* ── Header ── */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
+        <div style={{ fontSize: 13, fontWeight: 600, letterSpacing: '0.06em', color: '#ffffff' }}>
           PREVIOUS MARKET
         </div>
-        <StatusBadge status="resolved" label="✓ SETTLED" />
+        <StatusBadge status={badgeStatus} label={badgeLabel} />
       </div>
 
-      {/* Outcome Banner */}
+      {/* ── Winning Side banner ── */}
       <div
         style={{
           display: 'flex',
           justifyContent: 'space-between',
           alignItems: 'center',
-          background: 'rgba(255, 255, 255, 0.02)',
-          border: '1px solid rgba(255, 255, 255, 0.05)',
-          padding: '4px 8px',
-          borderRadius: '8px',
-          marginBottom: 6,
+          background: 'rgba(255,255,255,0.02)',
+          border: '1px solid rgba(255,255,255,0.05)',
+          borderRadius: 10,
+          padding: '7px 12px',
+          marginBottom: 12,
         }}
       >
-        <span style={{ fontSize: 10, color: 'var(--text-secondary)', fontWeight: 600 }}>WINNING SIDE</span>
-        <strong style={{ fontSize: 11, color: '#ffffff', fontFamily: 'var(--font-mono)', letterSpacing: '0.5px' }}>
+        <span style={{ fontSize: 9, color: 'var(--text-secondary)', fontWeight: 600, letterSpacing: '0.1em' }}>WINNING SIDE</span>
+        <strong style={{ fontSize: 11, color: '#ffffff', fontFamily: 'var(--font-mono)', letterSpacing: '0.06em' }}>
           {outcome.text}
         </strong>
       </div>
 
-      {/* Details list */}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 4, width: '100%', marginBottom: 6 }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <span style={{ fontSize: 10, color: 'var(--text-secondary)' }}>ENTRY PRICE</span>
-          <span style={{ fontSize: 11, color: '#ffffff', fontFamily: 'var(--font-mono)' }}>
-            ${startPrice.toLocaleString(undefined, { minimumFractionDigits: 2 })}
-          </span>
-        </div>
-
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <span style={{ fontSize: 10, color: 'var(--text-secondary)' }}>SETTLEMENT PRICE</span>
-          <span style={{ fontSize: 11, color: '#ffffff', fontFamily: 'var(--font-mono)' }}>
-            {isResolved ? `$${closePrice.toLocaleString(undefined, { minimumFractionDigits: 2 })}` : 'calculating...'}
-          </span>
-        </div>
-
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <span style={{ fontSize: 10, color: 'var(--text-secondary)' }}>POOL SIZE</span>
-          <span style={{ fontSize: 11, color: '#ffffff', fontFamily: 'var(--font-mono)' }}>
-            {totalPool} USDC
-          </span>
-        </div>
+      {/* ── Data rows ── */}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 12 }}>
+        {[
+          { label: 'ENTRY PRICE', value: `$${startPrice.toLocaleString(undefined, { minimumFractionDigits: 2 })}` },
+          { label: 'SETTLEMENT PRICE', value: isResolved ? `$${closePrice.toLocaleString(undefined, { minimumFractionDigits: 2 })}` : '—' },
+          { label: 'POOL SIZE', value: `${totalPool} ETH` },
+        ].map(({ label, value }) => (
+          <div key={label} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <span style={{ fontSize: 10, color: 'var(--text-secondary)', letterSpacing: '0.08em' }}>{label}</span>
+            <span style={{ fontSize: 11, color: '#ffffff', fontFamily: 'var(--font-mono)' }}>{value}</span>
+          </div>
+        ))}
       </div>
 
-      {/* User Bet outcome and Claim state */}
+      {/* ── User Bet section ── */}
       {hasPlacedPrevBet && (
         <div
           style={{
-            borderTop: '1px dashed rgba(255, 255, 255, 0.08)',
-            paddingTop: 6,
+            borderTop: '1px solid rgba(255,255,255,0.06)',
+            paddingTop: 12,
             display: 'flex',
             flexDirection: 'column',
-            gap: 4,
-            width: '100%',
+            gap: 8,
           }}
         >
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <span style={{ fontSize: 10, color: 'var(--text-secondary)' }}>YOUR BET</span>
+            <span style={{ fontSize: 10, color: 'var(--text-secondary)', letterSpacing: '0.08em' }}>YOUR BET</span>
             <span style={{ fontSize: 11, color: '#ffffff', fontFamily: 'var(--font-mono)' }}>
-              {userBetAmount} ETH ({prevUserBet.position === 0 ? 'UP' : 'DOWN'})
+              {userBetAmount} ETH · {prevUserBet.position === 0 ? 'UP' : 'DOWN'}
             </span>
           </div>
 
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <span style={{ fontSize: 10, color: 'var(--text-secondary)' }}>ROUND RESULT</span>
-            <strong style={{ fontSize: 10, color: outcome.userColor || '#ffffff', fontFamily: 'var(--font-mono)' }}>
+            <span style={{ fontSize: 10, color: 'var(--text-secondary)', letterSpacing: '0.08em' }}>RESULT</span>
+            <strong style={{ fontSize: 10, color: outcome.userColor || '#ffffff', fontFamily: 'var(--font-mono)', letterSpacing: '0.08em' }}>
               {outcome.userText || 'LOST'}
             </strong>
           </div>
 
-          {/* Claim rewards action button */}
           {canClaim && (
             <Button
               variant="primary"
@@ -149,12 +157,13 @@ export const LastRoundCard = memo(function LastRoundCard({
                 background: '#ffffff',
                 color: '#000000',
                 fontWeight: 700,
-                borderRadius: '8px',
-                height: '28px',
-                marginTop: 2,
+                borderRadius: 10,
+                height: 32,
+                marginTop: 4,
+                letterSpacing: '0.06em',
               }}
             >
-              Claim Winnings
+              CLAIM WINNINGS
             </Button>
           )}
 
@@ -162,33 +171,31 @@ export const LastRoundCard = memo(function LastRoundCard({
             <div
               style={{
                 textAlign: 'center',
-                fontSize: '10px',
+                fontSize: 10,
                 color: 'var(--text-secondary)',
                 fontFamily: 'var(--font-mono)',
-                padding: '4px 8px',
+                letterSpacing: '0.08em',
+                padding: '6px 10px',
                 background: 'rgba(255,255,255,0.01)',
-                border: '1px dashed rgba(255,255,255,0.05)',
-                borderRadius: '6px',
-                width: '100%',
-                marginTop: 2,
+                border: '1px solid rgba(255,255,255,0.05)',
+                borderRadius: 8,
               }}
             >
-              ✓ Payout Claimed
+              ✓ PAYOUT CLAIMED
             </div>
           )}
 
           {claimStatus && (
             <div
               style={{
-                fontSize: '10px',
+                fontSize: 10,
                 color: 'var(--text-secondary)',
                 fontFamily: 'var(--font-mono)',
                 textAlign: 'center',
-                padding: '4px 8px',
+                padding: '6px 10px',
                 background: 'rgba(255,255,255,0.02)',
                 border: '1px solid rgba(255,255,255,0.05)',
-                borderRadius: '6px',
-                marginTop: 2,
+                borderRadius: 8,
               }}
             >
               {claimStatus}
