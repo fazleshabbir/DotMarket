@@ -30,8 +30,17 @@ interface BettingPanelProps {
   currentBtcPrice: number;
 }
 
+type TabId = 'live' | 'bet' | 'previous';
+
+const TABS: { id: TabId; label: string }[] = [
+  { id: 'live',     label: 'LIVE MARKET' },
+  { id: 'bet',      label: 'PLACE BET'   },
+  { id: 'previous', label: 'PREVIOUS'    },
+];
+
 export function BettingPanel({ currentBtcPrice }: BettingPanelProps) {
   const [mounted, setMounted] = useState(false);
+  const [activeTab, setActiveTab] = useState<TabId>('live');
   const { address, isConnected } = useAccount();
   const [betAmount, setBetAmount] = useState('');
   const [txStatus, setTxStatus] = useState<string | null>(null);
@@ -39,9 +48,7 @@ export function BettingPanel({ currentBtcPrice }: BettingPanelProps) {
   const contracts = useContracts();
   const MARKET_ADDRESS = contracts.predictionMarket;
 
-  useEffect(() => {
-    setMounted(true);
-  }, []);
+  useEffect(() => { setMounted(true); }, []);
 
   // 1. Read current round ID
   const { data: currentRoundId } = useReadContract({
@@ -123,16 +130,15 @@ export function BettingPanel({ currentBtcPrice }: BettingPanelProps) {
   const { isLoading: isConfirming, isSuccess } = useWaitForTransactionReceipt({ hash: txHash });
 
   useEffect(() => {
-    if (isPending) setTxStatus('⏳ Waiting for wallet approval...');
-    else if (isConfirming) setTxStatus('⛓️ Confirming transaction...');
+    if (isPending) setTxStatus('Waiting for wallet approval...');
+    else if (isConfirming) setTxStatus('Confirming transaction...');
     else if (isSuccess) {
-      setTxStatus('✅ Operation successful!');
+      setTxStatus('Operation successful!');
       setBetAmount('');
       setTimeout(() => setTxStatus(null), 4000);
     }
   }, [isPending, isConfirming, isSuccess]);
 
-  // Place bet action
   const handlePlaceBet = (position: number) => {
     if (!betAmount || parseFloat(betAmount) <= 0) return;
     try {
@@ -144,11 +150,10 @@ export function BettingPanel({ currentBtcPrice }: BettingPanelProps) {
         value: parseEther(betAmount),
       });
     } catch (err) {
-      setTxStatus(`❌ Error: ${err instanceof Error ? err.message : 'Unknown error'}`);
+      setTxStatus(`Error: ${err instanceof Error ? err.message : 'Unknown error'}`);
     }
   };
 
-  // Claim action
   const handleClaim = () => {
     try {
       writeContract({
@@ -158,7 +163,7 @@ export function BettingPanel({ currentBtcPrice }: BettingPanelProps) {
         args: [prevRoundId],
       });
     } catch (err) {
-      setTxStatus(`❌ Error: ${err instanceof Error ? err.message : 'Unknown error'}`);
+      setTxStatus(`Error: ${err instanceof Error ? err.message : 'Unknown error'}`);
     }
   };
 
@@ -176,39 +181,23 @@ export function BettingPanel({ currentBtcPrice }: BettingPanelProps) {
   const activeUpMultiplier = activeMultipliers ? Number((activeMultipliers as any)[0] || 0n) / 10000 : 0;
   const activeDownMultiplier = activeMultipliers ? Number((activeMultipliers as any)[1] || 0n) / 10000 : 0;
 
-  // Determine previous round outcome
   const getPrevOutcome = (): { text: string; color: string; userText?: string; userColor?: string } => {
     if (!prevRound) return { text: '—', color: 'var(--text-muted)' };
-    if (!prevRound.resolved && !prevRound.canceled) {
-      return { text: 'LIVE MOVEMENT', color: '#ffffff' };
-    }
-    if (prevRound.canceled) {
-      return { text: 'CANCELED', color: 'var(--text-muted)', userText: 'REFUNDED', userColor: '#ffffff' };
-    }
+    if (!prevRound.resolved && !prevRound.canceled) return { text: 'LIVE MOVEMENT', color: '#ffffff' };
+    if (prevRound.canceled) return { text: 'CANCELED', color: 'var(--text-muted)', userText: 'REFUNDED', userColor: '#ffffff' };
 
     const upWins = prevRound.closePrice > prevRound.startPrice;
     const downWins = prevRound.closePrice < prevRound.startPrice;
     const outcomeText = upWins ? '▲ UP WINS' : downWins ? '▼ DOWN WINS' : 'DRAW';
-    const outcomeColor = upWins ? '#ffffff' : downWins ? '#ffffff' : 'var(--text-muted)';
+    const outcomeColor = '#ffffff';
 
     let userText: string | undefined;
     let userColor: string | undefined;
-
     if (hasPlacedPrevBet && prevUserBet) {
-      const userPosition = prevUserBet.position;
-      const won = (upWins && userPosition === 0) || (downWins && userPosition === 1);
+      const won = (upWins && prevUserBet.position === 0) || (downWins && prevUserBet.position === 1);
       const tie = !upWins && !downWins;
-
-      if (tie) {
-        userText = 'DRAW';
-        userColor = 'var(--text-secondary)';
-      } else if (won) {
-        userText = 'WINNER';
-        userColor = '#ffffff';
-      } else {
-        userText = 'LOST';
-        userColor = 'rgba(255,255,255,0.4)';
-      }
+      userText = tie ? 'DRAW' : won ? 'WINNER' : 'LOST';
+      userColor = tie ? 'var(--text-secondary)' : won ? '#ffffff' : 'rgba(255,255,255,0.4)';
     }
 
     return { text: outcomeText, color: outcomeColor, userText, userColor };
@@ -216,55 +205,101 @@ export function BettingPanel({ currentBtcPrice }: BettingPanelProps) {
 
   const outcome = getPrevOutcome();
 
-  if (!mounted) {
-    return <LoadingSkeleton />;
-  }
+  if (!mounted) return <LoadingSkeleton />;
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 16, boxSizing: 'border-box' }}>
-      {/* 1. Prominent Visual Panel: Live Market Card */}
-      <ActiveRoundCard
-        hasValidActiveRound={hasValidActiveRound}
-        activeRoundId={activeRoundId}
-        activeRound={activeRound}
-        isActiveLocked={isActiveLocked}
-        isActiveResolved={isActiveResolved}
-        activeUpPercent={activeUpPercent}
-        activeDownPercent={activeDownPercent}
-        activeTotalPool={activeTotalPool}
-        activeUpMultiplier={activeUpMultiplier}
-        activeDownMultiplier={activeDownMultiplier}
-        currentBtcPrice={currentBtcPrice}
-      />
+    <div style={{ display: 'flex', flexDirection: 'column', height: '100%', boxSizing: 'border-box' }}>
 
-      {/* 2. Action Panel: Place Bet Card */}
-      <PlaceBetCard
-        betAmount={betAmount}
-        setBetAmount={setBetAmount}
-        onPlaceBet={handlePlaceBet}
-        canBet={canBet}
-        isPending={isPending}
-        isConfirming={isConfirming}
-        txStatus={txStatus}
-        isConnected={isConnected}
-        connectWalletCTA={<ConnectButton />}
-      />
+      {/* ── Tab bar ────────────────────────────────────────────────────────── */}
+      <div
+        style={{
+          display: 'flex',
+          gap: 2,
+          padding: '4px',
+          background: 'rgba(255,255,255,0.025)',
+          border: '1px solid rgba(255,255,255,0.08)',
+          borderRadius: 18,
+          marginBottom: 12,
+          flexShrink: 0,
+        }}
+      >
+        {TABS.map((tab) => {
+          const isActive = activeTab === tab.id;
+          return (
+            <button
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id)}
+              style={{
+                flex: 1,
+                padding: '7px 4px',
+                borderRadius: 14,
+                border: 'none',
+                cursor: 'pointer',
+                fontSize: 9,
+                fontWeight: 700,
+                fontFamily: 'var(--font-mono)',
+                letterSpacing: '0.1em',
+                textTransform: 'uppercase',
+                whiteSpace: 'nowrap',
+                background: isActive ? '#ffffff' : 'transparent',
+                color: isActive ? '#000000' : 'rgba(255,255,255,0.35)',
+                transition: 'all 200ms ease',
+                outline: 'none',
+              }}
+            >
+              {tab.label}
+            </button>
+          );
+        })}
+      </div>
 
-      {/* 3. Secondary Info Panel: Previous Market Card */}
-      {prevRoundId > 0n && prevRound && (
-        <LastRoundCard
-          prevRoundId={prevRoundId}
-          prevRound={prevRound}
-          outcome={outcome}
-          hasPlacedPrevBet={hasPlacedPrevBet}
-          prevUserBet={prevUserBet}
-          isClaimable={isClaimable as boolean}
-          onClaim={handleClaim}
-          isClaimingPending={isPending}
-          isClaimingConfirming={isConfirming}
-          claimStatus={null}
-        />
-      )}
+      {/* ── Tab panel (fills remaining height) ─────────────────────────────── */}
+      <div style={{ flex: 1, minHeight: 0, overflow: 'auto' }}>
+        {activeTab === 'live' && (
+          <ActiveRoundCard
+            hasValidActiveRound={hasValidActiveRound}
+            activeRoundId={activeRoundId}
+            activeRound={activeRound}
+            isActiveLocked={isActiveLocked}
+            isActiveResolved={isActiveResolved}
+            activeUpPercent={activeUpPercent}
+            activeDownPercent={activeDownPercent}
+            activeTotalPool={activeTotalPool}
+            activeUpMultiplier={activeUpMultiplier}
+            activeDownMultiplier={activeDownMultiplier}
+            currentBtcPrice={currentBtcPrice}
+          />
+        )}
+
+        {activeTab === 'bet' && (
+          <PlaceBetCard
+            betAmount={betAmount}
+            setBetAmount={setBetAmount}
+            onPlaceBet={handlePlaceBet}
+            canBet={canBet}
+            isPending={isPending}
+            isConfirming={isConfirming}
+            txStatus={txStatus}
+            isConnected={isConnected}
+            connectWalletCTA={<ConnectButton />}
+          />
+        )}
+
+        {activeTab === 'previous' && (
+          <LastRoundCard
+            prevRoundId={prevRoundId}
+            prevRound={prevRound}
+            outcome={outcome}
+            hasPlacedPrevBet={hasPlacedPrevBet}
+            prevUserBet={prevUserBet}
+            isClaimable={isClaimable as boolean}
+            onClaim={handleClaim}
+            isClaimingPending={isPending}
+            isClaimingConfirming={isConfirming}
+            claimStatus={null}
+          />
+        )}
+      </div>
     </div>
   );
 }

@@ -46,13 +46,17 @@ export const TradingPanel = memo(function TradingPanel({
     ? (Number(round.totalUpAmount + round.totalDownAmount) / 1e18).toFixed(2)
     : '0.00';
 
-  // Derive market phase label
-  const phase = isResolved
-    ? '✓ Settled'
-    : lockLeft > 0
-      ? '● Betting Open'
-      : '🔒 Locked';
+  // SVG lock icon for status bar
+  const LockSvg = () => (
+    <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ opacity: 0.8 }}>
+      <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
+      <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+    </svg>
+  );
 
+  // Derive market phase
+  const phaseIcon = isResolved ? '✓' : lockLeft > 0 ? '●' : null;
+  const phaseText = isResolved ? 'SETTLED' : lockLeft > 0 ? 'BETTING OPEN' : 'LOCKED';
   const phaseColor = isResolved
     ? 'rgba(255,255,255,0.35)'
     : lockLeft > 0
@@ -169,9 +173,11 @@ export const TradingPanel = memo(function TradingPanel({
           background: 'rgba(255,255,255,0.03)',
           border: '1px solid rgba(255,255,255,0.07)',
           whiteSpace: 'nowrap',
+          color: phaseColor,
         }}>
-          <span style={{ fontSize: 10, fontWeight: 700, color: phaseColor, fontFamily: 'var(--font-mono)', letterSpacing: '0.06em' }}>
-            {phase}
+          {!isResolved && lockLeft === 0 && <LockSvg />}
+          <span style={{ fontSize: 10, fontWeight: 700, fontFamily: 'var(--font-mono)', letterSpacing: '0.06em' }}>
+            {phaseIcon && phaseIcon !== '●' ? `${phaseIcon} ` : phaseIcon === '●' ? '● ' : ''}{phaseText}
           </span>
         </div>
 
@@ -215,7 +221,10 @@ export const TradingPanel = memo(function TradingPanel({
             border: '1px solid rgba(255,255,255,0.07)',
             whiteSpace: 'nowrap',
           }}>
-            <span style={{ fontSize: 9, fontFamily: 'var(--font-mono)', color: 'var(--text-secondary)' }}>🔒 LOCK</span>
+            <span style={{ fontSize: 9, fontFamily: 'var(--font-mono)', color: 'var(--text-secondary)', display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+              <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+              LOCK
+            </span>
             <strong style={{ fontSize: 10, fontFamily: 'var(--font-mono)', color: '#ffffff' }}>
               ${lockPrice.toLocaleString(undefined, { minimumFractionDigits: 2 })}
             </strong>
