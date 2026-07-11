@@ -1,6 +1,4 @@
-'use client';
-
-import React from 'react';
+import React, { memo } from 'react';
 import { motion } from 'framer-motion';
 import { useMotionSystem } from '@/hooks/useMotionSystem';
 
@@ -10,7 +8,7 @@ interface PageHeaderProps {
   align?: 'center' | 'left';
 }
 
-export function PageHeader({ title, subtitle, align = 'center' }: PageHeaderProps) {
+export const PageHeader = memo(function PageHeader({ title, subtitle, align = 'center' }: PageHeaderProps) {
   const { revealHeading, revealSubtitle } = useMotionSystem();
 
   return (
@@ -80,4 +78,6 @@ export function PageHeader({ title, subtitle, align = 'center' }: PageHeaderProp
       )}
     </div>
   );
-}
+});
+
+PageHeader.displayName = 'PageHeader';

@@ -46,6 +46,10 @@ export function StarryBackground() {
     };
 
     const drawStars = () => {
+      if (document.hidden) {
+        animationFrameId = requestAnimationFrame(drawStars);
+        return;
+      }
       ctx.clearRect(0, 0, canvas.width, canvas.height);
       ctx.fillStyle = '#ffffff';
 

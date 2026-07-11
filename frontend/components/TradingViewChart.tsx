@@ -1,8 +1,8 @@
 'use client';
 
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, memo } from 'react';
 
-export function TradingViewChart() {
+export const TradingViewChart = memo(function TradingViewChart() {
   const container = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -48,4 +48,6 @@ export function TradingViewChart() {
       <div className="tradingview-widget-container__widget" style={{ height: '100%', width: '100%' }}></div>
     </div>
   );
-}
+});
+
+TradingViewChart.displayName = 'TradingViewChart';

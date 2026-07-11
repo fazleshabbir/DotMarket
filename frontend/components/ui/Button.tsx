@@ -1,6 +1,4 @@
-'use client';
-
-import React, { forwardRef, useState } from 'react';
+import React, { forwardRef, useState, memo } from 'react';
 import { motion } from 'framer-motion';
 import { ArrowRight, ArrowUpRight } from 'lucide-react';
 import { useMotionSystem } from '@/hooks/useMotionSystem';
@@ -12,7 +10,7 @@ export interface ButtonProps extends Omit<React.ButtonHTMLAttributes<HTMLButtonE
   arrowDirection?: 'right' | 'up-right';
 }
 
-export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
+export const Button = memo(forwardRef<HTMLButtonElement, ButtonProps>(
   (
     {
       children,
@@ -242,6 +240,6 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
       </motion.button>
     );
   }
-);
+));
 
 Button.displayName = 'Button';

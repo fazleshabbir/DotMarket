@@ -1,10 +1,10 @@
-import React from 'react';
+import React, { memo } from 'react';
 
 interface TableProps extends React.TableHTMLAttributes<HTMLTableElement> {
   headers: string[];
 }
 
-export function Table({ headers, children, style, ...props }: TableProps) {
+export const Table = memo(function Table({ headers, children, style, ...props }: TableProps) {
   return (
     <div style={{ width: '100%', overflowX: 'auto', borderRadius: '16px', border: '1px solid rgba(255, 255, 255, 0.06)', background: 'rgba(15, 15, 15, 0.2)', backdropFilter: 'blur(10px)' }}>
       <table
@@ -42,28 +42,34 @@ export function Table({ headers, children, style, ...props }: TableProps) {
       </table>
     </div>
   );
-}
+});
+
+Table.displayName = 'Table';
 
 interface TableRowProps extends React.HTMLAttributes<HTMLTableRowElement> {}
 
-export function TableRow({ children, style, ...props }: TableRowProps) {
+export const TableRow = memo(function TableRow({ children, style, ...props }: TableRowProps) {
   return (
     <tr
       style={{
         borderBottom: '1px solid rgba(255, 255, 255, 0.04)',
-        transition: 'background-color 200ms ease',
+        background: 'transparent',
+        transition: 'background 200ms ease',
         ...style
       }}
+      className="table-row-hover"
       {...props}
     >
       {children}
     </tr>
   );
-}
+});
+
+TableRow.displayName = 'TableRow';
 
 interface TableCellProps extends React.TdHTMLAttributes<HTMLTableCellElement> {}
 
-export function TableCell({ children, style, ...props }: TableCellProps) {
+export const TableCell = memo(function TableCell({ children, style, ...props }: TableCellProps) {
   return (
     <td
       style={{
@@ -77,4 +83,6 @@ export function TableCell({ children, style, ...props }: TableCellProps) {
       {children}
     </td>
   );
-}
+});
+
+TableCell.displayName = 'TableCell';

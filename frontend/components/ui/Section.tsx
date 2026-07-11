@@ -1,11 +1,11 @@
-import React from 'react';
+import React, { memo } from 'react';
 
 interface SectionProps extends React.HTMLAttributes<HTMLDivElement> {
   id?: string;
   maxWidth?: number;
 }
 
-export function Section({ children, id, maxWidth = 1200, style, ...props }: SectionProps) {
+export const Section = memo(function Section({ children, id, maxWidth = 1200, style, ...props }: SectionProps) {
   return (
     <section
       id={id}
@@ -23,4 +23,6 @@ export function Section({ children, id, maxWidth = 1200, style, ...props }: Sect
       {children}
     </section>
   );
-}
+});
+
+Section.displayName = 'Section';
