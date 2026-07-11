@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useAccount, useWriteContract, useWaitForTransactionReceipt } from 'wagmi';
 import { parseEther } from 'viem';
 import { ROUND_MARKET_ABI } from '@/lib/abi';
@@ -57,6 +57,9 @@ export function BettingPanel({ currentBtcPrice: _unusedProps }: { currentBtcPric
   const [betAmount, setBetAmount] = useState('');
   const [txStatus, setTxStatus] = useState<string | null>(null);
 
+  // Keep track of the active bet details to show Toast on success
+  const pendingBetDetails = useRef<{ position: number; amount: string } | null>(null);
+
   const contracts = useContracts();
   const MARKET_ADDRESS = contracts.predictionMarket;
 
@@ -87,6 +90,7 @@ export function BettingPanel({ currentBtcPrice: _unusedProps }: { currentBtcPric
     prevDownMultiplier,
     isClaimable,
     marketStatus,
+    triggerToast,
   } = useMarket();
 
   const hasPlacedActiveBet = !!(activeUserBet && activeUserBet.amount > 0n);
@@ -96,11 +100,25 @@ export function BettingPanel({ currentBtcPrice: _unusedProps }: { currentBtcPric
   const { writeContract, data: txHash, isPending } = useWriteContract();
   const { isLoading: isConfirming, isSuccess } = useWaitForTransactionReceipt({ hash: txHash });
 
+  // Handle transaction confirmation notifications
   useEffect(() => {
     if (isPending) setTxStatus('Waiting for wallet approval...');
     else if (isConfirming) setTxStatus('Confirming transaction...');
     else if (isSuccess) {
       setTxStatus('Operation successful!');
+      
+      // Trigger Prediction Submitted Toast
+      if (pendingBetDetails.current) {
+        const betDir = pendingBetDetails.current.position === 0 ? '▲ UP' : '▼ DOWN';
+        const mult = pendingBetDetails.current.position === 0 ? activeUpMultiplier : activeDownMultiplier;
+        triggerToast(
+          '✓ Prediction Submitted',
+          `${betDir} · ${pendingBetDetails.current.amount} ${balanceSymbol} · ${mult.toFixed(2)}× · Entry: $${btcPrice.toLocaleString(undefined, { minimumFractionDigits: 2 })}`,
+          'success'
+        );
+        pendingBetDetails.current = null;
+      }
+      
       setBetAmount('');
       setTimeout(() => setTxStatus(null), 4000);
     }
@@ -108,6 +126,7 @@ export function BettingPanel({ currentBtcPrice: _unusedProps }: { currentBtcPric
 
   const handlePlaceBet = (position: number) => {
     if (!betAmount || parseFloat(betAmount) <= 0) return;
+    pendingBetDetails.current = { position, amount: betAmount };
     try {
       writeContract({
         address: MARKET_ADDRESS,
@@ -176,9 +195,25 @@ export function BettingPanel({ currentBtcPrice: _unusedProps }: { currentBtcPric
 
   if (!mounted) return null;
 
+  // ─── Style classes for glow animations ──────────────────────────────────
+  const activeBetGlowStyle: React.CSSProperties = hasPlacedActiveBet ? {
+    boxShadow: '0 0 16px rgba(255, 255, 255, 0.05)',
+    borderColor: 'rgba(255, 255, 255, 0.25)',
+    animation: 'cardPulseGlow 2.5s infinite ease-in-out',
+  } : {};
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 16, height: '100%', boxSizing: 'border-box' }}>
       
+      {/* CSS Pulse glow declarations */}
+      <style>{`
+        @keyframes cardPulseGlow {
+          0% { border-color: rgba(255, 255, 255, 0.15); box-shadow: 0 0 12px rgba(255, 255, 255, 0.03); }
+          50% { border-color: rgba(255, 255, 255, 0.3); box-shadow: 0 0 20px rgba(255, 255, 255, 0.07); }
+          100% { border-color: rgba(255, 255, 255, 0.15); box-shadow: 0 0 12px rgba(255, 255, 255, 0.03); }
+        }
+      `}</style>
+
       {/* ─── CARD 1: PLACE BET (Merged & Minimized) ───────────────────────── */}
       <div
         style={{
@@ -207,7 +242,7 @@ export function BettingPanel({ currentBtcPrice: _unusedProps }: { currentBtcPric
             <PriceTicker price={btcPrice} />
           </div>
 
-          {/* Shared Countdown Timer — Always mounted, never hidden */}
+          {/* Shared Countdown Timer — Always mounted, never hidden, continuously running */}
           <div style={{ marginBottom: 10 }}>
             <GlobalRoundTimer />
           </div>
@@ -228,7 +263,7 @@ export function BettingPanel({ currentBtcPrice: _unusedProps }: { currentBtcPric
             >
               <LockIcon size={14} />
               <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.4)', fontFamily: 'var(--font-mono)', letterSpacing: '0.08em' }}>
-                BETTING CLOSED · CURRENTLY {marketStatus}
+                {marketStatus === 'SETTLING' ? 'SETTLING ROUND...' : 'BETTING CLOSED · CURRENTLY ' + marketStatus}
               </span>
             </div>
           )}
@@ -277,7 +312,6 @@ export function BettingPanel({ currentBtcPrice: _unusedProps }: { currentBtcPric
                   <button
                     key={pct}
                     onClick={() => {
-                      // Set fraction of walletBalance
                       const val = walletBalance * (pct / 100);
                       setBetAmount(val > 0.0001 ? val.toFixed(4) : '0.00');
                     }}
@@ -444,39 +478,121 @@ export function BettingPanel({ currentBtcPrice: _unusedProps }: { currentBtcPric
           display: 'flex',
           flexDirection: 'column',
           justifyContent: 'space-between',
+          transition: 'all 200ms ease',
+          ...activeBetGlowStyle,
         }}
       >
         <div>
           {/* Header */}
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
-            <span style={{ fontSize: 12, fontWeight: 700, letterSpacing: '0.06em', color: '#ffffff' }}>LIVE MARKET</span>
-            <StatusBadge
-              status={marketStatus === 'LOCKED' || marketStatus === 'SETTLING' ? 'live' : 'settled'}
-              label={marketStatus}
-            />
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+              <span style={{ fontSize: 12, fontWeight: 700, letterSpacing: '0.06em', color: '#ffffff' }}>LIVE MARKET</span>
+              {hasPlacedActiveBet && (
+                <span style={{ fontSize: 8, fontWeight: 500, letterSpacing: '0.04em', color: 'rgba(255,255,255,0.5)' }}>YOUR BET IS LIVE</span>
+              )}
+            </div>
+            {hasPlacedActiveBet ? (
+              <span style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                padding: '2px 8px',
+                borderRadius: 20,
+                border: '1px solid #ffffff',
+                color: '#ffffff',
+                fontSize: 8,
+                fontWeight: 700,
+                fontFamily: 'var(--font-mono)'
+              }}>
+                ACTIVE
+              </span>
+            ) : (
+              <StatusBadge
+                status={marketStatus === 'LOCKED' || marketStatus === 'SETTLING' ? 'live' : 'settled'}
+                label={marketStatus}
+              />
+            )}
           </div>
 
-          {/* Shared Countdown Timer — Always mounted, never hidden, perfectly synchronized */}
-          <div style={{ marginBottom: 10 }}>
-            <GlobalRoundTimer />
-          </div>
+          {/* Shared Countdown Timer — Displays only when user has placed an active prediction bet */}
+          {hasPlacedActiveBet ? (
+            <div style={{ marginBottom: 10 }}>
+              <GlobalRoundTimer />
+            </div>
+          ) : (
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 12,
+              padding: '10px 12px',
+              borderRadius: 12,
+              background: 'rgba(255,255,255,0.01)',
+              border: '1px solid rgba(255,255,255,0.03)',
+              marginBottom: 10,
+            }}>
+              <div className="animate-pulse-live" style={{ width: 6, height: 6, borderRadius: '50%', background: 'rgba(255,255,255,0.3)' }} />
+              <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.4)', fontFamily: 'var(--font-mono)' }}>
+                Waiting for prediction...
+              </span>
+            </div>
+          )}
+
+          {/* Calculating Settlement block */}
+          {hasPlacedActiveBet && marketStatus === 'SETTLING' && (
+            <div style={{
+              textAlign: 'center',
+              padding: '12px',
+              background: 'rgba(255,255,255,0.02)',
+              border: '1px solid rgba(255,255,255,0.05)',
+              borderRadius: 10,
+              fontSize: 10,
+              fontFamily: 'var(--font-mono)',
+              color: 'rgba(255,255,255,0.7)',
+              marginBottom: 10,
+            }} className="animate-pulse-live">
+              Calculating Settlement...
+            </div>
+          )}
 
           {/* Round detail stats */}
           {activeRound && (marketStatus === 'OPEN' || marketStatus === 'LOCKED' || marketStatus === 'SETTLING') ? (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-              {/* BTC Current Price vs Entry (startPrice) */}
-              <div style={{ display: 'flex', justifyContent: 'space-between', background: 'rgba(255,255,255,0.015)', border: '1px solid rgba(255,255,255,0.05)', borderRadius: 10, padding: '6px 10px' }}>
-                <div style={{ display: 'flex', flexDirection: 'column' }}>
-                  <span style={{ fontSize: 8, color: 'var(--text-secondary)' }}>BTC PRICE</span>
-                  <PriceTicker price={btcPrice} />
-                </div>
-                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end' }}>
-                  <span style={{ fontSize: 8, color: 'var(--text-secondary)' }}>ENTRY PRICE</span>
-                  <span style={{ fontSize: 11, fontFamily: 'var(--font-mono)', fontWeight: 700, color: '#ffffff' }}>
-                    ${(Number(activeRound.startPrice) / 1e8).toLocaleString(undefined, { minimumFractionDigits: 2 })}
-                  </span>
-                </div>
-              </div>
+              {/* BTC Current Price vs Entry (startPrice) - Upgraded with arrow & Difference layout */}
+              {(() => {
+                const entryPx = Number(activeRound.startPrice) / 1e8;
+                const diff = btcPrice - entryPx;
+                const isUpDirection = activeUserBet ? activeUserBet.position === 0 : true;
+                const activeStatus = marketStatus === 'SETTLING' ? 'SETTLING' : ((btcPrice > entryPx ? isUpDirection : !isUpDirection) ? 'WINNING' : 'LOSING');
+
+                return (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 5, background: 'rgba(255,255,255,0.015)', border: '1px solid rgba(255,255,255,0.05)', borderRadius: 12, padding: '10px 12px' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <span style={{ fontSize: 9, color: 'var(--text-secondary)' }}>Entry Price</span>
+                      <span style={{ fontSize: 10, fontFamily: 'var(--font-mono)', color: '#ffffff', fontWeight: 600 }}>
+                        ${entryPx.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                      </span>
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'center', fontSize: 11, color: 'rgba(255,255,255,0.3)', margin: '-2px 0' }}>↓</div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <span style={{ fontSize: 9, color: 'var(--text-secondary)' }}>Current Price</span>
+                      <PriceTicker price={btcPrice} />
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px dashed rgba(255,255,255,0.06)', paddingTop: 5, marginTop: 2 }}>
+                      <span style={{ fontSize: 9, color: 'var(--text-secondary)' }}>Difference</span>
+                      <strong style={{ fontSize: 10, fontFamily: 'var(--font-mono)', color: '#ffffff' }}>
+                        {diff >= 0 ? '+' : ''}{diff.toFixed(2)}
+                      </strong>
+                    </div>
+                    {hasPlacedActiveBet && (
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px dashed rgba(255,255,255,0.06)', paddingTop: 5 }}>
+                        <span style={{ fontSize: 9, color: 'var(--text-secondary)' }}>Live Status</span>
+                        <strong style={{ fontSize: 10, fontFamily: 'var(--font-mono)', color: '#ffffff', letterSpacing: '0.04em' }}>
+                          {activeStatus}
+                        </strong>
+                      </div>
+                    )}
+                  </div>
+                );
+              })()}
 
               {/* TWAP Price */}
               <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 9, fontFamily: 'var(--font-mono)' }}>

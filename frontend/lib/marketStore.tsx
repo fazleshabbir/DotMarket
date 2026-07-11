@@ -27,6 +27,13 @@ interface UserBet {
   claimed: boolean;
 }
 
+interface Toast {
+  show: boolean;
+  message: string;
+  submessage?: string;
+  type: 'success' | 'info' | 'error' | 'win' | 'loss' | 'refund';
+}
+
 interface MarketState {
   // Live Tickers & Calculations
   btcPrice: number;
@@ -64,12 +71,16 @@ interface MarketState {
   timeLeftToLock: number;
   timeLeftToEnd: number;
   marketStatus: 'OPEN' | 'LOCKED' | 'SETTLING' | 'NEXT ROUND' | 'AWAITING PLAYERS';
+
+  // Toast API
+  toast: Toast | null;
+  triggerToast: (message: string, submessage?: string, type?: 'success' | 'info' | 'error' | 'win' | 'loss' | 'refund') => void;
 }
 
 const MarketContext = createContext<MarketState | undefined>(undefined);
 
 export function MarketProvider({ children }: { children: React.ReactNode }) {
-  const { address, isConnected } = useAccount();
+  const { address } = useAccount();
   const contracts = useContracts();
   const MARKET_ADDRESS = contracts.predictionMarket;
 
@@ -123,7 +134,6 @@ export function MarketProvider({ children }: { children: React.ReactNode }) {
   const balanceSymbol = balanceData?.symbol || 'USDC';
 
   // ── 4. Main Contract Polling ─────────────────────────────────────────────
-  // (a) Current Round ID
   const { data: rawCurrentRoundId } = useReadContract({
     address: MARKET_ADDRESS,
     abi: ROUND_MARKET_ABI,
@@ -170,7 +180,7 @@ export function MarketProvider({ children }: { children: React.ReactNode }) {
     abi: ROUND_MARKET_ABI,
     functionName: 'getRound',
     args: [prevRoundId],
-    query: { enabled: prevRoundId > 0n, refetchInterval: 3000 },
+    query: { enabled: prevRoundId > 0n, refetchInterval: 2500 },
   });
   const prevRound = rawPrevRound as unknown as RoundData | undefined;
 
@@ -180,7 +190,7 @@ export function MarketProvider({ children }: { children: React.ReactNode }) {
     abi: ROUND_MARKET_ABI,
     functionName: 'getMultipliers',
     args: [prevRoundId],
-    query: { enabled: prevRoundId > 0n, refetchInterval: 3000 },
+    query: { enabled: prevRoundId > 0n, refetchInterval: 2500 },
   });
 
   // (g) Previous User Bet
@@ -189,7 +199,7 @@ export function MarketProvider({ children }: { children: React.ReactNode }) {
     abi: ROUND_MARKET_ABI,
     functionName: 'getUserBet',
     args: [prevRoundId, address || '0x0000000000000000000000000000000000000000'],
-    query: { enabled: prevRoundId > 0n && !!address, refetchInterval: 3000 },
+    query: { enabled: prevRoundId > 0n && !!address, refetchInterval: 2500 },
   });
   const prevUserBet = rawPrevUserBet as unknown as UserBet | undefined;
 
@@ -199,7 +209,7 @@ export function MarketProvider({ children }: { children: React.ReactNode }) {
     abi: ROUND_MARKET_ABI,
     functionName: 'claimable',
     args: [prevRoundId, address || '0x0000000000000000000000000000000000000000'],
-    query: { enabled: prevRoundId > 0n && !!address, refetchInterval: 3000 },
+    query: { enabled: prevRoundId > 0n && !!address, refetchInterval: 2500 },
   });
   const isClaimable = !!rawIsClaimable;
 
@@ -242,6 +252,44 @@ export function MarketProvider({ children }: { children: React.ReactNode }) {
     marketStatus = 'SETTLING';
   }
 
+  // ── Toast overlay API ───────────────────────────────────────────────────
+  const [toast, setToast] = useState<Toast | null>(null);
+
+  const triggerToast = (message: string, submessage?: string, type: 'success' | 'info' | 'error' | 'win' | 'loss' | 'refund' = 'success') => {
+    setToast({ show: true, message, submessage, type });
+    setTimeout(() => {
+      setToast(null);
+    }, 4000);
+  };
+
+  // ── Result Auto-check logic ─────────────────────────────────────────────
+  const lastNotifiedRoundId = useRef<bigint>(0n);
+
+  useEffect(() => {
+    if (!prevRound || !prevRound.resolved || !prevUserBet || prevUserBet.amount === 0n) return;
+    if (prevRound.roundId <= lastNotifiedRoundId.current) return;
+
+    lastNotifiedRoundId.current = prevRound.roundId;
+
+    const upWins = prevRound.closePrice > prevRound.startPrice;
+    const downWins = prevRound.closePrice < prevRound.startPrice;
+    const isUp = prevUserBet.position === 0;
+
+    if (prevRound.canceled) {
+      triggerToast('Round Refunded', 'Stake Returned', 'refund');
+    } else {
+      const won = (upWins && isUp) || (downWins && !isUp);
+      if (won) {
+        const winningMultiplier = isUp ? prevUpMultiplier : prevDownMultiplier;
+        const rewardMultiplier = winningMultiplier > 0 ? winningMultiplier : 1.9;
+        const profit = (Number(prevUserBet.amount) / 1e18) * (rewardMultiplier - 1);
+        triggerToast('🎉 Prediction Won', `Profit: +${profit.toFixed(4)} ${balanceSymbol}`, 'win');
+      } else {
+        triggerToast('Prediction Lost', 'Better luck next round.', 'loss');
+      }
+    }
+  }, [prevRoundId, prevRound?.resolved, prevUserBet?.amount]);
+
   const value: MarketState = {
     btcPrice,
     twap,
@@ -270,9 +318,52 @@ export function MarketProvider({ children }: { children: React.ReactNode }) {
     timeLeftToLock,
     timeLeftToEnd,
     marketStatus,
+    toast,
+    triggerToast,
   };
 
-  return <MarketContext.Provider value={value}>{children}</MarketContext.Provider>;
+  return (
+    <MarketContext.Provider value={value}>
+      {children}
+      {toast && (
+        <div style={{
+          position: 'fixed',
+          bottom: 24,
+          right: 24,
+          zIndex: 9999,
+          background: 'rgba(0, 0, 0, 0.9)',
+          backdropFilter: 'blur(10px)',
+          border: '1px solid rgba(255, 255, 255, 0.12)',
+          borderRadius: 14,
+          padding: '14px 18px',
+          color: '#ffffff',
+          boxShadow: '0 8px 32px rgba(0, 0, 0, 0.5)',
+          display: 'flex',
+          flexDirection: 'column',
+          gap: 4,
+          minWidth: 260,
+          maxWidth: 320,
+          animation: 'toastFadeIn 250ms cubic-bezier(0.16, 1, 0.3, 1) forwards',
+          fontFamily: 'var(--font-sans)',
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, fontWeight: 700 }}>
+            {toast.message}
+          </div>
+          {toast.submessage && (
+            <div style={{ fontSize: 10, color: 'rgba(255, 255, 255, 0.5)', fontFamily: 'var(--font-mono)' }}>
+              {toast.submessage}
+            </div>
+          )}
+          <style>{`
+            @keyframes toastFadeIn {
+              from { opacity: 0; transform: translateY(12px) scale(0.96); }
+              to { opacity: 1; transform: translateY(0) scale(1); }
+            }
+          `}</style>
+        </div>
+      )}
+    </MarketContext.Provider>
+  );
 }
 
 export function useMarket() {
