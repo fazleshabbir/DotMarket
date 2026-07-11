@@ -9,6 +9,7 @@ import { ConnectButton } from './ConnectButton';
 import { ActiveRoundCard } from './trade/ActiveRoundCard';
 import { LastRoundCard } from './trade/LastRoundCard';
 import { LoadingSkeleton } from './trade/LoadingSkeleton';
+import { PlaceBetCard } from './trade/PlaceBetCard';
 
 interface RoundData {
   roundId: bigint;
@@ -221,29 +222,35 @@ export function BettingPanel({ currentBtcPrice }: BettingPanelProps) {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 16, width: '100%' }}>
-      {/* Active round card component */}
-      <ActiveRoundCard
-        hasValidActiveRound={hasValidActiveRound}
-        activeRoundId={activeRoundId}
-        activeRound={activeRound}
-        isActiveResolved={isActiveResolved}
-        activeUpPercent={activeUpPercent}
-        activeDownPercent={activeDownPercent}
-        activeTotalPool={activeTotalPool}
-        activeUpMultiplier={activeUpMultiplier}
-        activeDownMultiplier={activeDownMultiplier}
+      {/* 1. Action Panel: Place Bet Card */}
+      <PlaceBetCard
         betAmount={betAmount}
         setBetAmount={setBetAmount}
         onPlaceBet={handlePlaceBet}
         canBet={canBet}
         isPending={isPending}
         isConfirming={isConfirming}
-        txStatus={null}
+        txStatus={txStatus}
         isConnected={isConnected}
         connectWalletCTA={<ConnectButton />}
       />
 
-      {/* Previous settled round results card */}
+      {/* 2. Prominent Visual Panel: Live Market Card */}
+      <ActiveRoundCard
+        hasValidActiveRound={hasValidActiveRound}
+        activeRoundId={activeRoundId}
+        activeRound={activeRound}
+        isActiveLocked={isActiveLocked}
+        isActiveResolved={isActiveResolved}
+        activeUpPercent={activeUpPercent}
+        activeDownPercent={activeDownPercent}
+        activeTotalPool={activeTotalPool}
+        activeUpMultiplier={activeUpMultiplier}
+        activeDownMultiplier={activeDownMultiplier}
+        currentBtcPrice={currentBtcPrice}
+      />
+
+      {/* 3. Secondary Info Panel: Previous Market Card */}
       {prevRoundId > 0n && prevRound && (
         <LastRoundCard
           prevRoundId={prevRoundId}
@@ -255,7 +262,7 @@ export function BettingPanel({ currentBtcPrice }: BettingPanelProps) {
           onClaim={handleClaim}
           isClaimingPending={isPending}
           isClaimingConfirming={isConfirming}
-          claimStatus={txStatus}
+          claimStatus={null}
         />
       )}
     </div>

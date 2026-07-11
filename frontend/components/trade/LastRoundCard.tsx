@@ -33,7 +33,7 @@ export const LastRoundCard = memo(function LastRoundCard({
   if (!prevRound || prevRoundId === 0n) {
     return (
       <Card hoverEffect={false} style={{ padding: '20px', textAlign: 'center', color: 'var(--text-secondary)' }}>
-        No previous rounds found.
+        No previous market data available.
       </Card>
     );
   }
@@ -42,27 +42,20 @@ export const LastRoundCard = memo(function LastRoundCard({
   const closePrice = Number(prevRound.closePrice) / 1e8;
   const isCanceled = prevRound.canceled;
   const isResolved = prevRound.resolved;
-  const isLocked = !isResolved && !isCanceled;
 
   const totalPool = (Number(prevRound.totalUpAmount + prevRound.totalDownAmount) / 1e18).toFixed(2);
-  const upPool = (Number(prevRound.totalUpAmount) / 1e18).toFixed(2);
-  const downPool = (Number(prevRound.totalDownAmount) / 1e18).toFixed(2);
-
   const userBetAmount = prevUserBet ? (Number(prevUserBet.amount) / 1e18).toFixed(2) : '0.00';
   const userClaimed = prevUserBet?.claimed || false;
   const canClaim = isClaimable && !userClaimed && !isClaimingPending && !isClaimingConfirming;
 
   return (
-    <Card hoverEffect={false} style={{ padding: '24px 20px', position: 'relative' }}>
-      {/* Title Header bar */}
+    <Card hoverEffect={false} style={{ padding: '24px 20px', opacity: 0.8 }}>
+      {/* Header with SETTLED status badge */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-        <div style={{ fontSize: 13, fontWeight: 700, letterSpacing: '0.8px', color: '#ffffff' }}>
-          LAST ROUND RESULTS
+        <div style={{ fontSize: 13, fontWeight: 700, letterSpacing: '0.08em', color: '#ffffff' }}>
+          PREVIOUS MARKET
         </div>
-        <StatusBadge
-          status={isResolved ? 'resolved' : isCanceled ? 'canceled' : 'locked'}
-          label={`Round #${prevRoundId.toString()}`}
-        />
+        <StatusBadge status="resolved" label="✓ SETTLED" />
       </div>
 
       {/* Outcome Banner */}
@@ -78,7 +71,7 @@ export const LastRoundCard = memo(function LastRoundCard({
           marginBottom: 16,
         }}
       >
-        <span style={{ fontSize: 11, color: 'var(--text-secondary)', fontWeight: 600 }}>OUTCOME</span>
+        <span style={{ fontSize: 11, color: 'var(--text-secondary)', fontWeight: 600 }}>WINNING SIDE</span>
         <strong style={{ fontSize: 13, color: '#ffffff', fontFamily: 'var(--font-mono)', letterSpacing: '0.5px' }}>
           {outcome.text}
         </strong>
@@ -87,28 +80,28 @@ export const LastRoundCard = memo(function LastRoundCard({
       {/* Details list */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: 12, width: '100%', marginBottom: 16 }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <span style={{ fontSize: 11, color: 'var(--text-secondary)' }}>LOCKED PRICE</span>
+          <span style={{ fontSize: 11, color: 'var(--text-secondary)' }}>ENTRY PRICE</span>
           <span style={{ fontSize: 12, color: '#ffffff', fontFamily: 'var(--font-mono)' }}>
             ${startPrice.toLocaleString(undefined, { minimumFractionDigits: 2 })}
           </span>
         </div>
 
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <span style={{ fontSize: 11, color: 'var(--text-secondary)' }}>CLOSE PRICE</span>
+          <span style={{ fontSize: 11, color: 'var(--text-secondary)' }}>SETTLEMENT PRICE</span>
           <span style={{ fontSize: 12, color: '#ffffff', fontFamily: 'var(--font-mono)' }}>
-            {isLocked ? 'calculating...' : `$${closePrice.toLocaleString(undefined, { minimumFractionDigits: 2 })}`}
+            {isResolved ? `$${closePrice.toLocaleString(undefined, { minimumFractionDigits: 2 })}` : 'calculating...'}
           </span>
         </div>
 
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <span style={{ fontSize: 11, color: 'var(--text-secondary)' }}>TOTAL POOL</span>
+          <span style={{ fontSize: 11, color: 'var(--text-secondary)' }}>POOL SIZE</span>
           <span style={{ fontSize: 12, color: '#ffffff', fontFamily: 'var(--font-mono)' }}>
             {totalPool} USDC
           </span>
         </div>
       </div>
 
-      {/* User Bet & Claim state section */}
+      {/* User Bet outcome and Claim state */}
       {hasPlacedPrevBet && (
         <div
           style={{
@@ -128,13 +121,13 @@ export const LastRoundCard = memo(function LastRoundCard({
           </div>
 
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <span style={{ fontSize: 11, color: 'var(--text-secondary)' }}>WINNING STATUS</span>
+            <span style={{ fontSize: 11, color: 'var(--text-secondary)' }}>ROUND RESULT</span>
             <strong style={{ fontSize: 11, color: outcome.userColor || '#ffffff', fontFamily: 'var(--font-mono)' }}>
               {outcome.userText || 'LOST'}
             </strong>
           </div>
 
-          {/* Claim Action Button */}
+          {/* Claim rewards action button */}
           {canClaim && (
             <Button
               variant="primary"
@@ -149,7 +142,7 @@ export const LastRoundCard = memo(function LastRoundCard({
                 marginTop: 8,
               }}
             >
-              Claim Payout
+              Claim Winnings
             </Button>
           )}
 

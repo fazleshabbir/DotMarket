@@ -3,7 +3,7 @@
 import React, { memo } from 'react';
 
 interface StatusBadgeProps {
-  status: 'active' | 'locked' | 'resolved' | 'canceled';
+  status: 'active' | 'locked' | 'resolved' | 'canceled' | 'ready';
   label?: string;
 }
 
@@ -36,6 +36,14 @@ export const StatusBadge = memo(function StatusBadge({ status, label }: StatusBa
           bg: 'rgba(255, 255, 255, 0.02)',
           border: '1px solid rgba(255, 255, 255, 0.05)',
           text: 'rgba(255, 255, 255, 0.4)',
+          dot: null,
+        };
+      case 'ready':
+      default:
+        return {
+          bg: 'rgba(255, 255, 255, 0.03)',
+          border: '1px solid rgba(255, 255, 255, 0.08)',
+          text: '#ffffff',
           dot: null,
         };
     }
