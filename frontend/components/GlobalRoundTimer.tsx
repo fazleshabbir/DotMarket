@@ -3,13 +3,26 @@
 import React from 'react';
 import { useMarket } from '@/lib/marketStore';
 
-export function GlobalRoundTimer() {
+export function GlobalRoundTimer({ target = 'active' }: { target?: 'active' | 'prev' }) {
   const {
     marketStatus,
     timeLeftToLock,
     timeLeftToEnd,
     activeRound,
+    prevMarketStatus,
+    prevTimeLeftToLock,
+    prevTimeLeftToEnd,
+    prevRound,
   } = useMarket();
+
+  // Pick variables depending on the target round, with fallback when active round closes/locks
+  const isCurrentRoundClosed = marketStatus === 'LOCKED' || marketStatus === 'SETTLING';
+  const effectiveTarget = (target === 'prev' && isCurrentRoundClosed) ? 'active' : target;
+
+  const status = effectiveTarget === 'active' ? marketStatus : prevMarketStatus;
+  const round = effectiveTarget === 'active' ? activeRound : prevRound;
+  const lockTimeLeft = effectiveTarget === 'active' ? timeLeftToLock : prevTimeLeftToLock;
+  const endTimeLeft = effectiveTarget === 'active' ? timeLeftToEnd : prevTimeLeftToEnd;
 
   // Determine target timing variables based on state
   let timeLeft = 0;
@@ -18,29 +31,29 @@ export function GlobalRoundTimer() {
   let labelText = 'BETTING OPEN';
   let descText = 'Place your prediction now';
 
-  if (marketStatus === 'OPEN') {
-    timeLeft = timeLeftToLock;
-    const start = activeRound ? Number(activeRound.startTimestamp) : 0;
-    const lock = activeRound ? Number(activeRound.lockTimestamp) : 0;
+  if (status === 'OPEN') {
+    timeLeft = lockTimeLeft;
+    const start = round ? Number(round.startTimestamp) : 0;
+    const lock = round ? Number(round.lockTimestamp) : 0;
     totalDuration = lock > start ? (lock - start) : 60;
     strokeColor = 'rgba(255,255,255,0.7)';
     labelText = 'BETTING OPEN';
     descText = 'Place your prediction now';
-  } else if (marketStatus === 'LOCKED') {
-    timeLeft = timeLeftToEnd;
-    const lock = activeRound ? Number(activeRound.lockTimestamp) : 0;
-    const end = activeRound ? Number(activeRound.endTimestamp) : 0;
+  } else if (status === 'LOCKED') {
+    timeLeft = endTimeLeft;
+    const lock = round ? Number(round.lockTimestamp) : 0;
+    const end = round ? Number(round.endTimestamp) : 0;
     totalDuration = end > lock ? (end - lock) : 60;
     strokeColor = 'rgba(255,255,255,0.6)';
     labelText = 'LOCKED';
     descText = 'Waiting for close price';
-  } else if (marketStatus === 'SETTLING') {
+  } else if (status === 'SETTLING') {
     timeLeft = 0;
     totalDuration = 60;
     strokeColor = 'rgba(255,255,255,0.25)';
     labelText = 'SETTLING';
     descText = 'Waiting for settlement…';
-  } else if (marketStatus === 'NEXT ROUND') {
+  } else if (status === 'NEXT ROUND') {
     timeLeft = 60; // default loop timer buffer
     totalDuration = 60;
     strokeColor = 'rgba(255,255,255,0.2)';
@@ -97,11 +110,11 @@ export function GlobalRoundTimer() {
         {/* Inner timer value */}
         <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
           <span style={{ fontSize: 12, fontWeight: 700, color: '#ffffff', fontFamily: 'var(--font-mono)', lineHeight: 1 }}>
-            {marketStatus === 'SETTLING' ? (
+            {status === 'SETTLING' ? (
               <span className="animate-pulse-live">0:00</span>
-            ) : marketStatus === 'NEXT ROUND' ? (
+            ) : status === 'NEXT ROUND' ? (
               '0:00'
-            ) : marketStatus === 'AWAITING PLAYERS' ? (
+            ) : status === 'AWAITING PLAYERS' ? (
               '—:—'
             ) : (
               `${minutes}:${seconds.toString().padStart(2, '0')}`

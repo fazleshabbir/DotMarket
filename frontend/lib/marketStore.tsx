@@ -67,14 +67,20 @@ interface MarketState {
   prevUpMultiplier: number;
   prevDownMultiplier: number;
 
-  // Global Time Status
+  // Global Time Status for Active Round (currentRoundId)
   timeLeftToLock: number;
   timeLeftToEnd: number;
   marketStatus: 'OPEN' | 'LOCKED' | 'SETTLING' | 'NEXT ROUND' | 'AWAITING PLAYERS';
 
+  // Global Time Status for Previous Round (prevRoundId)
+  prevTimeLeftToLock: number;
+  prevTimeLeftToEnd: number;
+  prevMarketStatus: 'OPEN' | 'LOCKED' | 'SETTLING' | 'NEXT ROUND' | 'AWAITING PLAYERS';
+
   // Toast API
   toast: Toast | null;
   triggerToast: (message: string, submessage?: string, type?: 'success' | 'info' | 'error' | 'win' | 'loss' | 'refund') => void;
+  lockedEntryPrice: number;
 }
 
 const MarketContext = createContext<MarketState | undefined>(undefined);
@@ -93,18 +99,24 @@ export function MarketProvider({ children }: { children: React.ReactNode }) {
     return () => clearInterval(interval);
   }, []);
 
-  // ── 2. Live Binance Price Feed & TWAP ─────────────────────────────────────
+  // ── 2. Live Pyth Hermes Price Feed (with Binance Fallback) & TWAP ──────────
   const [btcPrice, setBtcPrice] = useState(64000.0);
   const [twap, setTwap] = useState(64000.0);
   const priceBuffer = useRef<number[]>([]);
 
   useEffect(() => {
     const fetchPrice = async () => {
+      // 1. Try Pyth Hermes API first
       try {
-        const res = await fetch('https://api.binance.com/api/v3/ticker/price?symbol=BTCUSDT');
+        const res = await fetch('https://hermes.pyth.network/v2/updates/price/latest?ids[]=e62df6c8b4a85fe1a67db44dc12de5db330f7ac66b72dc658afedf0f4a415b43', {
+          signal: AbortSignal.timeout(5000)
+        });
         const data = await res.json();
-        if (data && data.price) {
-          const currentPrice = parseFloat(data.price);
+        if (data && data.parsed && data.parsed[0]) {
+          const priceStr = data.parsed[0].price.price;
+          const expo = data.parsed[0].price.expo;
+          const currentPrice = Number(priceStr) * Math.pow(10, expo);
+
           setBtcPrice(currentPrice);
 
           // Update 5-second TWAP buffer
@@ -114,9 +126,29 @@ export function MarketProvider({ children }: { children: React.ReactNode }) {
           }
           const sum = priceBuffer.current.reduce((a, b) => a + b, 0);
           setTwap(sum / priceBuffer.current.length);
+          return;
         }
       } catch (err) {
-        console.error('Error fetching Binance price:', err);
+        console.warn('Pyth Hermes price fetch failed, trying Binance fallback:', err);
+      }
+
+      // 2. Fallback to Binance
+      try {
+        const res = await fetch('https://api.binance.com/api/v3/ticker/price?symbol=BTCUSDT');
+        const data = await res.json();
+        if (data && data.price) {
+          const currentPrice = parseFloat(data.price);
+          setBtcPrice(currentPrice);
+
+          priceBuffer.current.push(currentPrice);
+          if (priceBuffer.current.length > 5) {
+            priceBuffer.current.shift();
+          }
+          const sum = priceBuffer.current.reduce((a, b) => a + b, 0);
+          setTwap(sum / priceBuffer.current.length);
+        }
+      } catch (err) {
+        console.error('Error fetching fallback Binance price:', err);
       }
     };
 
@@ -230,19 +262,28 @@ export function MarketProvider({ children }: { children: React.ReactNode }) {
   const prevUpMultiplier = prevMultipliers ? Number((prevMultipliers as any)[0] || 0n) / 10000 : 0;
   const prevDownMultiplier = prevMultipliers ? Number((prevMultipliers as any)[1] || 0n) / 10000 : 0;
 
-  // Time Calculation details
+  // Time Calculation details for Active Round
   const lockTimestamp = activeRound ? Number(activeRound.lockTimestamp) : 0;
   const endTimestamp = activeRound ? Number(activeRound.endTimestamp) : 0;
 
   const timeLeftToLock = lockTimestamp > 0 ? Math.max(0, lockTimestamp - now) : 0;
   const timeLeftToEnd = endTimestamp > 0 ? Math.max(0, endTimestamp - now) : 0;
 
+  // Time Calculation details for Previous Round
+  const prevLockTimestamp = prevRound ? Number(prevRound.lockTimestamp) : 0;
+  const prevEndTimestamp = prevRound ? Number(prevRound.endTimestamp) : 0;
+
+  const prevTimeLeftToLock = prevLockTimestamp > 0 ? Math.max(0, prevLockTimestamp - now) : 0;
+  const prevTimeLeftToEnd = prevEndTimestamp > 0 ? Math.max(0, prevEndTimestamp - now) : 0;
+
   // Derived marketStatus
   let marketStatus: 'OPEN' | 'LOCKED' | 'SETTLING' | 'NEXT ROUND' | 'AWAITING PLAYERS' = 'AWAITING PLAYERS';
 
   if (activeRoundId === 0n) {
     marketStatus = 'AWAITING PLAYERS';
-  } else if (activeRound?.resolved || activeRound?.canceled) {
+  } else if (!activeRound) {
+    marketStatus = 'OPEN'; // Fallback to OPEN while loading round metadata
+  } else if (activeRound.resolved || activeRound.canceled) {
     marketStatus = 'NEXT ROUND';
   } else if (timeLeftToLock > 0) {
     marketStatus = 'OPEN';
@@ -250,6 +291,23 @@ export function MarketProvider({ children }: { children: React.ReactNode }) {
     marketStatus = 'LOCKED';
   } else {
     marketStatus = 'SETTLING';
+  }
+
+  // Derived prevMarketStatus
+  let prevMarketStatus: 'OPEN' | 'LOCKED' | 'SETTLING' | 'NEXT ROUND' | 'AWAITING PLAYERS' = 'AWAITING PLAYERS';
+
+  if (prevRoundId === 0n) {
+    prevMarketStatus = 'AWAITING PLAYERS';
+  } else if (!prevRound) {
+    prevMarketStatus = 'LOCKED'; // Fallback to LOCKED while loading previous round metadata
+  } else if (prevRound.resolved || prevRound.canceled) {
+    prevMarketStatus = 'NEXT ROUND';
+  } else if (prevTimeLeftToLock > 0) {
+    prevMarketStatus = 'OPEN';
+  } else if (prevTimeLeftToEnd > 0) {
+    prevMarketStatus = 'LOCKED';
+  } else {
+    prevMarketStatus = 'SETTLING';
   }
 
   // ── Toast overlay API ───────────────────────────────────────────────────
@@ -290,6 +348,20 @@ export function MarketProvider({ children }: { children: React.ReactNode }) {
     }
   }, [prevRoundId, prevRound?.resolved, prevUserBet?.amount]);
 
+  // Capture lock price immediately when the round enters locked status
+  const [lockedEntryPrice, setLockedEntryPrice] = useState<number>(0);
+
+  useEffect(() => {
+    const isCurrentRoundClosed = marketStatus === 'LOCKED' || marketStatus === 'SETTLING';
+    if (isCurrentRoundClosed) {
+      if (lockedEntryPrice === 0 && btcPrice > 0) {
+        setLockedEntryPrice(btcPrice);
+      }
+    } else {
+      setLockedEntryPrice(0);
+    }
+  }, [marketStatus, btcPrice, lockedEntryPrice]);
+
   const value: MarketState = {
     btcPrice,
     twap,
@@ -318,8 +390,12 @@ export function MarketProvider({ children }: { children: React.ReactNode }) {
     timeLeftToLock,
     timeLeftToEnd,
     marketStatus,
+    prevTimeLeftToLock,
+    prevTimeLeftToEnd,
+    prevMarketStatus,
     toast,
     triggerToast,
+    lockedEntryPrice,
   };
 
   return (

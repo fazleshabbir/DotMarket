@@ -19,12 +19,16 @@ export const TradingPanel = memo(function TradingPanel() {
     timeLeftToEnd,
     marketStatus,
     balanceSymbol,
+    lockedEntryPrice,
   } = useMarket();
 
   const lockTimestamp  = round ? Number(round.lockTimestamp)  : 0;
   const endTimestamp   = round ? Number(round.endTimestamp)   : 0;
   const startTimestamp = round ? Number(round.startTimestamp) : 0;
-  const lockPrice      = round ? Number(round.startPrice) / 1e8 : 0;
+  const lockPriceOnChain = round ? Number(round.startPrice) / 1e8 : 0;
+  const lockPrice = lockPriceOnChain > 0
+    ? lockPriceOnChain
+    : (marketStatus === 'LOCKED' || marketStatus === 'SETTLING' ? lockedEntryPrice : 0);
   const isLocked       = round?.resolved ?? false; // or activeNow >= lockTimestamp
   const isResolved     = round?.resolved ?? false;
 

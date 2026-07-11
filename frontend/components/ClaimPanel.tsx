@@ -37,6 +37,7 @@ interface ClaimableRound {
 export function ClaimPanel() {
   const { address, isConnected } = useAccount();
   const [claimStatus, setClaimStatus] = useState<string | null>(null);
+  const [claimableRounds, setClaimableRounds] = useState<Record<string, boolean>>({});
 
   const contracts = useContracts();
   const MARKET_ADDRESS = contracts.predictionMarket;
@@ -75,6 +76,33 @@ export function ClaimPanel() {
     });
   };
 
+  const registerClaimable = (roundId: bigint, isClaimable: boolean) => {
+    const key = roundId.toString();
+    setClaimableRounds(prev => {
+      if (prev[key] === isClaimable) return prev;
+      return { ...prev, [key]: isClaimable };
+    });
+  };
+
+  const claimableRoundIds = Object.keys(claimableRounds)
+    .filter(key => claimableRounds[key])
+    .map(key => BigInt(key));
+
+  const handleClaimAll = () => {
+    if (claimableRoundIds.length === 0) return;
+    setClaimStatus(`⏳ Claiming ${claimableRoundIds.length} rounds...`);
+    
+    // Fire transactions in parallel
+    claimableRoundIds.forEach(roundId => {
+      writeContract({
+        address: MARKET_ADDRESS,
+        abi: ROUND_MARKET_ABI,
+        functionName: 'claim',
+        args: [roundId],
+      });
+    });
+  };
+
   if (!isConnected) return null;
   if (recentIds.length === 0) {
     return (
@@ -86,13 +114,44 @@ export function ClaimPanel() {
 
   return (
     <div className="glass-card" style={{ padding: 16, overflow: 'auto', maxHeight: 280 }}>
-      <div style={{ fontSize: 12, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: 12, fontWeight: 600 }}>
-        Your Bets
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+        <div style={{ fontSize: 12, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '1px', fontWeight: 600 }}>
+          Your Bets
+        </div>
+        {claimableRoundIds.length > 0 && (
+          <button
+            onClick={handleClaimAll}
+            disabled={isPending || isConfirming}
+            style={{
+              padding: '4px 10px',
+              borderRadius: 6,
+              fontSize: 10,
+              fontWeight: 700,
+              cursor: isPending || isConfirming ? 'wait' : 'pointer',
+              background: 'linear-gradient(135deg, #ffffff 0%, #d4d4d4 100%)',
+              color: '#000000',
+              border: 'none',
+              opacity: isPending || isConfirming ? 0.5 : 1,
+              transition: 'all 0.2s ease',
+              letterSpacing: '0.04em',
+            }}
+          >
+            Claim All ({claimableRoundIds.length})
+          </button>
+        )}
       </div>
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
         {recentIds.map((id) => (
-          <ClaimRow key={id.toString()} roundId={id} address={address!} onClaim={handleClaim} claimPending={isPending || isConfirming} marketAddress={MARKET_ADDRESS} />
+          <ClaimRow
+            key={id.toString()}
+            roundId={id}
+            address={address!}
+            onClaim={handleClaim}
+            registerClaimable={registerClaimable}
+            claimPending={isPending || isConfirming}
+            marketAddress={MARKET_ADDRESS}
+          />
         ))}
       </div>
 
@@ -109,12 +168,14 @@ function ClaimRow({
   roundId,
   address,
   onClaim,
+  registerClaimable,
   claimPending,
   marketAddress
 }: {
   roundId: bigint;
   address: string;
   onClaim: (id: bigint) => void;
+  registerClaimable: (roundId: bigint, isClaimable: boolean) => void;
   claimPending: boolean;
   marketAddress: `0x${string}`;
 }) {
@@ -146,6 +207,15 @@ function ClaimRow({
 
   const round = roundData as unknown as RoundData | undefined;
   const bet = betData as unknown as BetData | undefined;
+
+  const isClaimableVal = !!(canClaim && bet && !bet.claimed);
+
+  useEffect(() => {
+    registerClaimable(roundId, isClaimableVal);
+    return () => {
+      registerClaimable(roundId, false);
+    };
+  }, [roundId, isClaimableVal]);
 
   if (!round || !bet || bet.amount === 0n) return null;
 

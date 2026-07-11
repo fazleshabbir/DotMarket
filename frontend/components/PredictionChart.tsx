@@ -137,14 +137,36 @@ export const PredictionChart = memo(function PredictionChart({
     });
     ro.observe(containerRef.current);
 
-    // Load last 300 seconds of history
-    fetchKlines(300).then((points) => {
-      if (seriesRef.current && points.length > 0) {
-        seriesRef.current.setData(points);
+    // Load last 300 seconds of history and fetch latest Pyth price concurrently for perfect alignment
+    Promise.all([
+      fetchKlines(300),
+      fetch('https://hermes.pyth.network/v2/updates/price/latest?ids[]=e62df6c8b4a85fe1a67db44dc12de5db330f7ac66b72dc658afedf0f4a415b43', {
+        signal: AbortSignal.timeout(5000)
+      })
+        .then(res => res.json())
+        .then(data => {
+          if (data && data.parsed && data.parsed[0]) {
+            const priceStr = data.parsed[0].price.price;
+            const expo = data.parsed[0].price.expo;
+            return Number(priceStr) * Math.pow(10, expo);
+          }
+          return 0;
+        })
+        .catch(() => 0)
+    ]).then(([points, pythPrice]) => {
+      const activePythPrice = pythPrice > 0 ? pythPrice : latestPrice.current;
+      if (seriesRef.current && points.length > 0 && activePythPrice > 0) {
+        const lastPointValue = points[points.length - 1].value;
+        const offset = activePythPrice - lastPointValue;
+        const alignedPoints = points.map(pt => ({
+          ...pt,
+          value: pt.value + offset
+        }));
+
+        seriesRef.current.setData(alignedPoints);
         chart.timeScale().fitContent();
         setChartReady(true);
       } else {
-        // Still mark ready even if fetch failed so WS can start
         setChartReady(true);
       }
     });
@@ -199,24 +221,33 @@ export const PredictionChart = memo(function PredictionChart({
     updateDotAndPillRef.current = updateDotAndPill;
   }, [updateDotAndPill]);
 
-  // ── Live aggTrade WebSocket — fires on every trade (~tick level) ───────────
+  // ── Live Pyth Hermes WebSocket — streams BTC price ticks ───────────────────
   useEffect(() => {
     if (!chartReady) return;
 
-    // aggTrade fires on every matched trade; we bucket into 1-second bars
-    const ws = new WebSocket('wss://stream.binance.com:9443/ws/btcusdt@aggTrade');
+    const ws = new WebSocket('wss://hermes.pyth.network/ws');
     wsRef.current = ws;
+
+    ws.onopen = () => {
+      ws.send(JSON.stringify({
+        type: 'subscribe',
+        ids: ['e62df6c8b4a85fe1a67db44dc12de5db330f7ac66b72dc658afedf0f4a415b43']
+      }));
+    };
 
     ws.onmessage = (evt) => {
       try {
         const msg = JSON.parse(evt.data);
-        // aggTrade fields: T = trade time ms, p = price
-        const price = parseFloat(msg.p);
-        const t = Math.floor(msg.T / 1000) as Time;
-        const point: KlinePoint = { time: t, value: price };
-        seriesRef.current?.update(point);
-        latestPrice.current = price;
-        updateDotAndPillRef.current?.(price);
+        if (msg.type === 'notify' && msg.value && msg.value.price) {
+          const priceStr = msg.value.price.price;
+          const expo = msg.value.price.expo;
+          const price = Number(priceStr) * Math.pow(10, expo);
+          const t = Math.floor(msg.value.price.publish_time) as Time;
+          const point: KlinePoint = { time: t, value: price };
+          seriesRef.current?.update(point);
+          latestPrice.current = price;
+          updateDotAndPillRef.current?.(price);
+        }
       } catch {}
     };
 
