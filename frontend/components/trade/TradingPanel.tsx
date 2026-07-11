@@ -251,7 +251,138 @@ export const TradingPanel = memo(function TradingPanel({
 
       {/* Dynamic widget container */}
       <div style={{ flex: 1, minHeight: 0, position: 'relative' }}>
+        <style dangerouslySetInnerHTML={{ __html: `
+          @keyframes breathingHighlight {
+            0% { background-color: rgba(255, 255, 255, 0.015); }
+            50% { background-color: rgba(255, 255, 255, 0.035); }
+            100% { background-color: rgba(255, 255, 255, 0.015); }
+          }
+          .breathing-active-zone {
+            animation: breathingHighlight 4s ease-in-out infinite;
+          }
+          @media (max-width: 1200px) {
+            .hide-tablet {
+              display: none !important;
+            }
+          }
+        ` }} />
+
         {interval && <TradingViewChart interval={interval} />}
+
+        {/* Non-blocking 2-minute round timeline guides overlay */}
+        <div
+          style={{
+            position: 'absolute',
+            inset: 0,
+            pointerEvents: 'none',
+            display: 'flex',
+            zIndex: 5,
+          }}
+        >
+          {/* Previous Round Zone (Left Column) */}
+          <div
+            style={{
+              flex: 1,
+              borderRight: '1px dashed rgba(255, 255, 255, 0.08)',
+              position: 'relative',
+              display: 'flex',
+              flexDirection: 'column',
+              boxSizing: 'border-box',
+            }}
+          >
+            <div
+              className="hide-tablet"
+              style={{
+                padding: '8px 12px',
+                fontSize: 10,
+                fontFamily: 'var(--font-mono)',
+                color: 'var(--text-secondary)',
+                opacity: 0.4,
+                letterSpacing: '0.08em',
+              }}
+            >
+              ← Previous Round
+            </div>
+          </div>
+
+          {/* Active Round Zone (Middle Column) */}
+          <div
+            className="breathing-active-zone"
+            style={{
+              flex: 1.5,
+              borderLeft: '1px solid rgba(255, 255, 255, 0.06)',
+              borderRight: '1px solid rgba(255, 255, 255, 0.06)',
+              position: 'relative',
+              display: 'flex',
+              flexDirection: 'column',
+              boxSizing: 'border-box',
+            }}
+          >
+            {/* Top soft glow bar */}
+            <div
+              style={{
+                position: 'absolute',
+                top: 0,
+                left: 0,
+                right: 0,
+                height: 2,
+                background: 'linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.15), transparent)',
+              }}
+            />
+            
+            <div
+              style={{
+                padding: '8px 12px',
+                fontSize: 10,
+                fontFamily: 'var(--font-mono)',
+                color: '#ffffff',
+                letterSpacing: '0.08em',
+                display: 'flex',
+                alignItems: 'center',
+                gap: 6,
+                justifyContent: 'center',
+              }}
+            >
+              <span
+                className="animate-pulse-live"
+                style={{
+                  width: 4,
+                  height: 4,
+                  borderRadius: '50%',
+                  background: '#ffffff',
+                }}
+              />
+              Active Round
+            </div>
+          </div>
+
+          {/* Next Round Zone (Right Column) */}
+          <div
+            style={{
+              flex: 1,
+              borderLeft: '1px dashed rgba(255, 255, 255, 0.08)',
+              position: 'relative',
+              display: 'flex',
+              flexDirection: 'column',
+              boxSizing: 'border-box',
+            }}
+          >
+            <div
+              className="hide-tablet"
+              style={{
+                padding: '8px 12px',
+                fontSize: 10,
+                fontFamily: 'var(--font-mono)',
+                color: 'var(--text-secondary)',
+                opacity: 0.4,
+                textAlign: 'right',
+                letterSpacing: '0.08em',
+              }}
+            >
+              Next Round →
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   );
