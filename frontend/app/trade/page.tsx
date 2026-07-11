@@ -313,11 +313,6 @@ export default function TradePage() {
         </div>
 
         <div style={{ flexGrow: 1 }} />
-
-        {/* Network */}
-        <span style={{ fontSize: 10, color: 'var(--text-secondary)', fontFamily: 'var(--font-mono)', letterSpacing: '0.5px' }}>
-          ROBINHOOD TESTNET
-        </span>
       </div>
 
       {/* ── Main Layout Workspace ───────────────────────────────── */}
@@ -346,14 +341,10 @@ export default function TradePage() {
             }}
           >
             {/* Left Column: Chart Container (70% width) */}
-            <div style={{ height: 'clamp(460px, 55vh, 580px)', minHeight: 0 }}>
-              <TradingPanel btcPrice={btcPrice} round={round} activeUpPercent={activeUpPercent} activeDownPercent={activeDownPercent} />
-            </div>
+            <TradingPanel btcPrice={btcPrice} round={round} activeUpPercent={activeUpPercent} activeDownPercent={activeDownPercent} />
 
             {/* Right Column: Unified Betting Sidebar (30% width) */}
-            <div style={{ height: 'clamp(460px, 55vh, 580px)', minHeight: 0 }}>
-              <BettingPanel currentBtcPrice={btcPrice} />
-            </div>
+            <BettingPanel currentBtcPrice={btcPrice} />
           </div>
 
           {/* Bottom Section: Full Width Activity Section */}

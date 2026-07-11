@@ -139,10 +139,6 @@ export const TradingPanel = memo(function TradingPanel({
             <span style={{ width: 1, height: 10, background: 'rgba(255,255,255,0.1)' }} />
             <span>{activeDownPercent.toFixed(0)}% NO</span>
           </div>
-
-          <span style={{ fontSize: 9, color: 'var(--text-secondary)', fontFamily: 'var(--font-mono)' }}>
-            ROBINHOOD TESTNET
-          </span>
         </div>
       </div>
 
