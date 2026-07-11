@@ -8,12 +8,10 @@ export function useMotionSystem() {
     hidden: {
       opacity: 0,
       y: shouldReduceMotion ? 0 : 24,
-      filter: shouldReduceMotion ? 'none' : 'blur(10px)',
     },
     visible: {
       opacity: 1,
       y: 0,
-      filter: 'blur(0px)',
       transition: {
         duration: 0.8,
         ease: 'easeOut',
@@ -26,12 +24,10 @@ export function useMotionSystem() {
     hidden: {
       opacity: 0,
       y: shouldReduceMotion ? 0 : 18,
-      filter: shouldReduceMotion ? 'none' : 'blur(6px)',
     },
     visible: {
       opacity: 1,
       y: 0,
-      filter: 'blur(0px)',
       transition: {
         duration: 0.6,
         delay: 0.15,
@@ -46,13 +42,11 @@ export function useMotionSystem() {
       opacity: 0,
       y: shouldReduceMotion ? 0 : 40,
       scale: shouldReduceMotion ? 1 : 0.96,
-      filter: shouldReduceMotion ? 'none' : 'blur(8px)',
     },
     visible: {
       opacity: 1,
       y: 0,
       scale: 1,
-      filter: 'blur(0px)',
       transition: {
         duration: 0.55,
         ease: 'easeOut',

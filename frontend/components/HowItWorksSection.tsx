@@ -140,8 +140,9 @@ export function HowItWorksSection() {
       {isMounted && !shouldReduceMotion && (
         <div style={{ position: 'absolute', inset: 0, pointerEvents: 'none', zIndex: 1 }}>
           {[...Array(6)].map((_, i) => (
-            <motion.div
+            <div
               key={i}
+              className="ambient-particle-css"
               style={{
                 position: 'absolute',
                 width: 3 + (i % 3),
@@ -150,16 +151,9 @@ export function HowItWorksSection() {
                 background: 'rgba(255, 255, 255, 0.15)',
                 top: `${20 + i * 12}%`,
                 left: `${15 + i * 15}%`,
-              }}
-              animate={{
-                y: [0, -30, 0],
-                x: [0, 15, 0],
-                opacity: [0.1, 0.4, 0.1],
-              }}
-              transition={{
-                duration: 6 + i * 2,
-                repeat: Infinity,
-                ease: 'easeInOut',
+                // Pass custom animation parameters via custom properties
+                animationDuration: `${6 + i * 2}s`,
+                animationDelay: `${i * -0.8}s`,
               }}
             />
           ))}
@@ -359,8 +353,8 @@ export function HowItWorksSection() {
                     }}
                   >
                     {/* Slow floating motion for icon */}
-                    <motion.div
-                      animate={getFloatingAnimation(idx * 0.25)}
+                    <div
+                      className={shouldReduceMotion ? "" : "floating-icon-css"}
                       style={{
                         display: 'flex',
                         alignItems: 'center',
@@ -368,10 +362,11 @@ export function HowItWorksSection() {
                         color: '#ffffff',
                         transition: 'transform 250ms ease',
                         transform: isHovered ? 'scale(1.1)' : 'scale(1)',
+                        animationDelay: `${idx * 0.4}s`,
                       }}
                     >
                       <StepIcon size={30} />
-                    </motion.div>
+                    </div>
                   </div>
 
                   {/* Circular Step Badge */}
@@ -444,6 +439,32 @@ export function HowItWorksSection() {
           .visible-mobile-tablet {
             display: none !important;
           }
+        }
+        @keyframes floatIcon {
+          0%, 100% {
+            transform: translateY(0);
+          }
+          50% {
+            transform: translateY(-4px);
+          }
+        }
+        .floating-icon-css {
+          animation: floatIcon 5s ease-in-out infinite;
+        }
+        @keyframes floatParticle {
+          0%, 100% {
+            transform: translate(0, 0);
+            opacity: 0.1;
+          }
+          50% {
+            transform: translate(15px, -30px);
+            opacity: 0.4;
+          }
+        }
+        .ambient-particle-css {
+          animation: floatParticle var(--duration, 6s) ease-in-out infinite;
+          animation-duration: inherit;
+          animation-delay: inherit;
         }
       `}</style>
     </section>

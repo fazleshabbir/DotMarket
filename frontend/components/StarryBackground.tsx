@@ -61,9 +61,7 @@ export function StarryBackground() {
         }
 
         ctx.globalAlpha = star.opacity;
-        ctx.beginPath();
-        ctx.arc(star.x, star.y, star.size, 0, Math.PI * 2);
-        ctx.fill();
+        ctx.fillRect(star.x - star.size / 2, star.y - star.size / 2, star.size, star.size);
       });
 
       // Slowly drift stars downward/sideways to give a feeling of space travel

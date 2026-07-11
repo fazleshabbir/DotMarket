@@ -80,12 +80,17 @@ function MagneticIcon({ children, tooltip, href, delayIndex }: MagneticIconProps
       className="magnetic-icon-element"
     >
       {/* Floating animation inside the icon parent */}
-      <motion.div
-        animate={getFloatingAnimation(delayIndex * 0.3)}
-        style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+      <div
+        className={shouldReduceMotion ? "" : "floating-icon-css"}
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          animationDelay: `${delayIndex * 0.45}s`,
+        }}
       >
         {children}
-      </motion.div>
+      </div>
 
       {/* Premium Tooltip */}
       {hovered && (
@@ -131,6 +136,17 @@ function NetworkNodesCanvas() {
     let width = (canvas.width = 450);
     let height = (canvas.height = 400);
     let logoAngle = 45;
+    let isVisible = true;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          isVisible = entry.isIntersecting;
+        });
+      },
+      { threshold: 0.05 }
+    );
+    observer.observe(canvas);
 
     const resizeHandler = () => {
       if (canvas.parentElement) {
@@ -151,7 +167,7 @@ function NetworkNodesCanvas() {
       color: string;
     }> = [];
 
-    const numParticles = 35;
+    const numParticles = 24;
     for (let i = 0; i < numParticles; i++) {
       particles.push({
         x: Math.random() * width,
@@ -180,7 +196,8 @@ function NetworkNodesCanvas() {
     canvas.addEventListener('mouseleave', handleMouseLeave);
 
     const draw = () => {
-      ctx.clearRect(0, 0, width, height);
+      if (isVisible) {
+        ctx.clearRect(0, 0, width, height);
 
       const cx = width / 2;
       const cy = height / 2;
@@ -285,7 +302,7 @@ function NetworkNodesCanvas() {
           }
         }
       }
-
+      }
       animationFrameId = requestAnimationFrame(draw);
     };
 
@@ -296,6 +313,7 @@ function NetworkNodesCanvas() {
       window.removeEventListener('resize', resizeHandler);
       canvas.removeEventListener('mousemove', handleMouseMove);
       canvas.removeEventListener('mouseleave', handleMouseLeave);
+      observer.disconnect();
     };
   }, []);
 
@@ -496,6 +514,17 @@ export function CommunitySection() {
           color: #ffffff !important;
           border-color: rgba(255, 255, 255, 0.25) !important;
           box-shadow: 0 0 15px rgba(255, 255, 255, 0.15) !important;
+        }
+        @keyframes floatIcon {
+          0%, 100% {
+            transform: translateY(0);
+          }
+          50% {
+            transform: translateY(-4px);
+          }
+        }
+        .floating-icon-css {
+          animation: floatIcon 5s ease-in-out infinite;
         }
       `}</style>
     </section>

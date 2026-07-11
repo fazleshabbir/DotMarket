@@ -607,18 +607,19 @@ export function RoadmapSection() {
                       transition: 'all 250ms ease',
                     }}
                   >
-                    <motion.div
-                      animate={getFloatingAnimation(idx * 0.4)}
+                    <div
+                      className={shouldReduceMotion ? "" : "floating-icon-css"}
                       style={{
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'center',
                         color: isActive ? '#ffffff' : 'var(--text-secondary)',
                         transition: 'all 250ms ease',
+                        animationDelay: `${idx * 0.45}s`,
                       }}
                     >
                       <MilestoneIcon size={26} />
-                    </motion.div>
+                    </div>
                   </div>
 
                   {/* Title & Description */}
@@ -679,6 +680,17 @@ export function RoadmapSection() {
       <style jsx global>{`
         .roadmap-track::-webkit-scrollbar {
           display: none !important;
+        }
+        @keyframes floatIcon {
+          0%, 100% {
+            transform: translateY(0);
+          }
+          50% {
+            transform: translateY(-4px);
+          }
+        }
+        .floating-icon-css {
+          animation: floatIcon 5s ease-in-out infinite;
         }
       `}</style>
     </section>
