@@ -86,9 +86,14 @@ function TiltCard({ children, isActive, shouldReduceMotion }: TiltCardProps) {
   const y = useMotionValue(0.5);
   const rotateXSpring = useSpring(useTransform(y, [0, 1], [5, -5]), { damping: 20, stiffness: 150 });
   const rotateYSpring = useSpring(useTransform(x, [0, 1], [-5, 5]), { damping: 20, stiffness: 150 });
+  const [hasHover, setHasHover] = useState(false);
+
+  useEffect(() => {
+    setHasHover(window.matchMedia('(hover: hover)').matches);
+  }, []);
 
   const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
-    if (shouldReduceMotion) return;
+    if (shouldReduceMotion || !hasHover) return;
     const rect = e.currentTarget.getBoundingClientRect();
     const width = rect.width;
     const height = rect.height;
@@ -101,6 +106,7 @@ function TiltCard({ children, isActive, shouldReduceMotion }: TiltCardProps) {
   };
 
   const handleMouseLeave = () => {
+    if (!hasHover) return;
     x.set(0.5);
     y.set(0.5);
   };
@@ -110,8 +116,8 @@ function TiltCard({ children, isActive, shouldReduceMotion }: TiltCardProps) {
       onMouseMove={handleMouseMove}
       onMouseLeave={handleMouseLeave}
       style={{
-        rotateX: shouldReduceMotion ? 0 : rotateXSpring,
-        rotateY: shouldReduceMotion ? 0 : rotateYSpring,
+        rotateX: shouldReduceMotion || !hasHover ? 0 : rotateXSpring,
+        rotateY: shouldReduceMotion || !hasHover ? 0 : rotateYSpring,
         transformStyle: 'preserve-3d',
         perspective: 1000,
         width: '100%',
@@ -141,7 +147,7 @@ function TiltCard({ children, isActive, shouldReduceMotion }: TiltCardProps) {
         }}
       >
         {/* Reflection & Spotlight Layer */}
-        {!shouldReduceMotion && (
+        {!shouldReduceMotion && hasHover && (
           <div
             style={{
               position: 'absolute',
@@ -330,7 +336,7 @@ export function RoadmapSection() {
         maxWidth: 1200,
         margin: '0 auto',
         width: '100%',
-        overflow: 'hidden',
+        overflow: 'visible',
       }}
     >
       {/* ── Background Aesthetics (Stars, spotlights, grids) ── */}
@@ -515,6 +521,8 @@ export function RoadmapSection() {
           msOverflowStyle: 'none',
           position: 'relative',
           zIndex: 3,
+          touchAction: 'pan-y',
+          WebkitOverflowScrolling: 'touch',
         }}
       >
         {milestones.map((m, idx) => {

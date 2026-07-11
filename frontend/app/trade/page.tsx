@@ -50,7 +50,9 @@ function DesktopTradingOnly() {
         color: '#ffffff',
         textAlign: 'center',
         position: 'relative',
-        overflow: 'hidden',
+        overflowX: 'clip',
+        width: '100%',
+        maxWidth: '100%',
       }}
     >
       {/* Background glow matching landing page design */}
@@ -225,7 +227,7 @@ export default function TradePage() {
   }
 
   return (
-    <div style={{ position: 'relative', minHeight: '100vh', display: 'flex', flexDirection: 'column', background: '#000000', color: '#ffffff' }}>
+    <div style={{ position: 'relative', minHeight: '100vh', display: 'flex', flexDirection: 'column', background: '#000000', color: '#ffffff', overflowX: 'clip', width: '100%', maxWidth: '100%' }}>
       {/* ── Header ──────────────────────────────────────────────── */}
       <header
         style={{

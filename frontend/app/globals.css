@@ -33,7 +33,7 @@
 }
 
 /* ── Base ────────────────────────────────────────────────────────────────── */
-* {
+*, *::before, *::after {
   box-sizing: border-box;
 }
 
@@ -45,7 +45,25 @@ html, body {
   font-family: 'Inter', sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  overflow-x: hidden;
+  width: 100%;
+  max-width: 100%;
+  overflow-x: clip; /* Modern clipping that prevents sub-pixel horizontal viewport stretching */
+  position: relative;
+}
+
+/* Mobile viewport layout fixes & performance optimizations */
+@media (max-width: 768px) {
+  .glass-card, .roadmap-card, .glass-glow-panel {
+    backdrop-filter: blur(4px) !important;
+    -webkit-backdrop-filter: blur(4px) !important;
+  }
+  .roadmap-track {
+    touch-action: pan-y !important;
+    -webkit-overflow-scrolling: touch !important;
+  }
+  * {
+    max-width: 100%;
+  }
 }
 
 body::before {

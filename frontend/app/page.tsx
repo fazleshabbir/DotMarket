@@ -331,7 +331,7 @@ export default function LandingPage() {
   const isDesktop = !isMounted || windowWidth >= 1024;
 
   return (
-    <div style={{ position: 'relative', minHeight: '100vh', display: 'flex', flexDirection: 'column', color: '#ffffff', background: '#000000', overflowX: 'hidden' }}>
+    <div style={{ position: 'relative', minHeight: '100vh', display: 'flex', flexDirection: 'column', color: '#ffffff', background: '#000000', overflowX: 'clip', width: '100%', maxWidth: '100%' }}>
       
       {/* ── Background Aesthetics ────────────────────────────────── */}
       <StarryBackground />

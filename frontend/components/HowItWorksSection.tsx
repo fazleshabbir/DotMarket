@@ -43,6 +43,7 @@ export function HowItWorksSection() {
   const sectionRef = useRef<HTMLDivElement>(null);
   const [hoveredCard, setHoveredCard] = useState<number | null>(null);
   const [isMounted, setIsMounted] = useState(false);
+  const [hasHover, setHasHover] = useState(false);
 
   const {
     revealHeading,
@@ -54,10 +55,11 @@ export function HowItWorksSection() {
 
   useEffect(() => {
     setIsMounted(true);
+    setHasHover(window.matchMedia('(hover: hover)').matches);
   }, []);
 
   const handleMouseMove = (e: React.MouseEvent) => {
-    if (!sectionRef.current) return;
+    if (!hasHover || !sectionRef.current) return;
     const rect = sectionRef.current.getBoundingClientRect();
     const x = e.clientX - rect.left;
     const y = e.clientY - rect.top;
@@ -116,15 +118,17 @@ export function HowItWorksSection() {
       />
 
       {/* Spotlight highlight */}
-      <div
-        style={{
-          position: 'absolute',
-          inset: 0,
-          background: 'radial-gradient(700px circle at var(--spotlight-x, -1000px) var(--spotlight-y, -1000px), rgba(255,255,255,0.015), transparent 40%)',
-          pointerEvents: 'none',
-          zIndex: 2,
-        }}
-      />
+      {hasHover && (
+        <div
+          style={{
+            position: 'absolute',
+            inset: 0,
+            background: 'radial-gradient(700px circle at var(--spotlight-x, -1000px) var(--spotlight-y, -1000px), rgba(255,255,255,0.015), transparent 40%)',
+            pointerEvents: 'none',
+            zIndex: 2,
+          }}
+        />
+      )}
 
       {/* Floating particles */}
       {isMounted && !shouldReduceMotion && (
