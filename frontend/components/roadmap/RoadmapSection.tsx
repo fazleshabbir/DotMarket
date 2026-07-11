@@ -2,7 +2,7 @@
 
 import React, { useRef, useState, useEffect } from 'react';
 import { motion, useMotionValue, useTransform, useSpring, AnimatePresence } from 'framer-motion';
-import { Hammer, Rocket, CandlestickChart, Smartphone, PlusCircle, Users, Check, Circle } from 'lucide-react';
+import { Hammer, Rocket, CandlestickChart, Smartphone, PlusCircle, Users, Check, Circle, ArrowLeft, ArrowRight } from 'lucide-react';
 import { useMotionSystem } from '@/hooks/useMotionSystem';
 import { useMediaQuery } from '@/hooks/useMediaQuery';
 import { PageHeader } from '@/components/ui/PageHeader';
@@ -232,6 +232,16 @@ export function RoadmapSection() {
     setActiveIdx(idx);
   };
 
+  const scrollForward = () => {
+    const nextIdx = Math.min(activeIdx + 1, milestones.length - 1);
+    scrollToMilestone(nextIdx);
+  };
+
+  const scrollBackward = () => {
+    const prevIdx = Math.max(activeIdx - 1, 0);
+    scrollToMilestone(prevIdx);
+  };
+
   // Node styles generator helper
   const getNodeIndicator = (idx: number, status: string) => {
     const isActive = activeIdx === idx;
@@ -429,6 +439,63 @@ export function RoadmapSection() {
           </div>
         </div>
       )}
+
+      {/* ── NAVIGATION ARROWS ── */}
+      <div
+        style={{
+          display: 'flex',
+          justifyContent: 'flex-end',
+          gap: 12,
+          maxWidth: 840,
+          margin: '0 auto 24px auto',
+          padding: '0 16px',
+        }}
+      >
+        <button
+          onClick={scrollBackward}
+          disabled={activeIdx === 0}
+          style={{
+            width: '36px',
+            height: '36px',
+            borderRadius: '50%',
+            background: 'rgba(255,255,255,0.02)',
+            border: '1px solid rgba(255,255,255,0.08)',
+            color: '#ffffff',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            cursor: activeIdx === 0 ? 'not-allowed' : 'pointer',
+            opacity: activeIdx === 0 ? 0.3 : 1,
+            transition: 'all 200ms ease',
+          }}
+          className="nav-arrow-btn"
+          aria-label="Previous milestone"
+        >
+          <ArrowLeft size={15} />
+        </button>
+        <button
+          onClick={scrollForward}
+          disabled={activeIdx === milestones.length - 1}
+          style={{
+            width: '36px',
+            height: '36px',
+            borderRadius: '50%',
+            background: 'rgba(255,255,255,0.02)',
+            border: '1px solid rgba(255,255,255,0.08)',
+            color: '#ffffff',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            cursor: activeIdx === milestones.length - 1 ? 'not-allowed' : 'pointer',
+            opacity: activeIdx === milestones.length - 1 ? 0.3 : 1,
+            transition: 'all 200ms ease',
+          }}
+          className="nav-arrow-btn"
+          aria-label="Next milestone"
+        >
+          <ArrowRight size={15} />
+        </button>
+      </div>
 
       {/* ── TIMELINE CARDS TRACK CONTAINER ── */}
       <motion.div
@@ -641,6 +708,14 @@ export function RoadmapSection() {
         }
         .floating-icon-css {
           animation: floatIcon 5s ease-in-out infinite;
+        }
+        .nav-arrow-btn:hover:not(:disabled) {
+          background: rgba(255, 255, 255, 0.08) !important;
+          border-color: rgba(255, 255, 255, 0.22) !important;
+          transform: scale(1.05);
+        }
+        .nav-arrow-btn:active:not(:disabled) {
+          transform: scale(0.95);
         }
       `}</style>
     </section>
