@@ -1,10 +1,10 @@
-import React from 'react';
+import React, { memo } from 'react';
 
 interface BadgeProps extends React.HTMLAttributes<HTMLSpanElement> {
   variant?: 'default' | 'success' | 'warning' | 'error' | 'outline';
 }
 
-export function Badge({ children, variant = 'default', style, ...props }: BadgeProps) {
+export const Badge = memo(function Badge({ children, variant = 'default', style, ...props }: BadgeProps) {
   const getStyles = () => {
     switch (variant) {
       case 'default':
@@ -64,4 +64,6 @@ export function Badge({ children, variant = 'default', style, ...props }: BadgeP
       {children}
     </span>
   );
-}
+});
+
+Badge.displayName = 'Badge';

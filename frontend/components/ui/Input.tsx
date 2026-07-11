@@ -1,6 +1,4 @@
-'use client';
-
-import React, { useState } from 'react';
+import React, { useState, memo } from 'react';
 
 interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> {
   label?: string;
@@ -8,7 +6,7 @@ interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> {
   prefixSymbol?: string;
 }
 
-export function Input({ label, error, prefixSymbol, style, ...props }: InputProps) {
+export const Input = memo(function Input({ label, error, prefixSymbol, style, ...props }: InputProps) {
   const [focused, setFocused] = useState(false);
 
   return (
@@ -65,4 +63,6 @@ export function Input({ label, error, prefixSymbol, style, ...props }: InputProp
       )}
     </div>
   );
-}
+});
+
+Input.displayName = 'Input';

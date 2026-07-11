@@ -5,13 +5,13 @@ import Link from 'next/link';
 import { useAccount, useReadContract } from 'wagmi';
 import { ROUND_MARKET_ABI } from '@/lib/abi';
 import { useContracts } from '@/hooks/useNetworkConfig';
-import { ConnectButton } from '@/components/ConnectButton';
-import { TradingViewChart } from '@/components/TradingViewChart';
 import { BettingPanel } from '@/components/BettingPanel';
-import { PositionsTable } from '@/components/PositionsTable';
 import { ScrollFade } from '@/components/ScrollFade';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
+import { TradeHeader } from '@/components/trade/TradeHeader';
+import { TradingPanel } from '@/components/trade/TradingPanel';
+import { PriceTicker } from '@/components/trade/PriceTicker';
 
 interface RoundData {
   roundId: bigint;
@@ -228,75 +228,8 @@ export default function TradePage() {
 
   return (
     <div style={{ position: 'relative', minHeight: '100vh', display: 'flex', flexDirection: 'column', background: '#000000', color: '#ffffff', overflowX: 'clip', width: '100%', maxWidth: '100%' }}>
-      {/* ── Header ──────────────────────────────────────────────── */}
-      <header
-        style={{
-          padding: '12px 24px',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          borderBottom: '1px solid rgba(255, 255, 255, 0.05)',
-          background: '#000000',
-        }}
-      >
-        <div style={{ display: 'flex', alignItems: 'center', gap: 32 }}>
-          {/* Logo */}
-          <Link href="/" style={{ textDecoration: 'none' }}>
-            <svg viewBox="0 0 200 60" width="130" height="39" xmlns="http://www.w3.org/2000/svg">
-              <defs>
-                <mask id="tradeHeaderLogoMask">
-                  <rect x="0" y="0" width="200" height="60" fill="white" />
-                  <circle cx="20.5" cy="34.5" r="2.8" fill="black" />
-                </mask>
-              </defs>
-              <circle cx="16" cy="30" r="10" fill="#ffffff" mask="url(#tradeHeaderLogoMask)" />
-              <line x1="32" y1="42" x2="44" y2="18" stroke="#525252" strokeWidth="2" strokeLinecap="round" />
-              <text x="54" y="38" fontFamily="system-ui, sans-serif" fontSize="26" fontWeight="800" fill="#ffffff" letterSpacing="-1">dot</text>
-              <text x="95" y="38" fontFamily="system-ui, sans-serif" fontSize="26" fontWeight="300" fill="#737373" letterSpacing="-1">Market</text>
-            </svg>
-          </Link>
-
-          {/* Navigation Links capsule */}
-          <nav
-            style={{
-              display: 'flex',
-              gap: 20,
-              background: 'rgba(255, 255, 255, 0.02)',
-              border: '1px solid rgba(255, 255, 255, 0.05)',
-              borderRadius: 24,
-              padding: '6px 20px',
-              alignItems: 'center',
-            }}
-          >
-            {['Trade', 'Leaderboard', 'Portfolio'].map((tab) => (
-              <a
-                key={tab}
-                href="#"
-                style={{
-                  fontSize: 13,
-                  color: tab === 'Trade' ? '#ffffff' : 'var(--text-secondary)',
-                  textDecoration: 'none',
-                  fontWeight: tab === 'Trade' ? 600 : 500,
-                  transition: 'color 0.2s',
-                }}
-                onMouseEnter={(e) => (e.currentTarget.style.color = '#ffffff')}
-                onMouseLeave={(e) => (e.currentTarget.style.color = tab === 'Trade' ? '#ffffff' : 'var(--text-secondary)')}
-              >
-                {tab}
-              </a>
-            ))}
-          </nav>
-        </div>
-
-        {/* Right Wallet Action */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'rgba(139, 92, 246, 0.1)', border: '1px solid rgba(139, 92, 246, 0.2)', padding: '6px 12px', borderRadius: 20 }}>
-            <div className="animate-pulse-live" style={{ width: 6, height: 6, borderRadius: '50%', background: '#8b5cf6' }} />
-            <span style={{ fontSize: 11, fontWeight: 700, color: '#8b5cf6', letterSpacing: '0.5px' }}>ARC TESTNET</span>
-          </div>
-          <ConnectButton />
-        </div>
-      </header>
+      {/* Top sticky blurred navigation header */}
+      <TradeHeader />
 
       {/* ── Sub-Header Ticker Details ──────────────────────────── */}
       <div
@@ -304,23 +237,26 @@ export default function TradePage() {
           display: 'flex',
           alignItems: 'center',
           gap: 32,
-          padding: '8px 24px',
+          padding: '12px 24px',
           borderBottom: '1px solid rgba(255, 255, 255, 0.05)',
           background: 'rgba(255, 255, 255, 0.01)',
           fontSize: 12,
           overflowX: 'auto',
           whiteSpace: 'nowrap',
+          margin: '16px 24px 0 24px',
+          borderRadius: '12px',
+          border: '1px solid rgba(255, 255, 255, 0.05)',
         }}
       >
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          <strong style={{ color: '#ffffff' }}>★ BTC-USD Round Forecast</strong>
+          <strong style={{ color: '#ffffff', letterSpacing: '0.5px' }}>★ BTC-USD ROUND FORECAST</strong>
         </div>
         
         <div style={{ width: 1, height: 12, background: 'rgba(255,255,255,0.1)' }} />
 
-        <div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
           <span style={{ color: 'var(--text-muted)' }}>CURRENT PRICE:</span>{' '}
-          <strong style={{ color: '#ffffff', fontFamily: 'var(--font-mono)' }}>${btcPrice.toFixed(2)}</strong>
+          <PriceTicker price={btcPrice} />
         </div>
 
         <div style={{ width: 1, height: 12, background: 'rgba(255,255,255,0.1)' }} />
@@ -342,21 +278,17 @@ export default function TradePage() {
             flexDirection: 'row',
             flexWrap: 'wrap',
             gap: 16,
-            padding: 16,
+            padding: 24,
             background: '#000000',
             width: '100%',
+            maxWidth: 1200,
+            margin: '0 auto',
           }}
         >
-          {/* Left Panel: Chart & Positions Table (70% width) */}
-          <div style={{ flex: '1 1 65%', display: 'flex', flexDirection: 'column', minWidth: 500 }}>
-            {/* Interactive TradingView Chart */}
-            <TradingViewChart />
+          {/* Left Panel: Chart & Positions Table (65% width) */}
+          <TradingPanel />
 
-            {/* Professional Positions & Claims Table */}
-            <PositionsTable />
-          </div>
-
-          {/* Right Panel: Betting Controller & Round Stats (30% width) */}
+          {/* Right Panel: Betting Controller & Round Stats (35% width) */}
           <div style={{ flex: '0 0 350px', display: 'flex', flexDirection: 'column', gap: 16 }}>
             <BettingPanel currentBtcPrice={btcPrice} />
           </div>
