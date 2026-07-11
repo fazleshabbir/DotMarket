@@ -89,7 +89,7 @@ export function BettingPanel({ currentBtcPrice }: BettingPanelProps) {
   });
 
   const walletBalance = balanceData ? parseFloat(formatEther(balanceData.value)) : 0;
-  const balanceSymbol = balanceData?.symbol || 'ETH';
+  const balanceSymbol = balanceData?.symbol || 'USDC';
 
   // 1. Read current round ID
   const { data: currentRoundId } = useReadContract({
@@ -610,7 +610,7 @@ export function BettingPanel({ currentBtcPrice }: BettingPanelProps) {
               {/* Pool info */}
               <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 9, fontFamily: 'var(--font-mono)', marginTop: 2 }}>
                 <span style={{ color: 'var(--text-secondary)' }}>POOL SIZE</span>
-                <span style={{ color: '#ffffff' }}>{activeTotalPool > 0n ? `${(Number(activeTotalPool) / 1e18).toFixed(4)} ETH` : '0.0000 ETH'}</span>
+                <span style={{ color: '#ffffff' }}>{activeTotalPool > 0n ? `${(Number(activeTotalPool) / 1e18).toFixed(4)} USDC` : '0.0000 USDC'}</span>
               </div>
 
               {/* Pool distribution */}
@@ -655,7 +655,7 @@ export function BettingPanel({ currentBtcPrice }: BettingPanelProps) {
                   </div>
                   <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 9, fontFamily: 'var(--font-mono)' }}>
                     <span style={{ color: 'var(--text-secondary)' }}>POOL SIZE</span>
-                    <span style={{ color: '#ffffff' }}>{(Number(prevRound.totalUpAmount + prevRound.totalDownAmount) / 1e18).toFixed(4)} ETH</span>
+                    <span style={{ color: '#ffffff' }}>{(Number(prevRound.totalUpAmount + prevRound.totalDownAmount) / 1e18).toFixed(4)} USDC</span>
                   </div>
 
                   {/* Pool distribution for settled round */}
@@ -691,7 +691,7 @@ export function BettingPanel({ currentBtcPrice }: BettingPanelProps) {
             <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 9, fontFamily: 'var(--font-mono)' }}>
               <span style={{ color: 'var(--text-secondary)' }}>YOUR BET</span>
               <span style={{ color: '#ffffff' }}>
-                {(Number(prevUserBet.amount) / 1e18).toFixed(4)} ETH · {prevUserBet.position === 0 ? 'UP' : 'DOWN'}
+                {(Number(prevUserBet.amount) / 1e18).toFixed(4)} USDC · {prevUserBet.position === 0 ? 'UP' : 'DOWN'}
               </span>
             </div>
             <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 9, fontFamily: 'var(--font-mono)' }}>

@@ -431,7 +431,7 @@ function PositionRow({
         </span>
       </TableCell>
       <TableCell style={{ fontFamily: 'var(--font-mono)' }}>
-        {formatEther(bet.amount)} {currentChain.nativeToken.symbol}
+        {formatEther(bet.amount)} USDC
       </TableCell>
       <TableCell style={{ fontFamily: 'var(--font-mono)' }}>
         {startPriceScaled > 0 ? `$${startPriceScaled.toFixed(2)}` : '—'}
