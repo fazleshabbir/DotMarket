@@ -77,8 +77,8 @@ export function BettingPanel({ currentBtcPrice: _unusedProps }: { currentBtcPric
     activeRound,
     activeUserBet,
     activeTotalPool,
-    activeUpPercent,
-    activeDownPercent,
+    activeUpPercent: _activeUpPercent,
+    activeDownPercent: _activeDownPercent,
     activeUpMultiplier,
     activeDownMultiplier,
     prevRound,
@@ -165,8 +165,6 @@ export function BettingPanel({ currentBtcPrice: _unusedProps }: { currentBtcPric
   const stakeAmount = parseFloat(betAmount) || 0;
   const potentialUpReturn = stakeAmount > 0 && activeUpMultiplier > 0 ? stakeAmount * activeUpMultiplier : 0;
   const potentialDownReturn = stakeAmount > 0 && activeDownMultiplier > 0 ? stakeAmount * activeDownMultiplier : 0;
-  const potentialUpProfit = potentialUpReturn - stakeAmount;
-  const potentialDownProfit = potentialDownReturn - stakeAmount;
 
   // Previous Round Outcome calculations
   const getPrevOutcome = (): { text: string; color: string; userText?: string; userColor?: string } => {
@@ -195,7 +193,7 @@ export function BettingPanel({ currentBtcPrice: _unusedProps }: { currentBtcPric
 
   if (!mounted) return null;
 
-  // ─── Style classes for glow animations ──────────────────────────────────
+  // Style classes for glow animations
   const activeBetGlowStyle: React.CSSProperties = hasPlacedActiveBet ? {
     boxShadow: '0 0 16px rgba(255, 255, 255, 0.05)',
     borderColor: 'rgba(255, 255, 255, 0.25)',
@@ -262,7 +260,7 @@ export function BettingPanel({ currentBtcPrice: _unusedProps }: { currentBtcPric
               }}
             >
               <LockIcon size={14} />
-              <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.4)', fontFamily: 'var(--font-mono)', letterSpacing: '0.08em' }}>
+              <span style={{ fontSize: 10, color: 'rgba(255, 255, 255, 0.4)', fontFamily: 'var(--font-mono)', letterSpacing: '0.08em' }}>
                 {marketStatus === 'SETTLING' ? 'SETTLING ROUND...' : 'BETTING CLOSED · CURRENTLY ' + marketStatus}
               </span>
             </div>
@@ -336,82 +334,41 @@ export function BettingPanel({ currentBtcPrice: _unusedProps }: { currentBtcPric
             <div style={{ padding: '8px 0' }}><ConnectButton /></div>
           )}
 
-          {/* Live multipliers and potential returns details inside the Place Bet card */}
-          {isConnected && stakeAmount > 0 && (activeUpMultiplier > 0 || activeDownMultiplier > 0) && (
-            <div
-              style={{
-                display: 'flex',
-                flexDirection: 'column',
-                gap: 4,
-                padding: '8px 10px',
-                borderRadius: 10,
-                background: 'rgba(255,255,255,0.015)',
-                border: '1px solid rgba(255,255,255,0.05)',
-                marginBottom: 8,
-              }}
-            >
-              {/* Multiplier Row */}
-              <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                <span style={{ fontSize: 9, color: 'var(--text-secondary)', fontFamily: 'var(--font-mono)', letterSpacing: '0.06em' }}>MULTIPLIER</span>
-                <div style={{ display: 'flex', gap: 8 }}>
-                  <span style={{ fontSize: 9, fontFamily: 'var(--font-mono)', color: '#ffffff' }}>
-                    ▲ <AnimatedValue value={activeUpMultiplier} decimals={2} suffix="×" />
-                  </span>
-                  <span style={{ fontSize: 9, fontFamily: 'var(--font-mono)', color: 'rgba(255,255,255,0.6)' }}>
-                    ▼ <AnimatedValue value={activeDownMultiplier} decimals={2} suffix="×" />
-                  </span>
-                </div>
-              </div>
-              {/* Potential Return Row */}
-              <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                <span style={{ fontSize: 9, color: 'var(--text-secondary)', fontFamily: 'var(--font-mono)', letterSpacing: '0.06em' }}>POTENTIAL RETURN</span>
-                <div style={{ display: 'flex', gap: 8 }}>
-                  <span style={{ fontSize: 9, fontFamily: 'var(--font-mono)', color: '#ffffff' }}>
-                    ▲ <AnimatedValue value={potentialUpReturn} decimals={4} suffix={` ${balanceSymbol}`} />
-                  </span>
-                  <span style={{ fontSize: 9, fontFamily: 'var(--font-mono)', color: 'rgba(255,255,255,0.6)' }}>
-                    ▼ <AnimatedValue value={potentialDownReturn} decimals={4} suffix={` ${balanceSymbol}`} />
-                  </span>
-                </div>
-              </div>
-              {/* Potential Profit Row */}
-              <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                <span style={{ fontSize: 9, color: 'var(--text-secondary)', fontFamily: 'var(--font-mono)', letterSpacing: '0.06em' }}>POTENTIAL PROFIT</span>
-                <div style={{ display: 'flex', gap: 8 }}>
-                  <span style={{ fontSize: 9, fontFamily: 'var(--font-mono)', color: potentialUpProfit >= 0 ? '#ffffff' : 'rgba(255,255,255,0.5)' }}>
-                    ▲ {potentialUpProfit >= 0 ? '+' : ''}<AnimatedValue value={potentialUpProfit} decimals={4} suffix={` ${balanceSymbol}`} />
-                  </span>
-                  <span style={{ fontSize: 9, fontFamily: 'var(--font-mono)', color: potentialDownProfit >= 0 ? 'rgba(255,255,255,0.6)' : 'rgba(255,255,255,0.35)' }}>
-                    ▼ {potentialDownProfit >= 0 ? '+' : ''}<AnimatedValue value={potentialDownProfit} decimals={4} suffix={` ${balanceSymbol}`} />
-                  </span>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* Default Multiplier Display */}
-          {isConnected && stakeAmount === 0 && (activeUpMultiplier > 0 || activeDownMultiplier > 0) && (
-            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
-              <span style={{ fontSize: 9, color: 'var(--text-secondary)', fontFamily: 'var(--font-mono)', letterSpacing: '0.06em' }}>CURRENT MULTIPLIER</span>
-              <div style={{ display: 'flex', gap: 8 }}>
-                <span style={{ fontSize: 9, fontFamily: 'var(--font-mono)', color: '#ffffff' }}>
-                  ▲ <AnimatedValue value={activeUpMultiplier} decimals={2} suffix="×" />
-                </span>
-                <span style={{ fontSize: 9, fontFamily: 'var(--font-mono)', color: 'rgba(255,255,255,0.55)' }}>
-                  ▼ <AnimatedValue value={activeDownMultiplier} decimals={2} suffix="×" />
-                </span>
-              </div>
-            </div>
-          )}
-
-          {/* Live Pool Share Stats */}
-          {isConnected && activeTotalPool > 0n && (
-            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 2 }}>
-              <span style={{ fontSize: 9, color: 'var(--text-secondary)', fontFamily: 'var(--font-mono)', letterSpacing: '0.06em' }}>POOL DISTRIBUTION</span>
-              <div style={{ display: 'flex', gap: 8 }}>
-                <span style={{ fontSize: 9, fontFamily: 'var(--font-mono)', color: '#ffffff' }}>▲ {activeUpPercent.toFixed(0)}%</span>
-                <span style={{ fontSize: 9, fontFamily: 'var(--font-mono)', color: 'rgba(255,255,255,0.55)' }}>▼ {activeDownPercent.toFixed(0)}%</span>
-              </div>
+          {/* Interactive Preview row (Replaces the multi-row data matrix) */}
+          {isConnected && !isMarketLocked && (activeUpMultiplier > 0 || activeDownMultiplier > 0) && (
+            <div style={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              borderTop: '1px solid rgba(255,255,255,0.04)',
+              paddingTop: 8,
+              marginTop: 6
+            }}>
+              {stakeAmount > 0 ? (
+                <>
+                  <span style={{ fontSize: 9, color: 'var(--text-secondary)', fontFamily: 'var(--font-mono)', letterSpacing: '0.06em' }}>EST. PAYOUT</span>
+                  <div style={{ display: 'flex', gap: 10 }}>
+                    <span style={{ fontSize: 9, fontFamily: 'var(--font-mono)', color: '#ffffff', fontWeight: 600 }}>
+                      ▲ <AnimatedValue value={potentialUpReturn} decimals={4} />
+                    </span>
+                    <span style={{ fontSize: 9, fontFamily: 'var(--font-mono)', color: 'rgba(255,255,255,0.55)', fontWeight: 600 }}>
+                      ▼ <AnimatedValue value={potentialDownReturn} decimals={4} />
+                    </span>
+                  </div>
+                </>
+              ) : (
+                <>
+                  <span style={{ fontSize: 9, color: 'var(--text-secondary)', fontFamily: 'var(--font-mono)', letterSpacing: '0.06em' }}>MULTIPLIERS</span>
+                  <div style={{ display: 'flex', gap: 10 }}>
+                    <span style={{ fontSize: 9, fontFamily: 'var(--font-mono)', color: '#ffffff' }}>
+                      ▲ <AnimatedValue value={activeUpMultiplier} decimals={2} suffix="×" />
+                    </span>
+                    <span style={{ fontSize: 9, fontFamily: 'var(--font-mono)', color: 'rgba(255,255,255,0.55)' }}>
+                      ▼ <AnimatedValue value={activeDownMultiplier} decimals={2} suffix="×" />
+                    </span>
+                  </div>
+                </>
+              )}
             </div>
           )}
         </div>
@@ -569,10 +526,10 @@ export function BettingPanel({ currentBtcPrice: _unusedProps }: { currentBtcPric
             </div>
           )}
 
-          {/* Round detail stats */}
+          {/* Upgraded & Simplified Round detail stats */}
           {activeRound && (marketStatus === 'OPEN' || marketStatus === 'LOCKED' || marketStatus === 'SETTLING') ? (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-              {/* BTC Current Price vs Entry (startPrice) - Upgraded with arrow & Difference layout */}
+              {/* BTC Current Price vs Entry Price stack */}
               {(() => {
                 const entryPx = Number(activeRound.startPrice) / 1e8;
                 const diff = btcPrice - entryPx;
@@ -610,39 +567,25 @@ export function BettingPanel({ currentBtcPrice: _unusedProps }: { currentBtcPric
                 );
               })()}
 
-              {/* TWAP Price */}
-              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 9, fontFamily: 'var(--font-mono)' }}>
-                <span style={{ color: 'var(--text-secondary)' }}>CURRENT TWAP</span>
-                <span style={{ color: '#ffffff' }}>
-                  ${twap.toLocaleString(undefined, { minimumFractionDigits: 2 })}
-                </span>
-              </div>
-
-              {/* Pool size */}
-              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 9, fontFamily: 'var(--font-mono)' }}>
-                <span style={{ color: 'var(--text-secondary)' }}>POOL SIZE</span>
-                <span style={{ color: '#ffffff' }}>
-                  {activeTotalPool > 0n ? `${(Number(activeTotalPool) / 1e18).toFixed(4)} ${balanceSymbol}` : `0.0000 ${balanceSymbol}`}
-                </span>
-              </div>
-
-              {/* UP % vs DOWN % */}
-              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 9, fontFamily: 'var(--font-mono)' }}>
-                <span style={{ color: 'var(--text-secondary)' }}>UP % / DOWN %</span>
-                <div style={{ display: 'flex', gap: 8 }}>
-                  <span style={{ color: '#ffffff' }}>▲ {activeUpPercent.toFixed(0)}%</span>
-                  <span style={{ color: 'rgba(255,255,255,0.55)' }}>▼ {activeDownPercent.toFixed(0)}%</span>
+              {/* Show global stats ONLY when there is no active bet (keeps Live active state clean) */}
+              {!hasPlacedActiveBet && (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 4, marginTop: 2 }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 9, fontFamily: 'var(--font-mono)' }}>
+                    <span style={{ color: 'var(--text-secondary)' }}>CURRENT TWAP</span>
+                    <span style={{ color: '#ffffff' }}>${twap.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 9, fontFamily: 'var(--font-mono)' }}>
+                    <span style={{ color: 'var(--text-secondary)' }}>POOL SIZE</span>
+                    <span style={{ color: '#ffffff' }}>
+                      {activeTotalPool > 0n ? `${(Number(activeTotalPool) / 1e18).toFixed(4)} ${balanceSymbol}` : `0.0000 ${balanceSymbol}`}
+                    </span>
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 9, fontFamily: 'var(--font-mono)' }}>
+                    <span style={{ color: 'var(--text-secondary)' }}>MULTIPLIERS</span>
+                    <span style={{ color: '#ffffff' }}>▲ {activeUpMultiplier.toFixed(2)}× / ▼ {activeDownMultiplier.toFixed(2)}×</span>
+                  </div>
                 </div>
-              </div>
-
-              {/* UP Multiplier vs DOWN Multiplier */}
-              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 9, fontFamily: 'var(--font-mono)' }}>
-                <span style={{ color: 'var(--text-secondary)' }}>UP / DOWN MULTIPLIERS</span>
-                <div style={{ display: 'flex', gap: 8 }}>
-                  <span style={{ color: '#ffffff' }}>▲ {activeUpMultiplier.toFixed(2)}×</span>
-                  <span style={{ color: 'rgba(255,255,255,0.55)' }}>▼ {activeDownMultiplier.toFixed(2)}×</span>
-                </div>
-              </div>
+              )}
             </div>
           ) : (
             // Previous settled details
