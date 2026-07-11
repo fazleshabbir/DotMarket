@@ -348,7 +348,7 @@ export default function TradePage() {
                 <TradingPanel btcPrice={btcPrice} round={round} activeUpPercent={activeUpPercent} activeDownPercent={activeDownPercent} />
               </div>
               <div style={{ flexShrink: 0, minHeight: 0 }}>
-                <PositionsTable />
+                <PositionsTable btcPrice={btcPrice} />
               </div>
             </div>
 

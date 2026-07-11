@@ -31,7 +31,33 @@ interface BetData {
   claimed: boolean;
 }
 
-export function PositionsTable() {
+interface PositionsTableProps {
+  btcPrice?: number;
+}
+
+// ── Live countdown for a single bet row ──────────────────────────────────────
+function BetCountdown({ endTimestamp }: { endTimestamp: number }) {
+  const [now, setNow] = useState(Math.floor(Date.now() / 1000));
+
+  useEffect(() => {
+    const interval = setInterval(() => setNow(Math.floor(Date.now() / 1000)), 1000);
+    return () => clearInterval(interval);
+  }, []);
+
+  const timeLeft = Math.max(0, endTimestamp - now);
+  const minutes = Math.floor(timeLeft / 60);
+  const seconds = timeLeft % 60;
+
+  if (timeLeft === 0) return <span style={{ fontSize: 10, fontFamily: 'var(--font-mono)', color: 'rgba(255,255,255,0.4)' }}>SETTLING</span>;
+
+  return (
+    <span style={{ fontSize: 10, fontFamily: 'var(--font-mono)', color: 'rgba(255,255,255,0.7)' }}>
+      {minutes}:{seconds.toString().padStart(2, '0')}
+    </span>
+  );
+}
+
+export function PositionsTable({ btcPrice = 0 }: PositionsTableProps) {
   const [mounted, setMounted] = useState(false);
   const { address, isConnected } = useAccount();
   const [activeTab, setActiveTab] = useState<'positions' | 'history'>('positions');
@@ -216,7 +242,7 @@ export function PositionsTable() {
             </div>
           </div>
         ) : (
-          <Table headers={['ROUND ID', 'FORECAST', 'AMOUNT', 'LOCK PRICE', 'CLOSE PRICE', 'STATUS', 'ACTION']}>
+          <Table headers={['ROUND ID', 'FORECAST', 'AMOUNT', 'ENTRY PRICE', 'CURRENT / CLOSE', 'STATUS', 'ACTION']}>
             {recentIds.map((id) => (
               <PositionRow 
                 key={id.toString()} 
@@ -226,6 +252,7 @@ export function PositionsTable() {
                 onClaim={handleClaim} 
                 claimPending={isPending || isConfirming} 
                 marketAddress={MARKET_ADDRESS}
+                currentBtcPrice={btcPrice}
               />
             ))}
           </Table>
@@ -247,7 +274,8 @@ function PositionRow({
   activeTab,
   onClaim,
   claimPending,
-  marketAddress
+  marketAddress,
+  currentBtcPrice,
 }: {
   roundId: bigint;
   address: string;
@@ -255,9 +283,17 @@ function PositionRow({
   onClaim: (id: bigint) => void;
   claimPending: boolean;
   marketAddress: `0x${string}`;
+  currentBtcPrice: number;
 }) {
   const currentChain = useCurrentChain();
   const explorer = useExplorer();
+  // Live 1-second ticker for this row
+  const [now, setNow] = useState(Math.floor(Date.now() / 1000));
+
+  useEffect(() => {
+    const interval = setInterval(() => setNow(Math.floor(Date.now() / 1000)), 1000);
+    return () => clearInterval(interval);
+  }, []);
 
   const { data: roundData } = useReadContract({
     address: marketAddress,
@@ -307,12 +343,27 @@ function PositionRow({
   const startPriceScaled = Number(round.startPrice) / 1e8;
   const closePriceScaled = Number(round.closePrice) / 1e8;
 
+  // ── Live status for active (pending) bets ──────────────────────────────────
   let badgeVariant: 'default' | 'success' | 'warning' | 'error' | 'outline' = 'default';
   let statusText = 'PENDING';
 
   if (isPendingRound) {
-    statusText = 'ACTIVE';
-    badgeVariant = 'success';
+    const endTs = Number(round.endTimestamp);
+    const isSettling = endTs > 0 && now >= endTs;
+
+    if (isSettling) {
+      statusText = 'SETTLING';
+      badgeVariant = 'warning';
+    } else if (currentBtcPrice > 0 && startPriceScaled > 0) {
+      // Determine WINNING or LOSING based on direction and price movement
+      const priceAbove = currentBtcPrice > startPriceScaled;
+      const winning = isUp ? priceAbove : !priceAbove;
+      statusText = winning ? 'WINNING' : 'LOSING';
+      badgeVariant = winning ? 'success' : 'error';
+    } else {
+      statusText = 'ACTIVE';
+      badgeVariant = 'success';
+    }
   } else if (isCanceled) {
     statusText = 'CANCELED';
     badgeVariant = 'outline';
@@ -325,6 +376,33 @@ function PositionRow({
   }
   
   const explorerUrl = explorer.getAddressUrl(marketAddress);
+
+  // ── Current / Close price column ───────────────────────────────────────────
+  const renderCurrentOrClose = () => {
+    if (!isPendingRound) {
+      // Settled: show close price
+      return (
+        <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11 }}>
+          {closePriceScaled > 0 ? `$${closePriceScaled.toFixed(2)}` : '—'}
+        </span>
+      );
+    }
+    if (currentBtcPrice > 0 && startPriceScaled > 0) {
+      const diff = currentBtcPrice - startPriceScaled;
+      const diffSign = diff >= 0 ? '+' : '';
+      return (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+          <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: '#ffffff' }}>
+            ${currentBtcPrice.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+          </span>
+          <span style={{ fontFamily: 'var(--font-mono)', fontSize: 9, color: diff >= 0 ? 'rgba(255,255,255,0.7)' : 'rgba(255,255,255,0.4)' }}>
+            {diffSign}{diff.toFixed(2)}
+          </span>
+        </div>
+      );
+    }
+    return <span style={{ color: 'var(--text-secondary)', fontSize: 11 }}>—</span>;
+  };
 
   return (
     <TableRow>
@@ -358,11 +436,17 @@ function PositionRow({
       <TableCell style={{ fontFamily: 'var(--font-mono)' }}>
         {startPriceScaled > 0 ? `$${startPriceScaled.toFixed(2)}` : '—'}
       </TableCell>
-      <TableCell style={{ fontFamily: 'var(--font-mono)' }}>
-        {closePriceScaled > 0 && !isPendingRound ? `$${closePriceScaled.toFixed(2)}` : '—'}
+      <TableCell>
+        {renderCurrentOrClose()}
       </TableCell>
       <TableCell>
-        <Badge variant={badgeVariant}>{statusText}</Badge>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 2, alignItems: 'flex-start' }}>
+          <Badge variant={badgeVariant}>{statusText}</Badge>
+          {/* Live countdown for active bets */}
+          {isPendingRound && Number(round.endTimestamp) > 0 && (
+            <BetCountdown endTimestamp={Number(round.endTimestamp)} />
+          )}
+        </div>
       </TableCell>
       <TableCell style={{ textAlign: 'right' }}>
         {isClaimable && !bet.claimed ? (

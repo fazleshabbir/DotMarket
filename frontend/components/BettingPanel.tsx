@@ -1,8 +1,8 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { useAccount, useReadContract, useWriteContract, useWaitForTransactionReceipt } from 'wagmi';
-import { parseEther } from 'viem';
+import { useAccount, useReadContract, useWriteContract, useWaitForTransactionReceipt, useBalance } from 'wagmi';
+import { parseEther, formatEther } from 'viem';
 import { ROUND_MARKET_ABI } from '@/lib/abi';
 import { useContracts } from '@/hooks/useNetworkConfig';
 import { ConnectButton } from './ConnectButton';
@@ -37,6 +37,38 @@ const LockIcon = ({ size = 20 }: { size?: number }) => (
   </svg>
 );
 
+// ── Animated number that transitions smoothly on change ──────────────────────
+function AnimatedValue({ value, prefix = '', suffix = '', decimals = 2 }: {
+  value: number;
+  prefix?: string;
+  suffix?: string;
+  decimals?: number;
+}) {
+  const [displayValue, setDisplayValue] = useState(value);
+  const [flash, setFlash] = useState(false);
+
+  useEffect(() => {
+    if (Math.abs(value - displayValue) > 0.0001) {
+      setFlash(true);
+      const t = setTimeout(() => {
+        setDisplayValue(value);
+        setFlash(false);
+      }, 80);
+      return () => clearTimeout(t);
+    }
+  }, [value, displayValue]);
+
+  return (
+    <span style={{
+      transition: 'opacity 80ms ease',
+      opacity: flash ? 0.5 : 1,
+      fontFamily: 'var(--font-mono)',
+    }}>
+      {prefix}{displayValue.toLocaleString(undefined, { minimumFractionDigits: decimals, maximumFractionDigits: decimals })}{suffix}
+    </span>
+  );
+}
+
 export function BettingPanel({ currentBtcPrice }: BettingPanelProps) {
   const [mounted, setMounted] = useState(false);
   const { address, isConnected } = useAccount();
@@ -49,6 +81,15 @@ export function BettingPanel({ currentBtcPrice }: BettingPanelProps) {
   useEffect(() => {
     setMounted(true);
   }, []);
+
+  // ── Wallet native token balance ──────────────────────────────────────────
+  const { data: balanceData } = useBalance({
+    address: address,
+    query: { enabled: !!address, refetchInterval: 5000 },
+  });
+
+  const walletBalance = balanceData ? parseFloat(formatEther(balanceData.value)) : 0;
+  const balanceSymbol = balanceData?.symbol || 'ETH';
 
   // 1. Read current round ID
   const { data: currentRoundId } = useReadContract({
@@ -183,6 +224,13 @@ export function BettingPanel({ currentBtcPrice }: BettingPanelProps) {
   const activeUpMultiplier = activeMultipliers ? Number((activeMultipliers as any)[0] || 0n) / 10000 : 0;
   const activeDownMultiplier = activeMultipliers ? Number((activeMultipliers as any)[1] || 0n) / 10000 : 0;
 
+  // Potential Return & Profit calculations
+  const stakeAmount = parseFloat(betAmount) || 0;
+  const potentialUpReturn = stakeAmount > 0 && activeUpMultiplier > 0 ? stakeAmount * activeUpMultiplier : 0;
+  const potentialDownReturn = stakeAmount > 0 && activeDownMultiplier > 0 ? stakeAmount * activeDownMultiplier : 0;
+  const potentialUpProfit = potentialUpReturn - stakeAmount;
+  const potentialDownProfit = potentialDownReturn - stakeAmount;
+
   // Previous Round Outcome calculations
   const getPrevOutcome = (): { text: string; color: string; userText?: string; userColor?: string } => {
     if (!prevRound) return { text: '—', color: 'var(--text-muted)' };
@@ -205,6 +253,15 @@ export function BettingPanel({ currentBtcPrice }: BettingPanelProps) {
 
     return { text: outcomeText, color: outcomeColor, userText, userColor };
   };
+
+  // Previous round multipliers
+  const prevUpMultiplier = prevMultipliers ? Number((prevMultipliers as any)[0] || 0n) / 10000 : 0;
+  const prevDownMultiplier = prevMultipliers ? Number((prevMultipliers as any)[1] || 0n) / 10000 : 0;
+
+  // Previous round pool distribution
+  const prevTotalPool = prevRound ? prevRound.totalUpAmount + prevRound.totalDownAmount : 0n;
+  const prevUpPercent = prevTotalPool > 0n ? Number((prevRound!.totalUpAmount * 10000n) / prevTotalPool) / 100 : 50;
+  const prevDownPercent = prevTotalPool > 0n ? 100 - prevUpPercent : 50;
 
   const outcome = getPrevOutcome();
 
@@ -232,10 +289,16 @@ export function BettingPanel({ currentBtcPrice }: BettingPanelProps) {
         }}
       >
         <div>
-          {/* Header */}
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+          {/* Header — title + live BTC price + status */}
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
             <span style={{ fontSize: 12, fontWeight: 700, letterSpacing: '0.06em', color: '#ffffff' }}>PLACE BET</span>
             <StatusBadge status={isMarketLocked ? 'locked' : 'ready'} label={isMarketLocked ? 'LOCKED' : 'READY'} />
+          </div>
+
+          {/* BTC Price + market label inline row */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
+            <span style={{ fontSize: 9, color: 'var(--text-secondary)', fontFamily: 'var(--font-mono)', letterSpacing: '0.08em' }}>BTC/USD</span>
+            <PriceTicker price={currentBtcPrice} />
           </div>
 
           {/* Time Remaining / Lock Timer (Only if open) */}
@@ -268,6 +331,18 @@ export function BettingPanel({ currentBtcPrice }: BettingPanelProps) {
               <LockIcon size={14} />
               <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.4)', fontFamily: 'var(--font-mono)', letterSpacing: '0.08em' }}>
                 BETTING CLOSED · AWAITING NEXT ROUND
+              </span>
+            </div>
+          )}
+
+          {/* Wallet Balance */}
+          {isConnected && (
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+              <span style={{ fontSize: 9, color: 'var(--text-secondary)', fontFamily: 'var(--font-mono)', letterSpacing: '0.06em' }}>
+                AVAILABLE
+              </span>
+              <span style={{ fontSize: 10, fontFamily: 'var(--font-mono)', color: 'rgba(255,255,255,0.7)', fontWeight: 600 }}>
+                <AnimatedValue value={walletBalance} decimals={4} suffix={` ${balanceSymbol}`} />
               </span>
             </div>
           )}
@@ -328,6 +403,85 @@ export function BettingPanel({ currentBtcPrice }: BettingPanelProps) {
             </div>
           ) : (
             <div style={{ padding: '8px 0' }}><ConnectButton /></div>
+          )}
+
+          {/* Live Multipliers + Potential Return/Profit (only when connected & amount entered) */}
+          {isConnected && stakeAmount > 0 && (activeUpMultiplier > 0 || activeDownMultiplier > 0) && (
+            <div
+              style={{
+                display: 'flex',
+                flexDirection: 'column',
+                gap: 4,
+                padding: '8px 10px',
+                borderRadius: 10,
+                background: 'rgba(255,255,255,0.015)',
+                border: '1px solid rgba(255,255,255,0.05)',
+                marginBottom: 8,
+              }}
+            >
+              {/* Multiplier row */}
+              <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                <span style={{ fontSize: 9, color: 'var(--text-secondary)', fontFamily: 'var(--font-mono)', letterSpacing: '0.06em' }}>MULTIPLIER</span>
+                <div style={{ display: 'flex', gap: 8 }}>
+                  <span style={{ fontSize: 9, fontFamily: 'var(--font-mono)', color: '#ffffff' }}>
+                    ▲ <AnimatedValue value={activeUpMultiplier} decimals={2} suffix="×" />
+                  </span>
+                  <span style={{ fontSize: 9, fontFamily: 'var(--font-mono)', color: 'rgba(255,255,255,0.6)' }}>
+                    ▼ <AnimatedValue value={activeDownMultiplier} decimals={2} suffix="×" />
+                  </span>
+                </div>
+              </div>
+              {/* Return row */}
+              <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                <span style={{ fontSize: 9, color: 'var(--text-secondary)', fontFamily: 'var(--font-mono)', letterSpacing: '0.06em' }}>RETURN</span>
+                <div style={{ display: 'flex', gap: 8 }}>
+                  <span style={{ fontSize: 9, fontFamily: 'var(--font-mono)', color: '#ffffff' }}>
+                    ▲ <AnimatedValue value={potentialUpReturn} decimals={4} />
+                  </span>
+                  <span style={{ fontSize: 9, fontFamily: 'var(--font-mono)', color: 'rgba(255,255,255,0.6)' }}>
+                    ▼ <AnimatedValue value={potentialDownReturn} decimals={4} />
+                  </span>
+                </div>
+              </div>
+              {/* Profit row */}
+              <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                <span style={{ fontSize: 9, color: 'var(--text-secondary)', fontFamily: 'var(--font-mono)', letterSpacing: '0.06em' }}>PROFIT</span>
+                <div style={{ display: 'flex', gap: 8 }}>
+                  <span style={{ fontSize: 9, fontFamily: 'var(--font-mono)', color: potentialUpProfit >= 0 ? '#ffffff' : 'rgba(255,255,255,0.5)' }}>
+                    ▲ {potentialUpProfit >= 0 ? '+' : ''}<AnimatedValue value={potentialUpProfit} decimals={4} />
+                  </span>
+                  <span style={{ fontSize: 9, fontFamily: 'var(--font-mono)', color: potentialDownProfit >= 0 ? 'rgba(255,255,255,0.6)' : 'rgba(255,255,255,0.35)' }}>
+                    ▼ {potentialDownProfit >= 0 ? '+' : ''}<AnimatedValue value={potentialDownProfit} decimals={4} />
+                  </span>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Multiplier hint (when no amount typed yet) */}
+          {isConnected && stakeAmount === 0 && (activeUpMultiplier > 0 || activeDownMultiplier > 0) && !isMarketLocked && (
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
+              <span style={{ fontSize: 9, color: 'var(--text-secondary)', fontFamily: 'var(--font-mono)', letterSpacing: '0.06em' }}>MULTIPLIER</span>
+              <div style={{ display: 'flex', gap: 8 }}>
+                <span style={{ fontSize: 9, fontFamily: 'var(--font-mono)', color: '#ffffff' }}>
+                  ▲ <AnimatedValue value={activeUpMultiplier} decimals={2} suffix="×" />
+                </span>
+                <span style={{ fontSize: 9, fontFamily: 'var(--font-mono)', color: 'rgba(255,255,255,0.55)' }}>
+                  ▼ <AnimatedValue value={activeDownMultiplier} decimals={2} suffix="×" />
+                </span>
+              </div>
+            </div>
+          )}
+
+          {/* Pool distribution */}
+          {isConnected && !isMarketLocked && activeTotalPool > 0n && (
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 2 }}>
+              <span style={{ fontSize: 9, color: 'var(--text-secondary)', fontFamily: 'var(--font-mono)', letterSpacing: '0.06em' }}>POOL</span>
+              <div style={{ display: 'flex', gap: 8 }}>
+                <span style={{ fontSize: 9, fontFamily: 'var(--font-mono)', color: '#ffffff' }}>▲ {activeUpPercent.toFixed(1)}%</span>
+                <span style={{ fontSize: 9, fontFamily: 'var(--font-mono)', color: 'rgba(255,255,255,0.55)' }}>▼ {activeDownPercent.toFixed(1)}%</span>
+              </div>
+            </div>
           )}
         </div>
 
@@ -424,6 +578,7 @@ export function BettingPanel({ currentBtcPrice }: BettingPanelProps) {
           {isActiveLocked && !isActiveResolved && activeRound ? (
             // Live locked details
             <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+              {/* Live price vs lock price */}
               <div style={{ display: 'flex', justifyContent: 'space-between', background: 'rgba(255,255,255,0.015)', border: '1px solid rgba(255,255,255,0.05)', borderRadius: 10, padding: '6px 10px' }}>
                 <div style={{ display: 'flex', flexDirection: 'column' }}>
                   <span style={{ fontSize: 8, color: 'var(--text-secondary)' }}>LIVE PRICE</span>
@@ -437,10 +592,48 @@ export function BettingPanel({ currentBtcPrice }: BettingPanelProps) {
                 </div>
               </div>
 
-              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 10, fontFamily: 'var(--font-mono)', marginTop: 4 }}>
+              {/* Live difference */}
+              {activeRound.startPrice > 0n && (() => {
+                const lockPx = Number(activeRound.startPrice) / 1e8;
+                const diff = currentBtcPrice - lockPx;
+                const diffPct = lockPx > 0 ? (diff / lockPx) * 100 : 0;
+                return (
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 9, fontFamily: 'var(--font-mono)' }}>
+                    <span style={{ color: 'var(--text-secondary)' }}>DIFFERENCE</span>
+                    <span style={{ color: diff >= 0 ? '#ffffff' : 'rgba(255,255,255,0.5)' }}>
+                      {diff >= 0 ? '+' : ''}{diff.toFixed(2)} ({diffPct >= 0 ? '+' : ''}{diffPct.toFixed(3)}%)
+                    </span>
+                  </div>
+                );
+              })()}
+
+              {/* Pool info */}
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 9, fontFamily: 'var(--font-mono)', marginTop: 2 }}>
                 <span style={{ color: 'var(--text-secondary)' }}>POOL SIZE</span>
-                <span style={{ color: '#ffffff' }}>{activeTotalPool > 0n ? `${(Number(activeTotalPool) / 1e18).toFixed(2)} ETH` : '0.00 ETH'}</span>
+                <span style={{ color: '#ffffff' }}>{activeTotalPool > 0n ? `${(Number(activeTotalPool) / 1e18).toFixed(4)} ETH` : '0.0000 ETH'}</span>
               </div>
+
+              {/* Pool distribution */}
+              {activeTotalPool > 0n && (
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 9, fontFamily: 'var(--font-mono)' }}>
+                  <span style={{ color: 'var(--text-secondary)' }}>DISTRIBUTION</span>
+                  <div style={{ display: 'flex', gap: 8 }}>
+                    <span style={{ color: '#ffffff' }}>▲ {activeUpPercent.toFixed(1)}%</span>
+                    <span style={{ color: 'rgba(255,255,255,0.55)' }}>▼ {activeDownPercent.toFixed(1)}%</span>
+                  </div>
+                </div>
+              )}
+
+              {/* Multipliers */}
+              {(activeUpMultiplier > 0 || activeDownMultiplier > 0) && (
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 9, fontFamily: 'var(--font-mono)' }}>
+                  <span style={{ color: 'var(--text-secondary)' }}>MULTIPLIERS</span>
+                  <div style={{ display: 'flex', gap: 8 }}>
+                    <span style={{ color: '#ffffff' }}>▲ <AnimatedValue value={activeUpMultiplier} decimals={2} suffix="×" /></span>
+                    <span style={{ color: 'rgba(255,255,255,0.55)' }}>▼ <AnimatedValue value={activeDownMultiplier} decimals={2} suffix="×" /></span>
+                  </div>
+                </div>
+              )}
             </div>
           ) : (
             // Previous settled details
@@ -462,8 +655,30 @@ export function BettingPanel({ currentBtcPrice }: BettingPanelProps) {
                   </div>
                   <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 9, fontFamily: 'var(--font-mono)' }}>
                     <span style={{ color: 'var(--text-secondary)' }}>POOL SIZE</span>
-                    <span style={{ color: '#ffffff' }}>{(Number(prevRound.totalUpAmount + prevRound.totalDownAmount) / 1e18).toFixed(2)} ETH</span>
+                    <span style={{ color: '#ffffff' }}>{(Number(prevRound.totalUpAmount + prevRound.totalDownAmount) / 1e18).toFixed(4)} ETH</span>
                   </div>
+
+                  {/* Pool distribution for settled round */}
+                  {prevTotalPool > 0n && (
+                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 9, fontFamily: 'var(--font-mono)' }}>
+                      <span style={{ color: 'var(--text-secondary)' }}>DISTRIBUTION</span>
+                      <div style={{ display: 'flex', gap: 8 }}>
+                        <span style={{ color: '#ffffff' }}>▲ {prevUpPercent.toFixed(1)}%</span>
+                        <span style={{ color: 'rgba(255,255,255,0.55)' }}>▼ {prevDownPercent.toFixed(1)}%</span>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Multipliers for settled round */}
+                  {(prevUpMultiplier > 0 || prevDownMultiplier > 0) && (
+                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 9, fontFamily: 'var(--font-mono)' }}>
+                      <span style={{ color: 'var(--text-secondary)' }}>MULTIPLIERS</span>
+                      <div style={{ display: 'flex', gap: 8 }}>
+                        <span style={{ color: '#ffffff' }}>▲ {prevUpMultiplier.toFixed(2)}×</span>
+                        <span style={{ color: 'rgba(255,255,255,0.55)' }}>▼ {prevDownMultiplier.toFixed(2)}×</span>
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
             )
@@ -476,7 +691,7 @@ export function BettingPanel({ currentBtcPrice }: BettingPanelProps) {
             <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 9, fontFamily: 'var(--font-mono)' }}>
               <span style={{ color: 'var(--text-secondary)' }}>YOUR BET</span>
               <span style={{ color: '#ffffff' }}>
-                {(Number(prevUserBet.amount) / 1e18).toFixed(2)} ETH · {prevUserBet.position === 0 ? 'UP' : 'DOWN'}
+                {(Number(prevUserBet.amount) / 1e18).toFixed(4)} ETH · {prevUserBet.position === 0 ? 'UP' : 'DOWN'}
               </span>
             </div>
             <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 9, fontFamily: 'var(--font-mono)' }}>
