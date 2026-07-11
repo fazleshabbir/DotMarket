@@ -1,7 +1,5 @@
 import "dotenv/config";
 import httpModule from "http";
-import fs from "fs";
-import path from "path";
 import {
   createPublicClient,
   createWalletClient,
@@ -10,36 +8,39 @@ import {
   type Hex,
   type Address,
   type Chain,
+  type PublicClient,
+  type WalletClient,
+  type Transport,
 } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
 
 // ─── ABI Definitions ────────────────────────────────────────────────────────
 
-const CONTINUOUS_MARKET_ABI = [
+const ROUND_MARKET_ABI = [
   { type: "function", name: "pair", inputs: [], outputs: [{ type: "string" }], stateMutability: "view" },
-  { type: "function", name: "totalBetsCount", inputs: [], outputs: [{ type: "uint256" }], stateMutability: "view" },
-  { type: "function", name: "minBetAmount", inputs: [], outputs: [{ type: "uint256" }], stateMutability: "view" },
-  { type: "function", name: "protocolFeeBps", inputs: [], outputs: [{ type: "uint256" }], stateMutability: "view" },
+  { type: "function", name: "currentRoundId", inputs: [], outputs: [{ type: "uint256" }], stateMutability: "view" },
+  { type: "function", name: "roundDuration", inputs: [], outputs: [{ type: "uint256" }], stateMutability: "view" },
+  { type: "function", name: "lockBuffer", inputs: [], outputs: [{ type: "uint256" }], stateMutability: "view" },
   {
     type: "function",
-    name: "getBet",
-    inputs: [{ name: "betId", type: "uint256" }],
+    name: "getRound",
+    inputs: [{ name: "roundId", type: "uint256" }],
     outputs: [
       {
         type: "tuple",
         components: [
-          { name: "betId", type: "uint256" },
-          { name: "user", type: "address" },
-          { name: "position", type: "uint8" },
-          { name: "stake", type: "uint256" },
-          { name: "entryTime", type: "uint256" },
-          { name: "expiryTime", type: "uint256" },
-          { name: "entryPrice", type: "int256" },
-          { name: "settlementPrice", type: "int256" },
-          { name: "lockedMultiplier", type: "uint256" },
-          { name: "status", type: "uint8" },
-          { name: "payout", type: "uint256" },
-          { name: "claimed", type: "bool" },
+          { name: "roundId", type: "uint256" },
+          { name: "startPrice", type: "int256" },
+          { name: "closePrice", type: "int256" },
+          { name: "totalUpAmount", type: "uint256" },
+          { name: "totalDownAmount", type: "uint256" },
+          { name: "startTimestamp", type: "uint256" },
+          { name: "lockTimestamp", type: "uint256" },
+          { name: "endTimestamp", type: "uint256" },
+          { name: "rewardBaseCalAmount", type: "uint256" },
+          { name: "rewardAmount", type: "uint256" },
+          { name: "resolved", type: "bool" },
+          { name: "canceled", type: "bool" },
         ],
       },
     ],
@@ -47,17 +48,37 @@ const CONTINUOUS_MARKET_ABI = [
   },
   {
     type: "function",
-    name: "pushPrice",
-    inputs: [{ name: "price", type: "int256" }],
+    name: "openRound",
+    inputs: [],
     outputs: [],
     stateMutability: "nonpayable",
   },
   {
     type: "function",
-    name: "resolveBet",
+    name: "lockRound",
     inputs: [
-      { name: "betId", type: "uint256" },
-      { name: "settlementPrice", type: "int256" },
+      { name: "roundId", type: "uint256" },
+      { name: "lockPrice", type: "int256" },
+    ],
+    outputs: [],
+    stateMutability: "nonpayable",
+  },
+  {
+    type: "function",
+    name: "lockAndOpenRound",
+    inputs: [
+      { name: "roundToLock", type: "uint256" },
+      { name: "lockPrice", type: "int256" },
+    ],
+    outputs: [],
+    stateMutability: "nonpayable",
+  },
+  {
+    type: "function",
+    name: "resolveRound",
+    inputs: [
+      { name: "roundId", type: "uint256" },
+      { name: "closePrice", type: "int256" },
     ],
     outputs: [],
     stateMutability: "nonpayable",
@@ -66,17 +87,19 @@ const CONTINUOUS_MARKET_ABI = [
 
 // ─── Constants ──────────────────────────────────────────────────────────────
 
-const LOW_BALANCE_THRESHOLD = 0.5;
+const LOW_BALANCE_THRESHOLD = 0.5; // warn if below 0.5 native token
 const MAX_RETRIES = 3;
 const RETRY_BASE_DELAY_MS = 2_000;
 const ERROR_COOLDOWN_MS = 10_000;
+const RESOLVE_TO_OPEN_DELAY_MS = 2_000;
+const END_BUFFER_MS = 2_000; // extra buffer past endTimestamp
 
 // ─── ARC Testnet Chain Definition ───────────────────────────────────────────
 
 const arcTestnet: Chain = {
   id: 5_042_002,
   name: "ARC Testnet",
-  nativeCurrency: { name: "USDC", symbol: "USDC", decimals: 18 },
+  nativeCurrency: { name: "ETH", symbol: "ETH", decimals: 18 },
   rpcUrls: {
     default: { http: ["https://rpc.testnet.arc.network"] },
   },
@@ -85,21 +108,21 @@ const arcTestnet: Chain = {
   },
 };
 
-// ─── Bet Structure ──────────────────────────────────────────────────────────
+// ─── Round Type ─────────────────────────────────────────────────────────────
 
-interface BetData {
-  betId: bigint;
-  user: Address;
-  position: number;
-  stake: bigint;
-  entryTime: bigint;
-  expiryTime: bigint;
-  entryPrice: bigint;
-  settlementPrice: bigint;
-  lockedMultiplier: bigint;
-  status: number;
-  payout: bigint;
-  claimed: boolean;
+interface RoundData {
+  roundId: bigint;
+  startPrice: bigint;
+  closePrice: bigint;
+  totalUpAmount: bigint;
+  totalDownAmount: bigint;
+  startTimestamp: bigint;
+  lockTimestamp: bigint;
+  endTimestamp: bigint;
+  rewardBaseCalAmount: bigint;
+  rewardAmount: bigint;
+  resolved: boolean;
+  canceled: boolean;
 }
 
 // ─── Logger ─────────────────────────────────────────────────────────────────
@@ -114,7 +137,7 @@ function log(emoji: string, message: string): void {
 function loadConfig() {
   const rpc = process.env.ARC_TESTNET_RPC ?? "https://rpc.testnet.arc.network";
   const privateKey = process.env.KEEPER_PRIVATE_KEY || process.env.DEPLOYER_PRIVATE_KEY;
-  const marketAddress = process.env.MARKET_ADDRESS ?? "0xf65e0aF47FDC3d05186f33194B897584248703cd";
+  const marketAddress = "0x31Aeb323aEE44e3EE5036F14bBD0D7f1429B4938";
 
   if (!privateKey) {
     throw new Error("KEEPER_PRIVATE_KEY or DEPLOYER_PRIVATE_KEY is required. Set it in .env");
@@ -133,6 +156,9 @@ function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
+/**
+ * Retry a function with exponential backoff.
+ */
 async function withRetry<T>(
   label: string,
   fn: () => Promise<T>,
@@ -160,108 +186,110 @@ async function withRetry<T>(
   throw lastError;
 }
 
-// State Persistence for Queue pointer
-const POINTER_FILE = path.join(__dirname, "firstRunningBetId.txt");
-
-function savePointer(id: bigint) {
-  try {
-    fs.writeFileSync(POINTER_FILE, id.toString(), "utf8");
-  } catch (err) {
-    log("⚠️", `Failed to save pointer: ${err}`);
-  }
-}
-
-function loadPointer(): bigint {
-  try {
-    if (fs.existsSync(POINTER_FILE)) {
-      const val = fs.readFileSync(POINTER_FILE, "utf8").trim();
-      return BigInt(val);
-    }
-  } catch (err) {
-    log("⚠️", `Failed to load pointer: ${err}`);
-  }
-  return 1n;
-}
-
 // ─── Price Fetching ──────────────────────────────────────────────────────────
 
+/**
+ * Fetch price from Binance API and format to 8 decimals (as standard oracle representation).
+ */
+/**
+ * Fetch price using Pyth Hermes API as primary source (rate-limit friendly and doesn't block cloud IPs like Render/AWS).
+ * Falls back to Binance and then CoinGecko if Hermes is down.
+ * Formats price to 8 decimals as standard oracle representation.
+ */
 async function fetchPrice(pairName: string): Promise<bigint> {
-  // Try Pyth Hermes API
+  log("🔮", `Fetching price for ${pairName}...`);
+
+  // 1. Try Pyth Hermes API first (Highly reliable, no cloud IP blocks)
   try {
-    const feedId = "e62df6c8b4a85fe1a67db44dc12de5db330f7ac66b72dc658afedf0f4a415b43"; // Default BTC/USD
+    let feedId = "e62df6c8b4a85fe1a67db44dc12de5db330f7ac66b72dc658afedf0f4a415b43"; // Default BTC/USD
+    const envFeedId = process.env.PRICE_FEED_ID;
+    if (envFeedId) {
+      feedId = envFeedId.startsWith("0x") ? envFeedId.substring(2) : envFeedId;
+    } else {
+      const pairUpper = pairName.toUpperCase();
+      if (pairUpper === "ETH/USD") {
+        feedId = "ff6d0bb2e285473e5311d9d3caacb525ae3538a8";
+      } else if (pairUpper === "SOL/USD") {
+        feedId = "ef0d8b6ffd224f8d5c02b18169902bd6f1214e3057ab65d83a1045509287ec50";
+      }
+    }
+
+    log("🔮", `Querying Pyth Hermes Feed: ${feedId}...`);
     const res = await fetch(`https://hermes.pyth.network/v2/updates/price/latest?ids[]=${feedId}`, {
       signal: AbortSignal.timeout(10000)
     });
-    if (res.ok) {
-      const data = await res.json() as any;
-      const priceStr = data.parsed[0].price.price;
-      const expo = data.parsed[0].price.expo;
-      let priceVal = BigInt(priceStr);
-      const targetDecimals = 8;
-      const currentDecimals = -expo;
-      if (currentDecimals > targetDecimals) {
-        priceVal = priceVal / BigInt(10 ** (currentDecimals - targetDecimals));
-      } else if (currentDecimals < targetDecimals) {
-        priceVal = priceVal * BigInt(10 ** (targetDecimals - currentDecimals));
-      }
-      return priceVal;
+    if (!res.ok) {
+      throw new Error(`Hermes API returned status ${res.status}`);
     }
-  } catch (err) {}
+    const data = await res.json() as any;
+    const priceStr = data.parsed[0].price.price;
+    const expo = data.parsed[0].price.expo; // e.g. -8
+    
+    let priceVal = BigInt(priceStr);
+    
+    // Scale to standard 8 decimals if needed
+    const targetDecimals = 8;
+    const currentDecimals = -expo;
+    if (currentDecimals > targetDecimals) {
+      priceVal = priceVal / BigInt(10 ** (currentDecimals - targetDecimals));
+    } else if (currentDecimals < targetDecimals) {
+      priceVal = priceVal * BigInt(10 ** (targetDecimals - currentDecimals));
+    }
+    
+    const floatPrice = Number(priceVal) / 1e8;
+    log("📈", `Pyth Hermes Price: $${floatPrice} (Scaled: ${priceVal})`);
+    return priceVal;
+  } catch (err) {
+    log("⚠️", `Pyth Hermes fetch failed: ${err instanceof Error ? err.message : String(err)}. Trying Binance...`);
+  }
 
-  // Fallback to Binance live price
+  // 2. Fallback to Binance (Might block AWS/Render hosting IPs)
+  let symbol = "BTCUSDT";
+  if (pairName.toUpperCase() === "ETH/USD") {
+    symbol = "ETHUSDT";
+  } else if (pairName.toUpperCase() === "SOL/USD") {
+    symbol = "SOLUSDT";
+  }
+
   try {
-    const res = await fetch(`https://api.binance.com/api/v3/ticker/price?symbol=BTCUSDT`, {
+    const res = await fetch(`https://api.binance.com/api/v3/ticker/price?symbol=${symbol}`, {
       signal: AbortSignal.timeout(10000)
     });
-    if (res.ok) {
-      const data = await res.json() as { price: string };
-      return BigInt(Math.round(parseFloat(data.price) * 1e8));
+    if (!res.ok) {
+      throw new Error(`Binance API returned status ${res.status}`);
     }
-  } catch (err) {}
+    const data = await res.json() as { price: string };
+    const floatPrice = parseFloat(data.price);
+    const priceVal = BigInt(Math.round(floatPrice * 1e8));
+    log("📈", `Binance Price: $${floatPrice} (Scaled: ${priceVal})`);
+    return priceVal;
+  } catch (err) {
+    log("⚠️", `Binance fetch failed: ${err instanceof Error ? err.message : String(err)}. Trying CoinGecko...`);
+  }
 
-  throw new Error("Failed to fetch live price");
-}
-
-async function fetchHistoricalPrice(timestamp: number): Promise<bigint> {
-  // 1. Try Pyth Benchmarks API
+  // 3. Fallback to CoinGecko (Has strict rate limit for free tier)
   try {
-    const feedId = "e62df6c8b4a85fe1a67db44dc12de5db330f7ac66b72dc658afedf0f4a415b43";
-    const res = await fetch(`https://benchmarks.pyth.network/v1/updates/price/${timestamp}?ids[]=${feedId}`, {
+    let cgId = "bitcoin";
+    if (pairName.toUpperCase() === "ETH/USD") {
+      cgId = "ethereum";
+    } else if (pairName.toUpperCase() === "SOL/USD") {
+      cgId = "solana";
+    }
+    const res = await fetch(`https://api.coingecko.com/api/v3/simple/price?ids=${cgId}&vs_currencies=usd`, {
       signal: AbortSignal.timeout(10000)
     });
-    if (res.ok) {
-      const data = await res.json() as any;
-      const priceStr = data.parsed[0].price.price;
-      const expo = data.parsed[0].price.expo;
-      let priceVal = BigInt(priceStr);
-      const targetDecimals = 8;
-      const currentDecimals = -expo;
-      if (currentDecimals > targetDecimals) {
-        priceVal = priceVal / BigInt(10 ** (currentDecimals - targetDecimals));
-      } else if (currentDecimals < targetDecimals) {
-        priceVal = priceVal * BigInt(10 ** (targetDecimals - currentDecimals));
-      }
-      return priceVal;
+    if (!res.ok) {
+      throw new Error(`CoinGecko API returned status ${res.status}`);
     }
-  } catch (err) {}
-
-  // 2. Try Binance 1-second historical Klines
-  try {
-    const startTime = timestamp * 1000;
-    const res = await fetch(`https://api.binance.com/api/v3/klines?symbol=BTCUSDT&interval=1s&startTime=${startTime}&limit=1`, {
-      signal: AbortSignal.timeout(10000)
-    });
-    if (res.ok) {
-      const klines = await res.json() as any[];
-      if (klines && klines.length > 0) {
-        const closePrice = parseFloat(klines[0][4]);
-        return BigInt(Math.round(closePrice * 1e8));
-      }
-    }
-  } catch (err) {}
-
-  // 3. Last fallback: live price
-  return await fetchPrice("BTC/USD");
+    const data = await res.json() as any;
+    const floatPrice = data[cgId].usd;
+    const priceVal = BigInt(Math.round(floatPrice * 1e8));
+    log("📈", `CoinGecko Price: $${floatPrice} (Scaled: ${priceVal})`);
+    return priceVal;
+  } catch (err) {
+    log("❌", `All price sources failed: ${err instanceof Error ? err.message : String(err)}`);
+    throw err;
+  }
 }
 
 // ─── Keeper Bot ─────────────────────────────────────────────────────────────
@@ -269,12 +297,14 @@ async function fetchHistoricalPrice(timestamp: number): Promise<bigint> {
 let isRunning = true;
 
 async function main() {
-  log("🚀", "dotMarket Continuous Keeper Bot starting...");
+  log("🚀", "dotMarket Keeper Bot starting (No Pyth)...");
 
+  // ── Load config ──
   const config = loadConfig();
   log("⚙️", `RPC: ${config.rpc}`);
   log("⚙️", `Market: ${config.marketAddress}`);
 
+  // ── Set up viem clients ──
   const account = privateKeyToAccount(config.privateKey);
   log("🔑", `Keeper address: ${account.address}`);
 
@@ -289,125 +319,286 @@ async function main() {
     transport: http(config.rpc, { timeout: 15000 }),
   });
 
-  const balance = await withRetry("Initial balance check", () => publicClient.getBalance({ address: account.address }));
-  log("💎", `Keeper balance: ${formatEther(balance)} USDC`);
+  // ── Check balance ──
+  const balance = await withRetry("Initial getBalance", () => publicClient.getBalance({ address: account.address }));
+  const balanceEth = parseFloat(formatEther(balance));
+  log("💎", `Keeper balance: ${formatEther(balance)} ETH`);
+  if (balanceEth < LOW_BALANCE_THRESHOLD) {
+    log(
+      "🚨",
+      `WARNING: Balance is below ${LOW_BALANCE_THRESHOLD} ETH! Fund the keeper wallet to avoid failures.`
+    );
+  }
 
-  let firstRunningBetId = loadPointer();
-  log("📌", `Loaded starting resolve bet pointer ID: ${firstRunningBetId}`);
+  // ── Read contract params ──
+  const pair = await withRetry("Read pair", () => publicClient.readContract({
+    address: config.marketAddress,
+    abi: ROUND_MARKET_ABI,
+    functionName: "pair",
+  }));
+  log("💱", `Trading Pair: ${pair}`);
 
-  // Loop timers
-  let lastPricePushTime = 0;
+  const roundDuration = await withRetry("Read roundDuration", () => publicClient.readContract({
+    address: config.marketAddress,
+    abi: ROUND_MARKET_ABI,
+    functionName: "roundDuration",
+  }));
+  log("📐", `Round duration: ${roundDuration}s`);
 
+  const lockBuffer = await withRetry("Read lockBuffer", () => publicClient.readContract({
+    address: config.marketAddress,
+    abi: ROUND_MARKET_ABI,
+    functionName: "lockBuffer",
+  }));
+  log("🔒", `Lock buffer: ${lockBuffer}s`);
+
+  log("✅", "Keeper initialized. Entering main loop...\n");
+
+  // ─── Main Loop ─────────────────────────────────────────────────────────
   while (isRunning) {
     try {
-      const nowSec = Math.floor(Date.now() / 1000);
-
-      // ─── A. Push Price to Contract ───
-      // Push price every 6 seconds to keep reference price fresh on-chain
-      if (nowSec - lastPricePushTime >= 6) {
-        const livePrice = await fetchPrice("BTC/USD");
-        log("📈", `Live reference price fetched: $${(Number(livePrice) / 1e8).toFixed(2)}`);
-
-        await withRetry("pushPrice", async () => {
-          const hash = await walletClient.writeContract({
-            address: config.marketAddress,
-            abi: CONTINUOUS_MARKET_ABI,
-            functionName: "pushPrice",
-            args: [livePrice],
-            gas: 1000000n,
-          });
-          log("📤", `pushPrice tx sent: ${hash}`);
-          await publicClient.waitForTransactionReceipt({ hash });
-        });
-        lastPricePushTime = nowSec;
-      }
-
-      // ─── B. Resolve Expired Bets ───
-      const totalBetsCount = await withRetry("Read totalBetsCount", () =>
+      // 1. Read current round ID with retry
+      const currentRoundId = await withRetry("Read currentRoundId", () =>
         publicClient.readContract({
           address: config.marketAddress,
-          abi: CONTINUOUS_MARKET_ABI,
-          functionName: "totalBetsCount",
+          abi: ROUND_MARKET_ABI,
+          functionName: "currentRoundId",
         })
       );
 
-      if (totalBetsCount >= firstRunningBetId) {
-        for (let betId = firstRunningBetId; betId <= totalBetsCount; betId++) {
-          const bet = await withRetry(`Fetch bet #${betId}`, () =>
-            publicClient.readContract({
-              address: config.marketAddress,
-              abi: CONTINUOUS_MARKET_ABI,
-              functionName: "getBet",
-              args: [betId],
-            })
-          ) as unknown as BetData;
+      log("📊", `Current round ID: ${currentRoundId}`);
 
-          // Status: 0 = Running, 1 = Won, 2 = Lost, 3 = Push
-          if (bet.status === 0) {
-            if (BigInt(nowSec) >= bet.expiryTime) {
-              log("⏰", `Bet #${betId} has expired. Expiry: ${bet.expiryTime}. Resolving...`);
-              
-              const settlementPrice = await fetchHistoricalPrice(Number(bet.expiryTime));
-              log("📈", `Historical price at expiry: $${(Number(settlementPrice) / 1e8).toFixed(2)}`);
+      const nowSec = BigInt(Math.floor(Date.now() / 1000));
 
-              await withRetry(`resolveBet #${betId}`, async () => {
-                const hash = await walletClient.writeContract({
-                  address: config.marketAddress,
-                  abi: CONTINUOUS_MARKET_ABI,
-                  functionName: "resolveBet",
-                  args: [betId, settlementPrice],
-                  gas: 1000000n,
-                });
-                log("📤", `resolveBet #${betId} tx sent: ${hash}`);
-                const receipt = await publicClient.waitForTransactionReceipt({ hash });
-                log("✅", `Bet #${betId} resolved! Gas used: ${receipt.gasUsed}`);
+      // 2. If no round exists (id == 0) → open the first round
+      if (currentRoundId === 0n) {
+        log("🆕", "No active round found. Opening the first round...");
+        await withRetry("openRound (genesis)", async () => {
+          const hash = await walletClient.writeContract({
+            address: config.marketAddress,
+            abi: ROUND_MARKET_ABI,
+            functionName: "openRound",
+            gas: 1000000n,
+          });
+          log("📤", `openRound tx sent: ${hash}`);
+          const receipt = await publicClient.waitForTransactionReceipt({ hash });
+          log("✅", `Genesis round opened! Gas used: ${receipt.gasUsed} | Block: ${receipt.blockNumber}`);
+        });
+        await sleep(5000);
+        continue;
+      }
+
+      // 3. Fetch current round data with retry
+      const currentRound = await withRetry(`Fetch currentRound #${currentRoundId}`, () =>
+        publicClient.readContract({
+          address: config.marketAddress,
+          abi: ROUND_MARKET_ABI,
+          functionName: "getRound",
+          args: [currentRoundId],
+        })
+      ) as unknown as RoundData;
+
+      log(
+        "📋",
+        `Round #${currentRound.roundId} | resolved=${currentRound.resolved} | canceled=${currentRound.canceled} | lockTimestamp=${currentRound.lockTimestamp} | endTimestamp=${currentRound.endTimestamp} | now=${nowSec}`
+      );
+
+      // ── STEP 0: If current round is already resolved or canceled, open next round ──
+      if (currentRound.resolved || currentRound.canceled) {
+        log("🔄", `Current round #${currentRoundId} is already settled/resolved. Opening the next round...`);
+        await withRetry("openRound (after current resolved)", async () => {
+          const hash = await walletClient.writeContract({
+            address: config.marketAddress,
+            abi: ROUND_MARKET_ABI,
+            functionName: "openRound",
+            gas: 1000000n,
+          });
+          log("📤", `openRound tx sent: ${hash}`);
+          const receipt = await publicClient.waitForTransactionReceipt({ hash });
+          log("✅", `New round opened! Gas used: ${receipt.gasUsed} | Block: ${receipt.blockNumber}`);
+        });
+        await sleep(5000);
+        continue;
+      }
+
+      // ── STEP A: Resolve + open next round if current round has ended ───────
+      // This handles the case where the current round has passed its endTimestamp
+      // but hasn't been resolved yet. It requires startPrice > 0 (already locked).
+      if (
+        !currentRound.resolved &&
+        !currentRound.canceled &&
+        currentRound.startPrice > 0n &&
+        nowSec >= currentRound.endTimestamp + BigInt(END_BUFFER_MS / 1000)
+      ) {
+        log("⏰", `Round #${currentRoundId} has ended (endTimestamp past). Resolving and opening next round...`);
+
+        // Resolve the current round
+        await withRetry(`resolveRound #${currentRoundId}`, async () => {
+          const price = await fetchPrice(pair);
+          const hash = await walletClient.writeContract({
+            address: config.marketAddress,
+            abi: ROUND_MARKET_ABI,
+            functionName: "resolveRound",
+            args: [currentRoundId, price],
+            gas: 1000000n,
+          });
+          log("📤", `resolveRound #${currentRoundId} tx sent: ${hash}`);
+          const receipt = await publicClient.waitForTransactionReceipt({ hash });
+          log("✅", `Round #${currentRoundId} resolved! Gas used: ${receipt.gasUsed} | Block: ${receipt.blockNumber}`);
+        });
+
+        await sleep(RESOLVE_TO_OPEN_DELAY_MS);
+
+        // Open the next round
+        await withRetry("openRound (after resolve)", async () => {
+          const hash = await walletClient.writeContract({
+            address: config.marketAddress,
+            abi: ROUND_MARKET_ABI,
+            functionName: "openRound",
+            gas: 1000000n,
+          });
+          log("📤", `openRound tx sent: ${hash}`);
+          const receipt = await publicClient.waitForTransactionReceipt({ hash });
+          log("✅", `New round opened! Gas used: ${receipt.gasUsed} | Block: ${receipt.blockNumber}`);
+        });
+
+        await sleep(5000);
+        continue;
+      }
+
+      // ── STEP B: Lock current round + open next if lock time has passed ─────
+      // startPrice === 0n means the round has NOT been locked yet
+      if (
+        !currentRound.resolved &&
+        !currentRound.canceled &&
+        currentRound.startPrice === 0n &&
+        nowSec >= currentRound.lockTimestamp
+      ) {
+        log("🔒", `Round #${currentRoundId} has reached lock time. Locking and opening next round...`);
+        await withRetry(`lockAndOpenRound #${currentRoundId}`, async () => {
+          const price = await fetchPrice(pair);
+          const hash = await walletClient.writeContract({
+            address: config.marketAddress,
+            abi: ROUND_MARKET_ABI,
+            functionName: "lockAndOpenRound",
+            args: [currentRoundId, price],
+            gas: 1000000n,
+          });
+          log("📤", `lockAndOpenRound tx sent: ${hash}`);
+          const receipt = await publicClient.waitForTransactionReceipt({ hash });
+          log("✅", `Round #${currentRoundId} locked & next opened! Gas used: ${receipt.gasUsed} | Block: ${receipt.blockNumber}`);
+        });
+        await sleep(5000);
+        continue;
+      }
+
+      // ── STEP C: Check and resolve previous rounds that slipped through ─────
+      // Scan up to 10 rounds back. Use continue instead of break so a single stuck round doesn't block resolution of others.
+      const scanLimit = currentRoundId - 10n > 0n ? currentRoundId - 10n : 1n;
+      for (let prevId = currentRoundId - 1n; prevId >= scanLimit; prevId--) {
+        let prevRound = await withRetry(`Fetch prevRound #${prevId}`, () =>
+          publicClient.readContract({
+            address: config.marketAddress,
+            abi: ROUND_MARKET_ABI,
+            functionName: "getRound",
+            args: [prevId],
+          })
+        ) as unknown as RoundData;
+
+        if (prevRound.resolved || prevRound.canceled) continue;
+
+        if (nowSec >= prevRound.endTimestamp + BigInt(END_BUFFER_MS / 1000)) {
+          // If the previous round was never locked, lock it first!
+          if (prevRound.startPrice === 0n) {
+            log("🔒", `Previous Round #${prevId} was never locked. Locking now before resolution...`);
+            await withRetry(`lockRound #${prevId}`, async () => {
+              const price = await fetchPrice(pair);
+              const hash = await walletClient.writeContract({
+                address: config.marketAddress,
+                abi: ROUND_MARKET_ABI,
+                functionName: "lockRound",
+                args: [prevId, price],
+                gas: 1000000n,
               });
-            } else {
-              // Remaining bets are not expired yet (since IDs are chronological)
-              break;
-            }
+              log("📤", `lockRound #${prevId} tx sent: ${hash}`);
+              const receipt = await publicClient.waitForTransactionReceipt({ hash });
+              log("✅", `Round #${prevId} locked! Gas used: ${receipt.gasUsed} | Block: ${receipt.blockNumber}`);
+            });
+            // Refresh round details
+            prevRound = await withRetry(`Refetch prevRound #${prevId}`, () =>
+              publicClient.readContract({
+                address: config.marketAddress,
+                abi: ROUND_MARKET_ABI,
+                functionName: "getRound",
+                args: [prevId],
+              })
+            ) as unknown as RoundData;
           }
 
-          if (bet.status !== 0 && betId === firstRunningBetId) {
-            firstRunningBetId++;
-            savePointer(firstRunningBetId);
-          }
+          log("⏰", `Previous Round #${prevId} has ended. Resolving...`);
+          await withRetry(`resolveRound #${prevId}`, async () => {
+            const price = await fetchPrice(pair);
+            const hash = await walletClient.writeContract({
+              address: config.marketAddress,
+              abi: ROUND_MARKET_ABI,
+              functionName: "resolveRound",
+              args: [prevId, price],
+              gas: 1000000n,
+            });
+            log("📤", `resolveRound #${prevId} tx sent: ${hash}`);
+            const receipt = await publicClient.waitForTransactionReceipt({ hash });
+            log("✅", `Round #${prevId} resolved! Gas used: ${receipt.gasUsed} | Block: ${receipt.blockNumber}`);
+          });
         }
       }
 
-      // Sleep 3 seconds before next iteration
-      await sleep(3000);
+      // 6. Sleep for a short polling interval (10 seconds to avoid RPC rate limiting)
+      await sleep(10000);
     } catch (err) {
       log(
         "❌",
         `Unhandled error in main loop: ${err instanceof Error ? err.message : String(err)}`
       );
+      if (err instanceof Error && err.stack) {
+        console.error(err.stack);
+      }
+      log("⏳", `Cooling down for ${ERROR_COOLDOWN_MS / 1000}s before retry...`);
       await sleep(ERROR_COOLDOWN_MS);
     }
   }
+
+  log("👋", "Keeper bot shut down gracefully.");
 }
 
 // ─── Dummy Web Server ───────────────────────────────────────────────────────
 const PORT = process.env.PORT || 10000;
 const server = httpModule.createServer((req, res) => {
   res.writeHead(200, { "Content-Type": "text/plain" });
-  res.end("Continuous Keeper is healthy\n");
+  res.end("Keeper is healthy and running\n");
 });
 server.listen(PORT, () => {
-  log("🌐", `Dummy health server listening on port ${PORT}`);
+  log("🌐", `Dummy health-check server listening on port ${PORT}`);
 });
 
-// Graceful Shutdown
+// ─── Graceful Shutdown ──────────────────────────────────────────────────────
+
 function shutdown(signal: string) {
   log("🛑", `Received ${signal}. Shutting down...`);
   isRunning = false;
-  server.close();
+  server.close(() => {
+    log("🌐", "Dummy health-check server closed.");
+  });
 }
 
 process.on("SIGINT", () => shutdown("SIGINT"));
 process.on("SIGTERM", () => shutdown("SIGTERM"));
 
+// ─── Entrypoint ─────────────────────────────────────────────────────────────
+
 main().catch((err) => {
   log("💀", `Fatal error: ${err instanceof Error ? err.message : String(err)}`);
+  if (err instanceof Error && err.stack) {
+    console.error(err.stack);
+  }
   process.exit(1);
 });

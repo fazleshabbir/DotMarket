@@ -1,25 +1,33 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { useAccount, usePublicClient } from 'wagmi';
+import { useAccount, useReadContract, useWriteContract, useWaitForTransactionReceipt } from 'wagmi';
+import { formatEther } from 'viem';
+import { ROUND_MARKET_ABI } from '@/lib/abi';
+import { useCurrentChain, useContracts, useExplorer } from '../hooks/useNetworkConfig';
+import { Button } from './ui/Button';
 import { Card } from './ui/Card';
 import { Table, TableRow, TableCell } from './ui/Table';
 import { Badge } from './ui/Badge';
-import { ROUND_MARKET_ABI } from '@/lib/abi';
-import { useContracts } from '../hooks/useNetworkConfig';
 
-interface Bet {
-  betId: bigint;
-  user: string;
-  position: number; // 0 = UP, 1 = DOWN
-  stake: bigint;
-  entryTime: bigint;
-  expiryTime: bigint;
-  entryPrice: bigint;
-  settlementPrice: bigint;
-  lockedMultiplier: bigint;
-  status: number; // 0 = Running, 1 = Won, 2 = Lost, 3 = Push
-  payout: bigint;
+interface RoundData {
+  roundId: bigint;
+  startPrice: bigint;
+  closePrice: bigint;
+  totalUpAmount: bigint;
+  totalDownAmount: bigint;
+  startTimestamp: bigint;
+  lockTimestamp: bigint;
+  endTimestamp: bigint;
+  rewardBaseCalAmount: bigint;
+  rewardAmount: bigint;
+  resolved: boolean;
+  canceled: boolean;
+}
+
+interface BetData {
+  position: number;
+  amount: bigint;
   claimed: boolean;
 }
 
@@ -27,109 +35,48 @@ export function PositionsTable() {
   const [mounted, setMounted] = useState(false);
   const { address, isConnected } = useAccount();
   const [activeTab, setActiveTab] = useState<'positions' | 'history'>('positions');
-  const [activeBets, setActiveBets] = useState<Bet[]>([]);
-  const [historyBets, setHistoryBets] = useState<Bet[]>([]);
-  const [btcPrice, setBtcPrice] = useState<number>(0);
-  const [now, setNow] = useState(Math.floor(Date.now() / 1000));
+  const [claimStatus, setClaimStatus] = useState<string | null>(null);
 
   const contracts = useContracts();
   const MARKET_ADDRESS = contracts.predictionMarket;
-  const publicClient = usePublicClient();
 
   useEffect(() => {
     setMounted(true);
   }, []);
 
-  // Timer tick for countdown
+  // Read user's round IDs
+  const { data: userRoundIds } = useReadContract({
+    address: MARKET_ADDRESS,
+    abi: ROUND_MARKET_ABI,
+    functionName: 'getUserRounds',
+    args: [address || '0x0000000000000000000000000000000000000000'],
+    query: { enabled: !!address, refetchInterval: 10000 },
+  });
+
+  const roundIds = (userRoundIds as bigint[] | undefined) || [];
+  const recentIds = roundIds.slice(-10).reverse(); // Show last 10, newest first
+
+  // Write contract for claiming
+  const { writeContract, data: txHash, isPending } = useWriteContract();
+  const { isLoading: isConfirming, isSuccess } = useWaitForTransactionReceipt({ hash: txHash });
+
   useEffect(() => {
-    const interval = setInterval(() => {
-      setNow(Math.floor(Date.now() / 1000));
-    }, 1000);
-    return () => clearInterval(interval);
-  }, []);
+    if (isPending) setClaimStatus('⏳ Initiating claim...');
+    else if (isConfirming) setClaimStatus('⛓️ Confirming on-chain...');
+    else if (isSuccess) {
+      setClaimStatus('✅ Claimed successfully!');
+      setTimeout(() => setClaimStatus(null), 3000);
+    }
+  }, [isPending, isConfirming, isSuccess]);
 
-  // Fetch live price ticker from Binance
-  useEffect(() => {
-    const fetchBtcPrice = async () => {
-      try {
-        const res = await fetch('https://api.binance.com/api/v3/ticker/price?symbol=BTCUSDT');
-        const data = await res.json();
-        if (data && data.price) {
-          setBtcPrice(parseFloat(data.price));
-        }
-      } catch (err) {}
-    };
-    fetchBtcPrice();
-    const interval = setInterval(fetchBtcPrice, 2000);
-    return () => clearInterval(interval);
-  }, []);
-
-  // Fetch Bets from Smart Contract
-  useEffect(() => {
-    if (!publicClient || !address || !MARKET_ADDRESS) return;
-
-    let isSubscribed = true;
-
-    const fetchUserBets = async () => {
-      try {
-        // Read user's bet list
-        const betIds = await publicClient.readContract({
-          address: MARKET_ADDRESS,
-          abi: ROUND_MARKET_ABI,
-          functionName: 'getUserBets',
-          args: [address],
-        }) as bigint[];
-
-        if (!isSubscribed) return;
-
-        // Take last 20 bets to display
-        const recentIds = betIds.slice(-20).reverse();
-
-        const betsList = await Promise.all(
-          recentIds.map(async (id) => {
-            const data = await publicClient.readContract({
-              address: MARKET_ADDRESS,
-              abi: ROUND_MARKET_ABI,
-              functionName: 'getBet',
-              args: [id],
-            }) as any;
-            return {
-              betId: data.betId,
-              user: data.user,
-              position: data.position,
-              stake: data.stake,
-              entryTime: data.entryTime,
-              expiryTime: data.expiryTime,
-              entryPrice: data.entryPrice,
-              settlementPrice: data.settlementPrice,
-              lockedMultiplier: data.lockedMultiplier,
-              status: data.status,
-              payout: data.payout,
-              claimed: data.claimed,
-            } as Bet;
-          })
-        );
-
-        if (!isSubscribed) return;
-
-        // Split active vs history
-        const active = betsList.filter((b) => b.status === 0);
-        const history = betsList.filter((b) => b.status !== 0);
-
-        setActiveBets(active);
-        setHistoryBets(history);
-      } catch (err) {
-        console.error('Error fetching bets in PositionsTable:', err);
-      }
-    };
-
-    fetchUserBets();
-    const interval = setInterval(fetchUserBets, 4000);
-    return () => {
-      isSubscribed = false;
-      clearInterval(interval);
-    };
-  }, [publicClient, address, MARKET_ADDRESS]);
+  const handleClaim = (roundId: bigint) => {
+    writeContract({
+      address: MARKET_ADDRESS,
+      abi: ROUND_MARKET_ABI,
+      functionName: 'claim',
+      args: [roundId],
+    });
+  };
 
   if (!mounted) {
     return (
@@ -180,8 +127,8 @@ export function PositionsTable() {
     );
   }
 
-  const currentBets = activeTab === 'positions' ? activeBets : historyBets;
-
+  // Helper check to see if any rows will actually render for the active tab
+  // (we can determine this by checking if the tab matches and rendering would be non-null)
   return (
     <Card 
       hoverEffect={false} 
@@ -225,7 +172,7 @@ export function PositionsTable() {
               transition: 'all 200ms ease'
             }}
           >
-            ACTIVE BETS ({activeBets.length})
+            ACTIVE BETS
           </button>
           <button
             onClick={() => setActiveTab('history')}
@@ -241,14 +188,14 @@ export function PositionsTable() {
               transition: 'all 200ms ease'
             }}
           >
-            HISTORY ({historyBets.length})
+            HISTORY
           </button>
         </div>
       </div>
 
       {/* Table Content */}
       <div style={{ flex: 1, overflowY: 'auto', minHeight: 0 }}>
-        {currentBets.length === 0 ? (
+        {recentIds.length === 0 ? (
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', gap: 10, padding: 20 }}>
             <svg
               viewBox="0 0 24 24"
@@ -264,140 +211,178 @@ export function PositionsTable() {
               <path d="M16 11h.01M22 10h-6a2 2 0 0 0-2 2v2a2 2 0 0 0 2 2h6" />
             </svg>
             <div style={{ textAlign: 'center' }}>
-              <span style={{ display: 'block', fontSize: 12, color: '#ffffff', fontWeight: 600 }}>
-                {activeTab === 'positions' ? 'No Active Bets' : 'No History'}
-              </span>
-              <span style={{ fontSize: 10, color: 'var(--text-secondary)' }}>
-                {activeTab === 'positions' ? 'Open positions will appear here.' : 'Resolved predictions will show history.'}
-              </span>
+              <span style={{ display: 'block', fontSize: 12, color: '#ffffff', fontWeight: 600 }}>No Active Bets</span>
+              <span style={{ fontSize: 10, color: 'var(--text-secondary)' }}>Connect your wallet to place your first prediction.</span>
             </div>
           </div>
         ) : (
-          <Table
-            headers={
-              activeTab === 'positions'
-                ? ['BET ID', 'FORECAST', 'AMOUNT', 'ENTRY PRICE', 'CURRENT PRICE', 'TIME LEFT', 'MULTIPLIER', 'POT. RETURN']
-                : ['BET ID', 'FORECAST', 'AMOUNT', 'ENTRY PRICE', 'SETTLE PRICE', 'MULTIPLIER', 'RESULT', 'PROFIT/LOSS']
-            }
-          >
-            {currentBets.map((bet) => {
-              const isUp = bet.position === 0;
-              const stakeUSDC = Number(bet.stake) / 1e18;
-              const payoutUSDC = Number(bet.payout) / 1e18;
-              const entryPrice = Number(bet.entryPrice) / 1e8;
-              const settlementPrice = Number(bet.settlementPrice) / 1e8;
-              const multiplier = Number(bet.lockedMultiplier) / 10000;
-              const secondsLeft = Math.max(0, Number(bet.expiryTime) - now);
-
-              // Position status logic
-              const isWinning = isUp ? btcPrice > entryPrice : btcPrice < entryPrice;
-              const isTie = btcPrice === entryPrice;
-              const liveStatusColor = isTie ? 'var(--text-secondary)' : isWinning ? '#ffffff' : 'rgba(255,255,255,0.4)';
-
-              // History status logic
-              let statusLabel = 'RUNNING';
-              let badgeVariant: 'default' | 'success' | 'warning' | 'error' | 'outline' = 'default';
-              let profitUSDC = 0;
-
-              if (bet.status === 1) {
-                statusLabel = 'WON';
-                badgeVariant = 'success';
-                profitUSDC = payoutUSDC - stakeUSDC;
-              } else if (bet.status === 2) {
-                statusLabel = 'LOST';
-                badgeVariant = 'error';
-                profitUSDC = -stakeUSDC;
-              } else if (bet.status === 3) {
-                statusLabel = 'PUSH';
-                badgeVariant = 'outline';
-                profitUSDC = 0;
-              }
-
-              if (activeTab === 'positions') {
-                return (
-                  <TableRow key={bet.betId.toString()}>
-                    <TableCell style={{ fontWeight: 600, color: 'var(--text-secondary)' }}>
-                      #{bet.betId.toString()}
-                    </TableCell>
-                    <TableCell>
-                      <span 
-                        style={{ 
-                          color: isUp ? '#ffffff' : 'var(--text-secondary)', 
-                          fontWeight: 700,
-                          background: isUp ? 'rgba(255,255,255,0.06)' : 'rgba(82,82,82,0.15)',
-                          padding: '3px 7px',
-                          borderRadius: 5,
-                          fontSize: 9,
-                        }}
-                      >
-                        {isUp ? '▲ UP' : '▼ DOWN'}
-                      </span>
-                    </TableCell>
-                    <TableCell style={{ fontFamily: 'var(--font-mono)' }}>
-                      {stakeUSDC.toFixed(2)} USDC
-                    </TableCell>
-                    <TableCell style={{ fontFamily: 'var(--font-mono)' }}>
-                      ${entryPrice.toLocaleString(undefined, { minimumFractionDigits: 2 })}
-                    </TableCell>
-                    <TableCell style={{ fontFamily: 'var(--font-mono)', color: liveStatusColor }}>
-                      ${btcPrice.toLocaleString(undefined, { minimumFractionDigits: 2 })}
-                    </TableCell>
-                    <TableCell style={{ fontFamily: 'var(--font-mono)', fontWeight: 600 }}>
-                      {secondsLeft > 0 ? `00:${secondsLeft.toString().padStart(2, '0')}` : 'SETTLING...'}
-                    </TableCell>
-                    <TableCell style={{ fontFamily: 'var(--font-mono)' }}>
-                      {multiplier.toFixed(2)}x
-                    </TableCell>
-                    <TableCell style={{ fontFamily: 'var(--font-mono)', fontWeight: 700 }}>
-                      {(stakeUSDC * multiplier).toFixed(2)} USDC
-                    </TableCell>
-                  </TableRow>
-                );
-              } else {
-                return (
-                  <TableRow key={bet.betId.toString()}>
-                    <TableCell style={{ fontWeight: 600, color: 'var(--text-secondary)' }}>
-                      #{bet.betId.toString()}
-                    </TableCell>
-                    <TableCell>
-                      <span 
-                        style={{ 
-                          color: isUp ? '#ffffff' : 'var(--text-secondary)', 
-                          fontWeight: 700,
-                          background: isUp ? 'rgba(255,255,255,0.06)' : 'rgba(82,82,82,0.15)',
-                          padding: '3px 7px',
-                          borderRadius: 5,
-                          fontSize: 9,
-                        }}
-                      >
-                        {isUp ? '▲ UP' : '▼ DOWN'}
-                      </span>
-                    </TableCell>
-                    <TableCell style={{ fontFamily: 'var(--font-mono)' }}>
-                      {stakeUSDC.toFixed(2)} USDC
-                    </TableCell>
-                    <TableCell style={{ fontFamily: 'var(--font-mono)' }}>
-                      ${entryPrice.toLocaleString(undefined, { minimumFractionDigits: 1 })}
-                    </TableCell>
-                    <TableCell style={{ fontFamily: 'var(--font-mono)' }}>
-                      ${settlementPrice.toLocaleString(undefined, { minimumFractionDigits: 1 })}
-                    </TableCell>
-                    <TableCell style={{ fontFamily: 'var(--font-mono)' }}>
-                      {multiplier.toFixed(2)}x
-                    </TableCell>
-                    <TableCell>
-                      <Badge variant={badgeVariant}>{statusLabel}</Badge>
-                    </TableCell>
-                    <TableCell style={{ fontFamily: 'var(--font-mono)', fontWeight: 700, color: profitUSDC > 0 ? '#ffffff' : profitUSDC === 0 ? 'var(--text-secondary)' : 'rgba(255,255,255,0.4)' }}>
-                      {profitUSDC >= 0 ? '+' : ''}{profitUSDC.toFixed(2)} USDC
-                    </TableCell>
-                  </TableRow>
-                );
-              }
-            })}
+          <Table headers={['ROUND ID', 'FORECAST', 'AMOUNT', 'LOCK PRICE', 'CLOSE PRICE', 'STATUS', 'ACTION']}>
+            {recentIds.map((id) => (
+              <PositionRow 
+                key={id.toString()} 
+                roundId={id} 
+                address={address!} 
+                activeTab={activeTab} 
+                onClaim={handleClaim} 
+                claimPending={isPending || isConfirming} 
+                marketAddress={MARKET_ADDRESS}
+              />
+            ))}
           </Table>
         )}
       </div>
+
+      {claimStatus && (
+        <div style={{ padding: '8px 12px', background: 'rgba(255, 255, 255, 0.02)', borderTop: '1px solid rgba(255,255,255,0.06)', color: '#ffffff', fontSize: 10, textAlign: 'center', fontFamily: 'var(--font-mono)' }}>
+          {claimStatus}
+        </div>
+      )}
     </Card>
+  );
+}
+
+function PositionRow({
+  roundId,
+  address,
+  activeTab,
+  onClaim,
+  claimPending,
+  marketAddress
+}: {
+  roundId: bigint;
+  address: string;
+  activeTab: 'positions' | 'history';
+  onClaim: (id: bigint) => void;
+  claimPending: boolean;
+  marketAddress: `0x${string}`;
+}) {
+  const currentChain = useCurrentChain();
+  const explorer = useExplorer();
+
+  const { data: roundData } = useReadContract({
+    address: marketAddress,
+    abi: ROUND_MARKET_ABI,
+    functionName: 'getRound',
+    args: [roundId],
+    query: { refetchInterval: 10000 },
+  });
+
+  const { data: betData } = useReadContract({
+    address: marketAddress,
+    abi: ROUND_MARKET_ABI,
+    functionName: 'getUserBet',
+    args: [roundId, address as `0x${string}`],
+    query: { refetchInterval: 10000 },
+  });
+
+  const { data: canClaim } = useReadContract({
+    address: marketAddress,
+    abi: ROUND_MARKET_ABI,
+    functionName: 'claimable',
+    args: [roundId, address as `0x${string}`],
+    query: { refetchInterval: 10000 },
+  });
+
+  const round = roundData as unknown as RoundData | undefined;
+  const bet = betData as unknown as BetData | undefined;
+
+  if (!round || !bet || bet.amount === 0n) return null;
+
+  const isResolved = round.resolved;
+  const isCanceled = round.canceled;
+
+  // Filter based on tab
+  const isPendingRound = !isResolved && !isCanceled;
+  const isClaimable = canClaim as boolean;
+
+  if (activeTab === 'positions' && !isPendingRound) return null;
+  if (activeTab === 'history' && isPendingRound) return null;
+
+  const isUp = bet.position === 0; // 0 = UP, 1 = DOWN
+  const upWins = round.closePrice > round.startPrice;
+  const downWins = round.closePrice < round.startPrice;
+  const isWinner = isResolved && !isCanceled && ((isUp && upWins) || (!isUp && downWins));
+
+  // Scale prices
+  const startPriceScaled = Number(round.startPrice) / 1e8;
+  const closePriceScaled = Number(round.closePrice) / 1e8;
+
+  let badgeVariant: 'default' | 'success' | 'warning' | 'error' | 'outline' = 'default';
+  let statusText = 'PENDING';
+
+  if (isPendingRound) {
+    statusText = 'ACTIVE';
+    badgeVariant = 'success';
+  } else if (isCanceled) {
+    statusText = 'CANCELED';
+    badgeVariant = 'outline';
+  } else if (isWinner) {
+    statusText = 'WON';
+    badgeVariant = 'success';
+  } else {
+    statusText = 'LOST';
+    badgeVariant = 'error';
+  }
+  
+  const explorerUrl = explorer.getAddressUrl(marketAddress);
+
+  return (
+    <TableRow>
+      <TableCell style={{ fontWeight: 600 }}>
+        {explorerUrl ? (
+          <a href={explorerUrl} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--text-secondary)', textDecoration: 'none' }} title="View Contract on Explorer">
+            #{roundId.toString()} ↗
+          </a>
+        ) : (
+          `#${roundId.toString()}`
+        )}
+      </TableCell>
+      <TableCell>
+        <span 
+          style={{ 
+            color: isUp ? '#ffffff' : 'var(--text-secondary)', 
+            fontWeight: 700,
+            background: isUp ? 'rgba(255,255,255,0.06)' : 'rgba(82,82,82,0.15)',
+            padding: '4px 8px',
+            borderRadius: 6,
+            fontSize: 10,
+            border: isUp ? '1px solid rgba(255,255,255,0.1)' : '1px solid rgba(82,82,82,0.2)'
+          }}
+        >
+          {isUp ? '▲ UP' : '▼ DOWN'}
+        </span>
+      </TableCell>
+      <TableCell style={{ fontFamily: 'var(--font-mono)' }}>
+        {formatEther(bet.amount)} {currentChain.nativeToken.symbol}
+      </TableCell>
+      <TableCell style={{ fontFamily: 'var(--font-mono)' }}>
+        {startPriceScaled > 0 ? `$${startPriceScaled.toFixed(2)}` : '—'}
+      </TableCell>
+      <TableCell style={{ fontFamily: 'var(--font-mono)' }}>
+        {closePriceScaled > 0 && !isPendingRound ? `$${closePriceScaled.toFixed(2)}` : '—'}
+      </TableCell>
+      <TableCell>
+        <Badge variant={badgeVariant}>{statusText}</Badge>
+      </TableCell>
+      <TableCell style={{ textAlign: 'right' }}>
+        {isClaimable && !bet.claimed ? (
+          <Button
+            onClick={() => onClaim(roundId)}
+            disabled={claimPending}
+            variant="primary"
+            size="sm"
+            style={{ padding: '4px 10px', borderRadius: '6px' }}
+          >
+            Claim Payout
+          </Button>
+        ) : bet.claimed ? (
+          <span style={{ fontSize: 11, color: 'var(--text-secondary)' }}>Claimed</span>
+        ) : isPendingRound ? (
+          <span style={{ fontSize: 11, color: 'var(--text-secondary)' }}>Locked</span>
+        ) : (
+          <span style={{ fontSize: 11, color: 'var(--text-secondary)' }}>—</span>
+        )}
+      </TableCell>
+    </TableRow>
   );
 }

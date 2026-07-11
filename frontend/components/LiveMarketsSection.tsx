@@ -1,19 +1,20 @@
 'use client';
 
-import React, { useEffect, useState, memo } from 'react';
-import { motion, type Variants } from 'framer-motion';
+import React, { useState, useEffect, memo } from 'react';
+import Link from 'next/link';
+import { motion } from 'framer-motion';
 import { useReadContract } from 'wagmi';
 import { formatEther } from 'viem';
 import { ROUND_MARKET_ABI } from '@/lib/abi';
 import { useContracts } from '@/hooks/useNetworkConfig';
-import { Section } from './ui/Section';
-import { PageHeader } from './ui/PageHeader';
-import { Card } from './ui/Card';
-import { Badge } from './ui/Badge';
-import { ProgressBar } from './trade/ProgressBar';
-import { useMotionSystem } from '../hooks/useMotionSystem';
-import { ScrollFade } from './ScrollFade';
+import { ScrollFade } from '@/components/ScrollFade';
+import { Button } from '@/components/ui/Button';
+import { Card } from '@/components/ui/Card';
+import { Section } from '@/components/ui/Section';
+import { PageHeader } from '@/components/ui/PageHeader';
+import { useMotionSystem } from '@/hooks/useMotionSystem';
 
+// Memoized Market Card Component to isolate re-render ticks
 interface MarketCardProps {
   pair: string;
   id: string;
@@ -21,88 +22,71 @@ interface MarketCardProps {
   upPct: number;
   time: string;
   target: string;
-  revealCardVariant: Variants;
+  revealCardVariant: any;
 }
 
-const MarketCard = memo(function MarketCard({
-  pair,
-  id,
-  vol,
-  upPct,
-  time,
-  target,
-  revealCardVariant,
-}: MarketCardProps) {
-  const isBtc = pair === 'BTC/USD';
-
+const MarketCard = memo(({ pair, id, vol, upPct, time, target, revealCardVariant }: MarketCardProps) => {
   return (
-    <motion.div variants={revealCardVariant} style={{ height: '100%' }}>
-      <Card
-        hoverEffect={true}
-        style={{
-          padding: '24px',
-          display: 'flex',
-          flexDirection: 'column',
-          height: '100%',
-          justifyContent: 'space-between',
-          background: 'rgba(255, 255, 255, 0.015)',
-          border: '1px solid rgba(255, 255, 255, 0.05)',
-          borderRadius: 22,
-          boxSizing: 'border-box',
-          position: 'relative',
-        }}
-      >
+    <Card 
+      style={{ 
+        padding: 24, 
+        display: 'flex', 
+        flexDirection: 'column', 
+        gap: 20,
+        height: '240px', // Reserve space before layout resolves to prevent CLS
+      }}
+    >
+      {/* Header info */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <div style={{ width: 8, height: 8, borderRadius: '50%', background: 'var(--up)' }} className="animate-pulse-live" />
+          <span style={{ fontSize: 14, fontWeight: 700 }}>{pair}</span>
+        </div>
+        <span style={{ fontSize: 11, fontFamily: 'var(--font-mono)', color: 'var(--text-muted)' }}>ID: {id}</span>
+      </div>
+
+      {/* Main Forecast Title */}
+      <div>
+        <h3 style={{ fontSize: 17, fontWeight: 600, color: '#ffffff', marginBottom: 4 }}>{target}</h3>
+        <span style={{ fontSize: 12, color: 'var(--text-secondary)' }}>Will price settle higher than current?</span>
+      </div>
+
+      {/* Probability bar distribution */}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, fontWeight: 600 }}>
+          <span style={{ color: '#ffffff' }}>YES {upPct}%</span>
+          <span style={{ color: 'var(--text-secondary)' }}>NO {100 - upPct}%</span>
+        </div>
+        {/* Visual ratio bar */}
+        <div style={{ height: 6, width: '100%', background: 'rgba(82, 82, 82, 0.2)', borderRadius: 3, display: 'flex', overflow: 'hidden' }}>
+          <div style={{ width: `${upPct}%`, background: '#ffffff', height: '100%', transition: 'width 0.3s ease' }} />
+          <div style={{ width: `${100 - upPct}%`, background: '#525252', height: '100%', transition: 'width 0.3s ease' }} />
+        </div>
+      </div>
+
+      {/* Vol / Time stats */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', borderTop: '1px solid rgba(255,255,255,0.05)', paddingTop: 16, fontSize: 12 }}>
         <div>
-          {/* Header row */}
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
-            <span style={{ fontSize: 18, fontWeight: 800, color: '#ffffff', letterSpacing: '-0.2px' }}>
-              {pair}
-            </span>
-            <Badge variant={isBtc ? 'success' : 'outline'}>
-              {isBtc ? '● LIVE' : 'SIMULATED'}
-            </Badge>
-          </div>
-
-          {/* Under subtitle */}
-          <div style={{ fontSize: 10, color: 'var(--text-secondary)', fontFamily: 'var(--font-mono)', marginBottom: 20 }}>
-            CONTRACT ID: {id}
-          </div>
-
-          {/* Forecast distribution progress */}
-          <div style={{ marginBottom: 24 }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, marginBottom: 6, fontWeight: 550 }}>
-              <span style={{ color: '#ffffff' }}>UP ({upPct}%)</span>
-              <span style={{ color: 'var(--text-secondary)' }}>DOWN ({100 - upPct}%)</span>
-            </div>
-            <ProgressBar upPercent={upPct} downPercent={100 - upPct} />
-          </div>
+          <span style={{ color: 'var(--text-muted)' }}>VOLUME:</span>{' '}
+          <strong style={{ color: '#ffffff', fontFamily: 'var(--font-mono)' }}>{vol}</strong>
         </div>
-
-        {/* Lower stats section */}
-        <div style={{ borderTop: '1px solid rgba(255,255,255,0.06)', paddingTop: 16, display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
-          <div>
-            <div style={{ fontSize: 9, color: 'var(--text-secondary)', letterSpacing: '0.8px', textTransform: 'uppercase', marginBottom: 4 }}>
-              Active Volume
-            </div>
-            <div style={{ fontSize: 13, fontWeight: 700, color: '#ffffff', fontFamily: 'var(--font-mono)' }}>
-              {vol}
-            </div>
-          </div>
-          <div>
-            <div style={{ fontSize: 9, color: 'var(--text-secondary)', letterSpacing: '0.8px', textTransform: 'uppercase', marginBottom: 4 }}>
-              EXPIRY TIME
-            </div>
-            <div style={{ fontSize: 13, fontWeight: 700, color: '#ffffff', fontFamily: 'var(--font-mono)' }}>
-              {time}
-            </div>
-          </div>
+        <div>
+          <span style={{ color: 'var(--text-muted)' }}>TIME LEFT:</span>{' '}
+          <strong style={{ color: '#ffffff', fontFamily: 'var(--font-mono)' }}>{time}</strong>
         </div>
-      </Card>
-    </motion.div>
+      </div>
+
+      {/* Trade Button */}
+      <Link href="/trade" style={{ textDecoration: 'none', width: '100%' }}>
+        <Button variant="secondary" showArrow={true} arrowDirection="up-right" style={{ width: '100%' }}>
+          Place Prediction
+        </Button>
+      </Link>
+    </Card>
   );
 }, (prevProps, nextProps) => {
+  // Custom comparator: only re-render card if statistics actually change
   return (
-    prevProps.pair === nextProps.pair &&
     prevProps.id === nextProps.id &&
     prevProps.vol === nextProps.vol &&
     prevProps.upPct === nextProps.upPct &&
@@ -113,31 +97,59 @@ const MarketCard = memo(function MarketCard({
 MarketCard.displayName = 'MarketCard';
 
 export function LiveMarketsSection() {
-  const { revealCard, staggerContainer } = useMotionSystem();
+  const { revealCard, staggerContainer, shouldReduceMotion } = useMotionSystem();
   const contracts = useContracts();
   const MARKET_ADDRESS = contracts.predictionMarket;
 
   // Wagmi reads for live BTC stats
-  const { data: activeUpPool } = useReadContract({
+  const { data: currentRoundId } = useReadContract({
     address: MARKET_ADDRESS,
     abi: ROUND_MARKET_ABI,
-    functionName: 'activeUpPool',
-    query: { refetchInterval: 5000 },
+    functionName: 'currentRoundId',
+    query: { refetchInterval: 2000 },
   });
 
-  const { data: activeDownPool } = useReadContract({
+  const activeRoundId = currentRoundId ? BigInt(currentRoundId.toString()) : 0n;
+
+  const { data: activeRoundData } = useReadContract({
     address: MARKET_ADDRESS,
     abi: ROUND_MARKET_ABI,
-    functionName: 'activeDownPool',
-    query: { refetchInterval: 5000 },
+    functionName: 'getRound',
+    args: [activeRoundId],
+    query: { enabled: activeRoundId > 0n, refetchInterval: 2000 },
   });
+  const activeRound = activeRoundData as any;
 
-  const upPool = activeUpPool ? BigInt(activeUpPool.toString()) : 0n;
-  const downPool = activeDownPool ? BigInt(activeDownPool.toString()) : 0n;
-  const totalPool = upPool + downPool;
+  const [btcTimeLeft, setBtcTimeLeft] = useState<string>('0:00');
 
-  const btcVolume = parseFloat(formatEther(totalPool)).toFixed(2);
-  const btcUpPercent = totalPool > 0n ? Math.round(Number((upPool * 100n) / totalPool)) : 50;
+  useEffect(() => {
+    if (!activeRound) return;
+    const updateBtcTimeLeft = () => {
+      const nowSec = Math.floor(Date.now() / 1000);
+      const lockTs = Number(activeRound.lockTimestamp);
+      const timeLeft = lockTs - nowSec;
+
+      if (timeLeft <= 0) {
+        setBtcTimeLeft('LOCKED');
+      } else {
+        const mins = Math.floor(timeLeft / 60);
+        const secs = timeLeft % 60;
+        setBtcTimeLeft(`${mins}:${secs < 10 ? '0' : ''}${secs}`);
+      }
+    };
+    updateBtcTimeLeft();
+    const interval = setInterval(updateBtcTimeLeft, 1000);
+    return () => clearInterval(interval);
+  }, [activeRound]);
+
+  const btcVolume = activeRound 
+    ? parseFloat(formatEther(activeRound.totalUpAmount + activeRound.totalDownAmount)).toFixed(2)
+    : '0.00';
+
+  const btcTotalPool = activeRound ? activeRound.totalUpAmount + activeRound.totalDownAmount : 0n;
+  const btcUpPercent = btcTotalPool > 0n 
+    ? Math.round(Number((activeRound.totalUpAmount * 100n) / btcTotalPool))
+    : 50;
 
   // Live simulation stats for other pairs (ETH, SOL)
   const [ethStats, setEthStats] = useState({ vol: 7830, upPct: 48, timeLeft: 148 });
@@ -180,27 +192,27 @@ export function LiveMarketsSection() {
   const marketsList = [
     { 
       pair: 'BTC/USD', 
-      id: 'BTC-USD-CONTINUOUS', 
+      id: activeRound ? `BTC-USD-${activeRound.roundId.toString()}` : 'BTC-USD-0', 
       vol: `${parseFloat(btcVolume).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})} USDC`, 
       upPct: btcUpPercent, 
-      time: '60s (Live)', 
-      target: 'BTC/USD 60s Forecast' 
+      time: btcTimeLeft, 
+      target: 'BTC/USD 1m Forecast' 
     },
     { 
       pair: 'ETH/USD', 
-      id: 'ETH-USD-CONTINUOUS', 
+      id: 'ETH-USD-26', 
       vol: `${ethStats.vol.toLocaleString()} USDC`, 
       upPct: ethStats.upPct, 
       time: formatMinsSecs(ethStats.timeLeft), 
-      target: 'ETH/USD 60s Forecast' 
+      target: 'ETH/USD 1m Forecast' 
     },
     { 
       pair: 'SOL/USD', 
-      id: 'SOL-USD-CONTINUOUS', 
+      id: 'SOL-USD-26', 
       vol: `${solStats.vol.toLocaleString()} USDC`, 
       upPct: solStats.upPct, 
       time: formatMinsSecs(solStats.timeLeft), 
-      target: 'SOL/USD 60s Forecast' 
+      target: 'SOL/USD 1m Forecast' 
     }
   ];
 
@@ -208,7 +220,7 @@ export function LiveMarketsSection() {
     <Section id="markets">
       <PageHeader
         title="Live Markets"
-        subtitle="Real-time USDC continuous binary predictions currently active on the testnet."
+        subtitle="Real-time binary predictions currently active on the testnet."
       />
 
       {/* Markets cards grid */}
@@ -221,7 +233,7 @@ export function LiveMarketsSection() {
           display: 'grid', 
           gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', 
           gap: 24,
-          minHeight: '240px',
+          minHeight: '240px', // Reserve layout dimensions to prevent layout shifts
         }}
       >
         {marketsList.map((m, idx) => (

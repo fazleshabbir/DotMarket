@@ -15,9 +15,15 @@ interface PlaceBetCardProps {
   txStatus: string | null;
   isConnected: boolean;
   connectWalletCTA: React.ReactNode;
-  upMultiplier: number;
-  downMultiplier: number;
 }
+
+// Inline lock SVG
+const LockIconSm = () => (
+  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.4)" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
+    <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
+    <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+  </svg>
+);
 
 export const PlaceBetCard = memo(function PlaceBetCard({
   betAmount,
@@ -29,10 +35,8 @@ export const PlaceBetCard = memo(function PlaceBetCard({
   txStatus,
   isConnected,
   connectWalletCTA,
-  upMultiplier,
-  downMultiplier,
 }: PlaceBetCardProps) {
-  // Always active unless paused/loading/etc
+  // Determine if market is locked (not able to bet even while connected)
   const isMarketLocked = isConnected && !canBet && !isPending && !isConfirming;
 
   return (
@@ -58,6 +62,33 @@ export const PlaceBetCard = memo(function PlaceBetCard({
         <StatusBadge status={isMarketLocked ? 'locked' : 'ready'} label={isMarketLocked ? 'LOCKED' : 'READY'} />
       </div>
 
+      {/* ── Locked for Settlement state ── */}
+      {isMarketLocked && (
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 8,
+            padding: '10px 12px',
+            borderRadius: 12,
+            background: 'rgba(255,255,255,0.015)',
+            border: '1px solid rgba(255,255,255,0.06)',
+            marginBottom: 12,
+            transition: 'all 300ms ease-out',
+          }}
+        >
+          <LockIconSm />
+          <span style={{
+            fontSize: 11,
+            color: 'rgba(255,255,255,0.4)',
+            fontFamily: 'var(--font-mono)',
+            letterSpacing: '0.08em',
+          }}>
+            LOCKED FOR SETTLEMENT
+          </span>
+        </div>
+      )}
+
       {/* ── Betting actions/forms ── */}
       <BetActions
         betAmount={betAmount}
@@ -69,8 +100,6 @@ export const PlaceBetCard = memo(function PlaceBetCard({
         txStatus={txStatus}
         isConnected={isConnected}
         connectWalletCTA={connectWalletCTA}
-        upMultiplier={upMultiplier}
-        downMultiplier={downMultiplier}
       />
     </Card>
   );
