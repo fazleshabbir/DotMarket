@@ -193,12 +193,10 @@ export function RoadmapSection() {
     if (!container) return;
     const children = container.children;
 
-    const isDesktop = window.innerWidth >= 1024;
-
     const observerOptions = {
-      root: isDesktop ? container : null,
-      rootMargin: isDesktop ? '0px -35% 0px -35%' : '-35% 0px -35% 0px',
-      threshold: 0.15,
+      root: container,
+      rootMargin: '0px -30% 0px -30%',
+      threshold: 0.1,
     };
 
     const observer = new IntersectionObserver((entries) => {
@@ -219,7 +217,7 @@ export function RoadmapSection() {
     return () => {
       observer.disconnect();
     };
-  }, [mounted, isMobile, isTablet]);
+  }, [mounted]);
 
   // Click handler on top nodes to scroll them into viewport view
   const scrollToMilestone = (idx: number) => {
@@ -229,13 +227,8 @@ export function RoadmapSection() {
     if (!children[idx]) return;
     const child = children[idx] as HTMLElement;
 
-    if (window.innerWidth >= 1024) {
-      const scrollLeft = child.offsetLeft - (container.clientWidth - child.clientWidth) / 2;
-      container.scrollTo({ left: scrollLeft, behavior: 'smooth' });
-    } else {
-      const scrollTop = child.offsetTop - (window.innerHeight - child.clientHeight) / 2;
-      window.scrollTo({ top: scrollTop + container.offsetTop - 80, behavior: 'smooth' });
-    }
+    const scrollLeft = child.offsetLeft - (container.clientWidth - child.clientWidth) / 2;
+    container.scrollTo({ left: scrollLeft, behavior: 'smooth' });
     setActiveIdx(idx);
   };
 
@@ -365,19 +358,17 @@ export function RoadmapSection() {
             style={{
               position: 'absolute',
               top: '13px',
-              left: isMobile ? '34px' : '40px',
-              right: isMobile ? 'auto' : '40px',
-              bottom: isMobile ? '30px' : 'auto',
-              width: isMobile ? '2px' : 'auto',
-              height: isMobile ? 'auto' : '2px',
+              left: '40px',
+              right: '40px',
+              height: '2px',
               background: 'rgba(255, 255, 255, 0.08)',
               zIndex: 1,
             }}
           >
             {/* Drawing Line animation */}
             <motion.div
-              initial={isMobile ? { height: 0 } : { scaleX: 0 }}
-              whileInView={isMobile ? { height: '100%' } : { scaleX: 1 }}
+              initial={{ scaleX: 0 }}
+              whileInView={{ scaleX: 1 }}
               viewport={{ once: true }}
               transition={{ duration: 1.2, ease: 'easeOut' }}
               style={{
@@ -387,19 +378,18 @@ export function RoadmapSection() {
                 transformOrigin: 'left',
               }}
             />
-
           </div>
 
           {/* Interactive Milestone Indicator circles */}
           <div
             style={{
               display: 'flex',
-              flexDirection: isMobile ? 'column' : 'row',
+              flexDirection: 'row',
               justifyContent: 'space-between',
-              alignItems: isMobile ? 'flex-start' : 'center',
+              alignItems: 'center',
               position: 'relative',
               zIndex: 2,
-              gap: isMobile ? 32 : 12,
+              gap: 12,
             }}
           >
             {milestones.map((milestone, idx) => {
@@ -410,12 +400,12 @@ export function RoadmapSection() {
                   onClick={() => scrollToMilestone(idx)}
                   style={{
                     display: 'flex',
-                    flexDirection: isMobile ? 'row' : 'column',
+                    flexDirection: 'column',
                     alignItems: 'center',
                     cursor: 'pointer',
-                    gap: isMobile ? 16 : 8,
+                    gap: 8,
                     textAlign: 'center',
-                    flex: isMobile ? 'none' : '1',
+                    flex: '1',
                   }}
                 >
                   {getNodeIndicator(idx, milestone.status)}
@@ -423,9 +413,9 @@ export function RoadmapSection() {
                     style={{
                       fontSize: '11px',
                       fontFamily: 'var(--font-mono)',
-                      fontWeight: isActive ? 700 : 500,
-                      color: isActive ? '#ffffff' : 'var(--text-secondary)',
-                      opacity: isActive ? 1 : 0.6,
+                      fontWeight: 700,
+                      color: '#ffffff',
+                      opacity: 0.9,
                       transition: 'all 0.25s ease',
                       textTransform: 'uppercase',
                       letterSpacing: '1px',
@@ -449,13 +439,12 @@ export function RoadmapSection() {
         variants={staggerContainer(0.08)}
         className="roadmap-track"
         style={{
-          display: isMobile ? 'flex' : 'grid',
-          flexDirection: isMobile ? 'column' : undefined,
-          gridTemplateColumns: isTablet ? '1fr 1fr' : 'repeat(6, 1fr)',
+          display: 'flex',
+          flexDirection: 'row',
           gap: 24,
-          padding: '8px',
-          overflowX: isMobile || isTablet ? undefined : 'auto',
-          scrollSnapType: isMobile || isTablet ? undefined : 'x mandatory',
+          padding: isMobile ? '8px 16px' : '8px',
+          overflowX: 'auto',
+          scrollSnapType: 'x mandatory',
           scrollbarWidth: 'none',
           msOverflowStyle: 'none',
           position: 'relative',
@@ -471,7 +460,7 @@ export function RoadmapSection() {
               key={idx}
               variants={revealCard}
               style={{
-                flex: isMobile || isTablet ? '0 0 auto' : '0 0 350px',
+                flex: isMobile ? '0 0 85vw' : isTablet ? '0 0 320px' : '0 0 350px',
                 scrollSnapAlign: 'center',
                 opacity: isActive ? 1 : 0.5,
                 transition: 'opacity 300ms ease',
