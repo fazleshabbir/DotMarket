@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useRef, memo } from 'react';
+import React, { useState, useEffect, useRef, memo } from 'react';
 import { TradingViewChart } from '../TradingViewChart';
 import { PriceTicker } from './PriceTicker';
 
@@ -20,6 +20,14 @@ export const TradingPanel = memo(function TradingPanel({
   const [interval, setInterval] = useState('1');
   const chartWrapperRef = useRef<HTMLDivElement>(null);
   const [isFullscreen, setIsFullscreen] = useState(false);
+  const [now, setNow] = useState(Math.floor(Date.now() / 1000));
+
+  useEffect(() => {
+    const timer = window.setInterval(() => {
+      setNow(Math.floor(Date.now() / 1000));
+    }, 1000);
+    return () => window.clearInterval(timer);
+  }, []);
 
   const timeframes = [
     { label: '1m', value: '1' },
@@ -53,6 +61,20 @@ export const TradingPanel = memo(function TradingPanel({
   };
 
   const poolSize = round ? (Number(round.totalUpAmount + round.totalDownAmount) / 1e18).toFixed(2) : '0.00';
+
+  // Math conversions for prediction offsets
+  const lockPrice = round ? Number(round.startPrice) / 1e8 : 0;
+  const priceDiff = btcPrice - lockPrice;
+  const percentDiff = lockPrice > 0 ? (priceDiff / lockPrice) * 100 : 0;
+  // Clamp pixel offsets safely to keep overlays in visible viewport boundaries
+  const offsetPx = Math.max(-130, Math.min(130, percentDiff * 25000));
+  const isAbove = priceDiff >= 0;
+
+  const lockTimestamp = round ? Number(round.lockTimestamp) : 0;
+  const timeLeft = Math.max(0, lockTimestamp - now);
+  const minutes = Math.floor(timeLeft / 60);
+  const seconds = timeLeft % 60;
+  const isLowTime = timeLeft <= 20 && timeLeft > 0;
 
   return (
     <div
@@ -279,7 +301,7 @@ export const TradingPanel = memo(function TradingPanel({
             zIndex: 5,
           }}
         >
-          {/* Previous Round Zone (Left Column) */}
+          {/* Previous Prediction Zone (Left Column) */}
           <div
             style={{
               flex: 1,
@@ -301,11 +323,11 @@ export const TradingPanel = memo(function TradingPanel({
                 letterSpacing: '0.08em',
               }}
             >
-              ← Previous Round
+              ← Previous Prediction
             </div>
           </div>
 
-          {/* Active Round Zone (Middle Column) */}
+          {/* Active Prediction Zone (Middle Column) */}
           <div
             className="breathing-active-zone"
             style={{
@@ -330,6 +352,7 @@ export const TradingPanel = memo(function TradingPanel({
               }}
             />
             
+            {/* Labels at top of active prediction round */}
             <div
               style={{
                 padding: '8px 12px',
@@ -352,11 +375,216 @@ export const TradingPanel = memo(function TradingPanel({
                   background: '#ffffff',
                 }}
               />
-              Active Round
+              ● Active Prediction
+            </div>
+
+            {/* Vertical boundaries start & settlement icons */}
+            {/* Start Flag Badge (Left Divider) */}
+            <div
+              style={{
+                position: 'absolute',
+                bottom: 8,
+                left: 0,
+                transform: 'translateX(-50%)',
+                width: 20,
+                height: 20,
+                borderRadius: '50%',
+                background: '#000000',
+                border: '1px solid rgba(255, 255, 255, 0.15)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontSize: 9,
+                color: '#ffffff',
+                zIndex: 7,
+              }}
+              title="Prediction Round Start"
+            >
+              🏁
+            </div>
+            <div
+              style={{
+                position: 'absolute',
+                bottom: 30,
+                left: 6,
+                fontSize: 8,
+                fontFamily: 'var(--font-mono)',
+                color: 'rgba(255,255,255,0.4)',
+                whiteSpace: 'nowrap',
+              }}
+            >
+              Start
+            </div>
+
+            {/* Settlement Flag Badge (Right Divider) */}
+            <div
+              style={{
+                position: 'absolute',
+                bottom: 8,
+                right: 0,
+                transform: 'translateX(50%)',
+                width: 20,
+                height: 20,
+                borderRadius: '50%',
+                background: '#000000',
+                border: '1px solid rgba(255, 255, 255, 0.15)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontSize: 9,
+                color: '#ffffff',
+                zIndex: 7,
+              }}
+              title="Round Settlement"
+            >
+              🏁
+            </div>
+            <div
+              style={{
+                position: 'absolute',
+                bottom: 30,
+                right: 6,
+                fontSize: 8,
+                fontFamily: 'var(--font-mono)',
+                color: 'rgba(255,255,255,0.4)',
+                whiteSpace: 'nowrap',
+              }}
+            >
+              Settlement
+            </div>
+
+            {/* Locked Price guide and Horizontal Line */}
+            {lockPrice > 0 && (
+              <>
+                <div
+                  style={{
+                    position: 'absolute',
+                    left: 0,
+                    right: 0,
+                    top: '50%',
+                    borderTop: '1px dashed rgba(255, 255, 255, 0.25)',
+                    zIndex: 4,
+                  }}
+                />
+                <div
+                  style={{
+                    position: 'absolute',
+                    left: 8,
+                    top: 'calc(50% - 10px)',
+                    background: 'rgba(0, 0, 0, 0.75)',
+                    backdropFilter: 'blur(8px)',
+                    border: '1px solid rgba(255, 255, 255, 0.1)',
+                    borderRadius: '6px',
+                    padding: '2px 6px',
+                    fontSize: 8,
+                    fontFamily: 'var(--font-mono)',
+                    color: '#ffffff',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: 4,
+                    zIndex: 5,
+                  }}
+                >
+                  <span>🔒 Lock Price</span>
+                  <strong>{lockPrice.toLocaleString(undefined, { minimumFractionDigits: 2 })}</strong>
+                </div>
+
+                {/* Connecting price path guides line */}
+                <div
+                  style={{
+                    position: 'absolute',
+                    right: 48,
+                    top: offsetPx >= 0 ? `calc(50% - ${offsetPx}px)` : '50%',
+                    height: Math.abs(offsetPx),
+                    width: 1,
+                    borderLeft: '1px dashed rgba(255, 255, 255, 0.15)',
+                    zIndex: 4,
+                    transition: 'top 0.3s cubic-bezier(0.25, 0.1, 0.25, 1), height 0.3s cubic-bezier(0.25, 0.1, 0.25, 1)',
+                  }}
+                />
+              </>
+            )}
+
+            {/* Current Price floating pill tracking offsets */}
+            <div
+              style={{
+                position: 'absolute',
+                right: 8,
+                top: `calc(50% - ${offsetPx}px - 14px)`,
+                background: 'rgba(0, 0, 0, 0.8)',
+                backdropFilter: 'blur(12px)',
+                border: '1px solid rgba(255, 255, 255, 0.18)',
+                borderRadius: '20px',
+                padding: '4px 10px',
+                fontSize: 9,
+                fontFamily: 'var(--font-mono)',
+                color: '#ffffff',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 5,
+                boxShadow: '0 8px 20px -4px rgba(0,0,0,0.8), 0 0 12px rgba(255,255,255,0.05)',
+                zIndex: 6,
+                transition: 'top 0.3s cubic-bezier(0.25, 0.1, 0.25, 1)',
+              }}
+            >
+              <span
+                className="animate-pulse-live"
+                style={{
+                  width: 4,
+                  height: 4,
+                  borderRadius: '50%',
+                  background: '#ffffff',
+                }}
+              />
+              <span>Current Price</span>
+              <strong>${btcPrice.toLocaleString(undefined, { minimumFractionDigits: 2 })}</strong>
+            </div>
+
+            {/* Directional hint */}
+            {lockPrice > 0 && (
+              <div
+                style={{
+                  position: 'absolute',
+                  right: 12,
+                  top: `calc(50% - ${offsetPx}px + 14px)`,
+                  fontSize: 8,
+                  fontWeight: 700,
+                  fontFamily: 'var(--font-mono)',
+                  color: isAbove ? '#ffffff' : 'rgba(255, 255, 255, 0.45)',
+                  zIndex: 6,
+                  transition: 'top 0.3s cubic-bezier(0.25, 0.1, 0.25, 1)',
+                }}
+              >
+                {isAbove ? '▲ Above Lock Price' : '▼ Below Lock Price'}
+              </div>
+            )}
+
+            {/* Floating countdown remaining timer */}
+            <div
+              style={{
+                position: 'absolute',
+                bottom: 12,
+                left: '50%',
+                transform: 'translateX(-50%)',
+                background: 'rgba(0, 0, 0, 0.65)',
+                backdropFilter: 'blur(8px)',
+                border: '1px solid rgba(255, 255, 255, 0.08)',
+                borderRadius: '20px',
+                padding: '4px 12px',
+                fontSize: 9,
+                fontFamily: 'var(--font-mono)',
+                color: isLowTime ? '#ffffff' : 'var(--text-secondary)',
+                fontWeight: isLowTime ? 700 : 500,
+                zIndex: 6,
+                boxShadow: isLowTime ? '0 0 10px rgba(255,255,255,0.06)' : 'none',
+                transition: 'all 0.3s ease',
+              }}
+            >
+              ⏱ {timeLeft > 0 ? `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')} Remaining` : 'Closed'}
             </div>
           </div>
 
-          {/* Next Round Zone (Right Column) */}
+          {/* Next Prediction Zone (Right Column) */}
           <div
             style={{
               flex: 1,
@@ -379,7 +607,7 @@ export const TradingPanel = memo(function TradingPanel({
                 letterSpacing: '0.08em',
               }}
             >
-              Next Round →
+              Next Prediction →
             </div>
           </div>
         </div>
