@@ -1,0 +1,400 @@
+'use client';
+
+import React, { useEffect, useRef, useState, useCallback, memo } from 'react';
+import { createChart, AreaSeries, IChartApi, ISeriesApi, Time, LineStyle } from 'lightweight-charts';
+
+interface PredictionChartProps {
+  lockPrice?: number;          // 0 if betting still open
+  roundStartTime?: number;     // unix seconds
+  roundEndTime?: number;       // unix seconds (settlement)
+  roundLockTime?: number;      // unix seconds (betting closes)
+  btcPrice: number;            // live price from parent
+  isLocked?: boolean;
+  isResolved?: boolean;
+}
+
+interface KlinePoint {
+  time: Time;
+  value: number;
+}
+
+// Fetch recent 1-minute klines from Binance REST
+async function fetchKlines(limit = 60): Promise<KlinePoint[]> {
+  try {
+    const res = await fetch(
+      `https://api.binance.com/api/v3/klines?symbol=BTCUSDT&interval=1m&limit=${limit}`
+    );
+    const data: any[][] = await res.json();
+    return data.map((k) => ({
+      time: Math.floor(k[0] / 1000) as Time,
+      value: parseFloat(k[4]), // close price
+    }));
+  } catch {
+    return [];
+  }
+}
+
+export const PredictionChart = memo(function PredictionChart({
+  lockPrice = 0,
+  roundStartTime = 0,
+  roundEndTime = 0,
+  roundLockTime = 0,
+  btcPrice,
+  isLocked = false,
+  isResolved = false,
+}: PredictionChartProps) {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const chartRef = useRef<IChartApi | null>(null);
+  const seriesRef = useRef<ISeriesApi<'Area', Time> | null>(null);
+  const wsRef = useRef<WebSocket | null>(null);
+  const liveDotRef = useRef<HTMLDivElement>(null);
+  const pricePillRef = useRef<HTMLDivElement>(null);
+  const lockLineRef = useRef<HTMLDivElement>(null);
+  const lockPillRef = useRef<HTMLDivElement>(null);
+  const latestPrice = useRef<number>(btcPrice);
+  const [chartReady, setChartReady] = useState(false);
+
+  // ── Chart initialization ────────────────────────────────────────────────────
+  useEffect(() => {
+    if (!containerRef.current) return;
+
+    const chart = createChart(containerRef.current, {
+      layout: {
+        background: { color: '#000000' },
+        textColor: 'rgba(255, 255, 255, 0.3)',
+        fontFamily: "'Inter', 'JetBrains Mono', monospace",
+        fontSize: 10,
+      },
+      grid: {
+        vertLines: { color: 'rgba(255, 255, 255, 0.03)' },
+        horzLines: { color: 'rgba(255, 255, 255, 0.03)' },
+      },
+      crosshair: {
+        vertLine: {
+          color: 'rgba(255, 255, 255, 0.12)',
+          width: 1,
+          style: LineStyle.Dashed,
+          labelBackgroundColor: '#111111',
+        },
+        horzLine: {
+          color: 'rgba(255, 255, 255, 0.12)',
+          width: 1,
+          style: LineStyle.Dashed,
+          labelBackgroundColor: '#111111',
+        },
+      },
+      rightPriceScale: {
+        borderColor: 'rgba(255, 255, 255, 0.06)',
+        textColor: 'rgba(255, 255, 255, 0.3)',
+        scaleMargins: { top: 0.1, bottom: 0.1 },
+      },
+      timeScale: {
+        borderColor: 'rgba(255, 255, 255, 0.06)',
+        timeVisible: true,
+        secondsVisible: false,
+        tickMarkFormatter: (time: number) => {
+          const d = new Date(time * 1000);
+          return `${d.getHours().toString().padStart(2, '0')}:${d.getMinutes().toString().padStart(2, '0')}`;
+        },
+      },
+      handleScroll: { mouseWheel: true, pressedMouseMove: true },
+      handleScale: { mouseWheel: true, pinch: true },
+    });
+
+    const series = chart.addSeries(AreaSeries, {
+      lineColor: 'rgba(255, 255, 255, 0.9)',
+      lineWidth: 2,
+      topColor: 'rgba(255, 255, 255, 0.06)',
+      bottomColor: 'rgba(255, 255, 255, 0.00)',
+      crosshairMarkerVisible: true,
+      crosshairMarkerRadius: 4,
+      crosshairMarkerBorderColor: '#ffffff',
+      crosshairMarkerBackgroundColor: '#000000',
+      lastValueVisible: false,
+      priceLineVisible: false,
+    });
+
+    chartRef.current = chart;
+    seriesRef.current = series;
+
+    // Resize observer
+    const ro = new ResizeObserver(() => {
+      if (containerRef.current) {
+        chart.applyOptions({
+          width: containerRef.current.clientWidth,
+          height: containerRef.current.clientHeight,
+        });
+      }
+    });
+    ro.observe(containerRef.current);
+
+    // Load historical data
+    fetchKlines(80).then((points) => {
+      if (seriesRef.current && points.length > 0) {
+        seriesRef.current.setData(points);
+        chart.timeScale().fitContent();
+        setChartReady(true);
+      }
+    });
+
+    return () => {
+      ro.disconnect();
+      chart.remove();
+      chartRef.current = null;
+      seriesRef.current = null;
+    };
+  }, []);
+
+  // ── Live WebSocket price feed ───────────────────────────────────────────────
+  useEffect(() => {
+    if (!chartReady) return;
+
+    const ws = new WebSocket('wss://stream.binance.com:9443/ws/btcusdt@kline_1m');
+    wsRef.current = ws;
+
+    ws.onmessage = (evt) => {
+      try {
+        const msg = JSON.parse(evt.data);
+        const kline = msg.k;
+        if (!kline) return;
+        const point: KlinePoint = {
+          time: Math.floor(kline.t / 1000) as Time,
+          value: parseFloat(kline.c),
+        };
+        seriesRef.current?.update(point);
+        latestPrice.current = point.value;
+        updateDotAndPill(point.value);
+      } catch {}
+    };
+
+    ws.onerror = () => ws.close();
+
+    return () => {
+      ws.close();
+      wsRef.current = null;
+    };
+  }, [chartReady]);
+
+  // ── Update live dot and price pill positions ────────────────────────────────
+  const updateDotAndPill = useCallback((price: number) => {
+    const chart = chartRef.current;
+    const series = seriesRef.current;
+    const container = containerRef.current;
+    if (!chart || !series || !container) return;
+
+    // Get coordinate of latest time
+    const timeScale = chart.timeScale();
+    const now = Math.floor(Date.now() / 1000) as Time;
+    const x = timeScale.timeToCoordinate(now);
+    const y = series.priceToCoordinate(price);
+
+    if (x !== null && y !== null) {
+      if (liveDotRef.current) {
+        liveDotRef.current.style.left = `${x - 6}px`;
+        liveDotRef.current.style.top = `${y - 6}px`;
+        liveDotRef.current.style.opacity = '1';
+      }
+      if (pricePillRef.current) {
+        pricePillRef.current.style.top = `${y - 14}px`;
+        pricePillRef.current.style.opacity = '1';
+        pricePillRef.current.textContent = `$${price.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+      }
+    }
+
+    // Update lock line position
+    if (lockPrice > 0 && lockLineRef.current && lockPillRef.current) {
+      const lockY = series.priceToCoordinate(lockPrice);
+      if (lockY !== null) {
+        lockLineRef.current.style.top = `${lockY}px`;
+        lockLineRef.current.style.opacity = '1';
+        lockPillRef.current.style.top = `${lockY - 11}px`;
+        lockPillRef.current.style.opacity = '1';
+      }
+    }
+  }, [lockPrice]);
+
+  // Update overlays whenever btcPrice prop changes from parent polling
+  useEffect(() => {
+    updateDotAndPill(btcPrice);
+  }, [btcPrice, updateDotAndPill]);
+
+  return (
+    <div style={{ position: 'relative', width: '100%', height: '100%' }}>
+      {/* Lightweight Charts canvas container */}
+      <div
+        ref={containerRef}
+        style={{ width: '100%', height: '100%', borderRadius: 12, overflow: 'hidden' }}
+      />
+
+      {/* ── Live dot overlay ── */}
+      <div
+        ref={liveDotRef}
+        style={{
+          position: 'absolute',
+          width: 12,
+          height: 12,
+          borderRadius: '50%',
+          background: '#ffffff',
+          boxShadow: '0 0 0 4px rgba(255,255,255,0.12), 0 0 16px rgba(255,255,255,0.25)',
+          opacity: 0,
+          pointerEvents: 'none',
+          zIndex: 10,
+          transition: 'left 0.4s ease, top 0.4s ease',
+          animation: 'liveDotPulse 2s ease-in-out infinite',
+        }}
+      />
+
+      {/* ── Current price pill ── */}
+      <div
+        ref={pricePillRef}
+        style={{
+          position: 'absolute',
+          right: 4,
+          padding: '3px 10px',
+          borderRadius: 20,
+          background: 'rgba(0,0,0,0.8)',
+          backdropFilter: 'blur(12px)',
+          border: '1px solid rgba(255,255,255,0.18)',
+          color: '#ffffff',
+          fontSize: 10,
+          fontFamily: 'var(--font-mono)',
+          fontWeight: 700,
+          letterSpacing: '0.04em',
+          opacity: 0,
+          pointerEvents: 'none',
+          zIndex: 10,
+          boxShadow: '0 0 12px rgba(255,255,255,0.06)',
+          transition: 'top 0.4s ease',
+          whiteSpace: 'nowrap',
+        }}
+      />
+
+      {/* ── Lock price horizontal line ── */}
+      {lockPrice > 0 && (
+        <>
+          <div
+            ref={lockLineRef}
+            style={{
+              position: 'absolute',
+              left: 0,
+              right: 52,
+              height: 0,
+              borderTop: '1px dashed rgba(255,255,255,0.3)',
+              opacity: 0,
+              pointerEvents: 'none',
+              zIndex: 9,
+              transition: 'top 0.4s ease',
+            }}
+          />
+          <div
+            ref={lockPillRef}
+            style={{
+              position: 'absolute',
+              left: 8,
+              padding: '2px 8px',
+              borderRadius: 8,
+              background: 'rgba(0,0,0,0.85)',
+              backdropFilter: 'blur(8px)',
+              border: '1px solid rgba(255,255,255,0.12)',
+              color: '#ffffff',
+              fontSize: 9,
+              fontFamily: 'var(--font-mono)',
+              opacity: 0,
+              pointerEvents: 'none',
+              zIndex: 10,
+              whiteSpace: 'nowrap',
+              transition: 'top 0.4s ease',
+            }}
+          >
+            🔒 Lock&nbsp;
+            <strong>
+              ${lockPrice.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+            </strong>
+          </div>
+        </>
+      )}
+
+      {/* ── Prediction zone column overlays ── */}
+      <div
+        style={{
+          position: 'absolute',
+          inset: 0,
+          display: 'flex',
+          pointerEvents: 'none',
+          zIndex: 8,
+          borderRadius: 12,
+          overflow: 'hidden',
+        }}
+      >
+        {/* Previous zone */}
+        <div style={{ flex: 1, borderRight: '1px dashed rgba(255,255,255,0.07)', position: 'relative' }}>
+          <div style={{
+            position: 'absolute', top: 8, left: 10,
+            fontSize: 9, fontFamily: 'var(--font-mono)',
+            color: 'rgba(255,255,255,0.25)', letterSpacing: '0.08em'
+          }}>
+            ← Previous Market
+          </div>
+        </div>
+
+        {/* Active zone */}
+        <div style={{
+          flex: 1.4,
+          borderLeft: '1px solid rgba(255,255,255,0.07)',
+          borderRight: '1px solid rgba(255,255,255,0.07)',
+          background: 'rgba(255,255,255,0.015)',
+          position: 'relative',
+          animation: 'breatheZone 5s ease-in-out infinite',
+        }}>
+          {/* Top glow bar */}
+          <div style={{
+            position: 'absolute', top: 0, left: 0, right: 0, height: 1,
+            background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent)'
+          }} />
+          <div style={{
+            position: 'absolute', top: 8, left: 0, right: 0,
+            display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 5
+          }}>
+            <span style={{
+              width: 5, height: 5, borderRadius: '50%', background: '#ffffff',
+              animation: 'liveDotPulse 2s ease-in-out infinite', display: 'inline-block'
+            }} />
+            <span style={{
+              fontSize: 9, fontFamily: 'var(--font-mono)',
+              color: '#ffffff', letterSpacing: '0.1em', fontWeight: 700
+            }}>
+              ● LIVE MARKET
+            </span>
+          </div>
+        </div>
+
+        {/* Next zone */}
+        <div style={{ flex: 1, borderLeft: '1px dashed rgba(255,255,255,0.07)', position: 'relative' }}>
+          <div style={{
+            position: 'absolute', top: 8, right: 10,
+            fontSize: 9, fontFamily: 'var(--font-mono)',
+            color: 'rgba(255,255,255,0.25)', letterSpacing: '0.08em'
+          }}>
+            Next Market →
+          </div>
+        </div>
+      </div>
+
+      {/* ── Keyframe style block ── */}
+      <style dangerouslySetInnerHTML={{ __html: `
+        @keyframes liveDotPulse {
+          0%   { box-shadow: 0 0 0 0px rgba(255,255,255,0.3), 0 0 12px rgba(255,255,255,0.2); }
+          50%  { box-shadow: 0 0 0 6px rgba(255,255,255,0.05), 0 0 20px rgba(255,255,255,0.15); }
+          100% { box-shadow: 0 0 0 0px rgba(255,255,255,0.3), 0 0 12px rgba(255,255,255,0.2); }
+        }
+        @keyframes breatheZone {
+          0%   { background: rgba(255,255,255,0.010); }
+          50%  { background: rgba(255,255,255,0.025); }
+          100% { background: rgba(255,255,255,0.010); }
+        }
+      ` }} />
+    </div>
+  );
+});
+
+PredictionChart.displayName = 'PredictionChart';
