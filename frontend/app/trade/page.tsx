@@ -2,52 +2,38 @@
 
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { useAccount, useReadContract } from 'wagmi';
-import { ROUND_MARKET_ABI } from '@/lib/abi';
-import { useContracts } from '@/hooks/useNetworkConfig';
+import { useAccount } from 'wagmi';
 import { BettingPanel } from '@/components/BettingPanel';
 import { ScrollFade } from '@/components/ScrollFade';
 import { Button } from '@/components/ui/Button';
-import { Card } from '@/components/ui/Card';
 import { TradeHeader } from '@/components/trade/TradeHeader';
 import { TradingPanel } from '@/components/trade/TradingPanel';
 import { PriceTicker } from '@/components/trade/PriceTicker';
 import { PositionsTable } from '@/components/PositionsTable';
+import { MarketProvider, useMarket } from '@/lib/marketStore';
 
-function CountdownText({ lockTimestamp }: { lockTimestamp: number }) {
-  const [now, setNow] = useState(Math.floor(Date.now() / 1000));
+function CountdownText() {
+  const { timeLeftToLock, timeLeftToEnd, marketStatus } = useMarket();
 
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setNow(Math.floor(Date.now() / 1000));
-    }, 1000);
-    return () => clearInterval(interval);
-  }, []);
-
-  const timeLeft = Math.max(0, lockTimestamp - now);
+  const timeLeft = marketStatus === 'OPEN' ? timeLeftToLock : timeLeftToEnd;
   const minutes = Math.floor(timeLeft / 60);
   const seconds = timeLeft % 60;
+
+  if (marketStatus === 'SETTLING') {
+    return <strong style={{ color: '#ffffff', fontFamily: 'var(--font-mono)' }}>SETTLING</strong>;
+  }
+  if (marketStatus === 'NEXT ROUND') {
+    return <strong style={{ color: '#ffffff', fontFamily: 'var(--font-mono)' }}>0:00</strong>;
+  }
+  if (marketStatus === 'AWAITING PLAYERS') {
+    return <strong style={{ color: '#ffffff', fontFamily: 'var(--font-mono)' }}>—:—</strong>;
+  }
 
   return (
     <strong style={{ color: '#ffffff', fontFamily: 'var(--font-mono)' }}>
       {timeLeft > 0 ? `${minutes}:${seconds.toString().padStart(2, '0')}` : 'CLOSED'}
     </strong>
   );
-}
-
-interface RoundData {
-  roundId: bigint;
-  startPrice: bigint;
-  closePrice: bigint;
-  totalUpAmount: bigint;
-  totalDownAmount: bigint;
-  startTimestamp: bigint;
-  lockTimestamp: bigint;
-  endTimestamp: bigint;
-  rewardBaseCalAmount: bigint;
-  rewardAmount: bigint;
-  resolved: boolean;
-  canceled: boolean;
 }
 
 function DesktopTradingOnly() {
@@ -103,18 +89,18 @@ function DesktopTradingOnly() {
                 <stop offset="100%" stopColor="rgba(255,255,255,0.01)" />
               </linearGradient>
             </defs>
-            {/* Screen border (glass panel bezel) */}
+            {/* Screen border */}
             <rect x="30" y="20" width="140" height="80" rx="6" fill="url(#laptopScreenGrad)" stroke="rgba(255, 255, 255, 0.12)" strokeWidth="1.5" />
             {/* Screen inner displays chart */}
             <rect x="35" y="25" width="130" height="70" rx="3" fill="#050505" />
-            {/* Grid line details */}
+            {/* Grid details */}
             <line x1="35" y1="48" x2="165" y2="48" stroke="rgba(255,255,255,0.03)" strokeWidth="1" />
             <line x1="35" y1="72" x2="165" y2="72" stroke="rgba(255,255,255,0.03)" strokeWidth="1" />
             <line x1="78" y1="25" x2="78" y2="95" stroke="rgba(255,255,255,0.03)" strokeWidth="1" />
             <line x1="122" y1="25" x2="122" y2="95" stroke="rgba(255,255,255,0.03)" strokeWidth="1" />
             {/* Chart line */}
             <path d="M 40 75 Q 65 40 90 60 T 130 35 T 160 55" fill="none" stroke="#ffffff" strokeWidth="1.5" strokeLinecap="round" />
-            {/* Pulsing indicator dot */}
+            {/* Pulsing dot */}
             <circle cx="160" cy="55" r="2.5" fill="#ffffff" style={{ filter: 'drop-shadow(0 0 3px #ffffff)' }} />
             {/* Keyboard base plate */}
             <path d="M 12 100 L 188 100 L 176 110 L 24 110 Z" fill="rgba(255, 255, 255, 0.08)" stroke="rgba(255, 255, 255, 0.12)" strokeWidth="1.5" />
@@ -150,7 +136,7 @@ function DesktopTradingOnly() {
           DotMarket's trading terminal is currently optimized for desktop devices. Mobile trading is coming soon.
         </p>
 
-        {/* Action Button stack */}
+        {/* Actions */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', width: '100%' }}>
           <Link href="/" style={{ textDecoration: 'none', width: '100%' }}>
             <Button
@@ -186,13 +172,9 @@ function DesktopTradingOnly() {
   );
 }
 
-export default function TradePage() {
-  const { isConnected } = useAccount();
-  const [btcPrice, setBtcPrice] = useState(62000.0);
+function TradeTerminal() {
   const [isMounted, setIsMounted] = useState(false);
-  const [windowWidth, setWindowWidth] = useState(1200); // Default to desktop
-  const contracts = useContracts();
-  const MARKET_ADDRESS = contracts.predictionMarket;
+  const [windowWidth, setWindowWidth] = useState(1200);
 
   useEffect(() => {
     setIsMounted(true);
@@ -202,49 +184,14 @@ export default function TradePage() {
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
-  // Read current round ID to show in sub-header
-  const { data: currentRoundId } = useReadContract({
-    address: MARKET_ADDRESS,
-    abi: ROUND_MARKET_ABI,
-    functionName: 'currentRoundId',
-    query: { refetchInterval: 5000 },
-  });
-
-  const roundId = currentRoundId ? BigInt(currentRoundId.toString()) : 0n;
-
-  // Read current round data
-  const { data: roundData } = useReadContract({
-    address: MARKET_ADDRESS,
-    abi: ROUND_MARKET_ABI,
-    functionName: 'getRound',
-    args: [roundId],
-    query: { enabled: roundId > 0n, refetchInterval: 5000 },
-  });
-
-  const round = roundData as unknown as RoundData | undefined;
-
-  const activeTotalPool = round ? round.totalUpAmount + round.totalDownAmount : 0n;
-  const activeUpPercent = activeTotalPool > 0n ? Number((round!.totalUpAmount * 10000n) / activeTotalPool) / 100 : 50;
-  const activeDownPercent = activeTotalPool > 0n ? 100 - activeUpPercent : 50;
-
-  // Fetch live price from Binance API to match chart exactly
-  useEffect(() => {
-    const fetchBtcPrice = async () => {
-      try {
-        const res = await fetch('https://api.binance.com/api/v3/ticker/price?symbol=BTCUSDT');
-        const data = await res.json();
-        if (data && data.price) {
-          setBtcPrice(parseFloat(data.price));
-        }
-      } catch (err) {
-        console.error('Error fetching Binance price:', err);
-      }
-    };
-
-    fetchBtcPrice(); // Initial fetch
-    const interval = setInterval(fetchBtcPrice, 1000); // Fetch every 1 second
-    return () => clearInterval(interval);
-  }, []);
+  // Read unified context values
+  const {
+    btcPrice,
+    activeRound: round,
+    activeTotalPool,
+    balanceSymbol,
+    marketStatus,
+  } = useMarket();
 
   const isDesktop = !isMounted || windowWidth >= 1024;
 
@@ -252,9 +199,12 @@ export default function TradePage() {
     return <DesktopTradingOnly />;
   }
 
+  const poolSize = round
+    ? (Number(activeTotalPool) / 1e18).toFixed(4)
+    : '0.0000';
+
   return (
     <div style={{ position: 'relative', height: '100vh', display: 'flex', flexDirection: 'column', background: '#000000', color: '#ffffff', overflow: 'hidden', width: '100%', maxWidth: '100%' }}>
-      {/* Top sticky blurred navigation header */}
       <TradeHeader />
 
       {/* ── Sub-Header Live Market strip ───────────────────────── */}
@@ -283,7 +233,7 @@ export default function TradePage() {
         {/* Live Status Badge */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
           <div className="animate-pulse-live" style={{ width: 6, height: 6, borderRadius: '50%', background: '#ffffff' }} />
-          <span style={{ fontWeight: 700, letterSpacing: '0.08em' }}>LIVE</span>
+          <span style={{ fontWeight: 700, letterSpacing: '0.08em' }}>{marketStatus}</span>
         </div>
 
         <div style={{ width: 1, height: 12, background: 'rgba(255,255,255,0.1)' }} />
@@ -291,7 +241,7 @@ export default function TradePage() {
         {/* Countdown */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
           <span style={{ color: 'var(--text-muted)' }}>TIME LEFT:</span>{' '}
-          <CountdownText lockTimestamp={round ? Number(round.lockTimestamp) : 0} />
+          <CountdownText />
         </div>
 
         <div style={{ width: 1, height: 12, background: 'rgba(255,255,255,0.1)' }} />
@@ -308,7 +258,7 @@ export default function TradePage() {
         <div>
           <span style={{ color: 'var(--text-muted)' }}>ROUND POOL:</span>{' '}
           <strong style={{ color: '#ffffff', fontFamily: 'var(--font-mono)' }}>
-            {round ? `${(Number(round.totalUpAmount + round.totalDownAmount) / 1e18).toFixed(2)} USDC` : '0.00 USDC'}
+            {poolSize} {balanceSymbol}
           </strong>
         </div>
 
@@ -331,7 +281,7 @@ export default function TradePage() {
             minHeight: 0,
           }}
         >
-          {/* Main workspace Grid */}
+          {/* Main Grid */}
           <div
             style={{
               display: 'grid',
@@ -342,17 +292,17 @@ export default function TradePage() {
               minHeight: 0,
             }}
           >
-            {/* Left Column: Chart Container + Activity (76% width, Fixed) */}
+            {/* Left Column */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: 16, height: '100%', minHeight: 0 }}>
               <div style={{ flex: 1, minHeight: 0 }}>
-                <TradingPanel btcPrice={btcPrice} round={round} activeUpPercent={activeUpPercent} activeDownPercent={activeDownPercent} />
+                <TradingPanel />
               </div>
               <div style={{ flexShrink: 0, minHeight: 0 }}>
-                <PositionsTable btcPrice={btcPrice} />
+                <PositionsTable />
               </div>
             </div>
 
-            {/* Right Column: Unified Betting Sidebar (24% width, Static) */}
+            {/* Right Column */}
             <div
               style={{
                 height: '100%',
@@ -366,5 +316,13 @@ export default function TradePage() {
         </div>
       </ScrollFade>
     </div>
+  );
+}
+
+export default function TradePage() {
+  return (
+    <MarketProvider>
+      <TradeTerminal />
+    </MarketProvider>
   );
 }

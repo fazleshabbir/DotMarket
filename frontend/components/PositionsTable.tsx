@@ -9,6 +9,7 @@ import { Button } from './ui/Button';
 import { Card } from './ui/Card';
 import { Table, TableRow, TableCell } from './ui/Table';
 import { Badge } from './ui/Badge';
+import { useMarket } from '@/lib/marketStore';
 
 interface RoundData {
   roundId: bigint;
@@ -31,11 +32,7 @@ interface BetData {
   claimed: boolean;
 }
 
-interface PositionsTableProps {
-  btcPrice?: number;
-}
-
-// ── Live countdown for a single bet row ──────────────────────────────────────
+// ── Live countdown helper for individual bet row ────────────────────────────
 function BetCountdown({ endTimestamp }: { endTimestamp: number }) {
   const [now, setNow] = useState(Math.floor(Date.now() / 1000));
 
@@ -48,16 +45,16 @@ function BetCountdown({ endTimestamp }: { endTimestamp: number }) {
   const minutes = Math.floor(timeLeft / 60);
   const seconds = timeLeft % 60;
 
-  if (timeLeft === 0) return <span style={{ fontSize: 10, fontFamily: 'var(--font-mono)', color: 'rgba(255,255,255,0.4)' }}>SETTLING</span>;
+  if (timeLeft === 0) return <span style={{ fontSize: 9, fontFamily: 'var(--font-mono)', color: 'rgba(255,255,255,0.45)' }}>0:00</span>;
 
   return (
-    <span style={{ fontSize: 10, fontFamily: 'var(--font-mono)', color: 'rgba(255,255,255,0.7)' }}>
-      {minutes}:{seconds.toString().padStart(2, '0')}
+    <span style={{ fontSize: 9, fontFamily: 'var(--font-mono)', color: 'rgba(255,255,255,0.6)' }}>
+      {minutes}:${seconds.toString().padStart(2, '0')}
     </span>
   );
 }
 
-export function PositionsTable({ btcPrice = 0 }: PositionsTableProps) {
+export function PositionsTable() {
   const [mounted, setMounted] = useState(false);
   const { address, isConnected } = useAccount();
   const [activeTab, setActiveTab] = useState<'positions' | 'history'>('positions');
@@ -153,8 +150,6 @@ export function PositionsTable({ btcPrice = 0 }: PositionsTableProps) {
     );
   }
 
-  // Helper check to see if any rows will actually render for the active tab
-  // (we can determine this by checking if the tab matches and rendering would be non-null)
   return (
     <Card 
       hoverEffect={false} 
@@ -242,7 +237,7 @@ export function PositionsTable({ btcPrice = 0 }: PositionsTableProps) {
             </div>
           </div>
         ) : (
-          <Table headers={['ROUND ID', 'FORECAST', 'AMOUNT', 'ENTRY PRICE', 'CURRENT / CLOSE', 'STATUS', 'ACTION']}>
+          <Table headers={['ROUND ID / TIME', 'FORECAST / MULT', 'AMOUNT / RETURN', 'ENTRY PRICE', 'CURRENT / CLOSE', 'STATUS', 'ACTION']}>
             {recentIds.map((id) => (
               <PositionRow 
                 key={id.toString()} 
@@ -252,7 +247,6 @@ export function PositionsTable({ btcPrice = 0 }: PositionsTableProps) {
                 onClaim={handleClaim} 
                 claimPending={isPending || isConfirming} 
                 marketAddress={MARKET_ADDRESS}
-                currentBtcPrice={btcPrice}
               />
             ))}
           </Table>
@@ -275,7 +269,6 @@ function PositionRow({
   onClaim,
   claimPending,
   marketAddress,
-  currentBtcPrice,
 }: {
   roundId: bigint;
   address: string;
@@ -283,17 +276,18 @@ function PositionRow({
   onClaim: (id: bigint) => void;
   claimPending: boolean;
   marketAddress: `0x${string}`;
-  currentBtcPrice: number;
 }) {
   const currentChain = useCurrentChain();
   const explorer = useExplorer();
-  // Live 1-second ticker for this row
   const [now, setNow] = useState(Math.floor(Date.now() / 1000));
 
   useEffect(() => {
     const interval = setInterval(() => setNow(Math.floor(Date.now() / 1000)), 1000);
     return () => clearInterval(interval);
   }, []);
+
+  // Fetch live elements from central market context
+  const { btcPrice, balanceSymbol } = useMarket();
 
   const { data: roundData } = useReadContract({
     address: marketAddress,
@@ -316,6 +310,14 @@ function PositionRow({
     abi: ROUND_MARKET_ABI,
     functionName: 'claimable',
     args: [roundId, address as `0x${string}`],
+    query: { refetchInterval: 10000 },
+  });
+
+  const { data: multipliersData } = useReadContract({
+    address: marketAddress,
+    abi: ROUND_MARKET_ABI,
+    functionName: 'getMultipliers',
+    args: [roundId],
     query: { refetchInterval: 10000 },
   });
 
@@ -343,7 +345,17 @@ function PositionRow({
   const startPriceScaled = Number(round.startPrice) / 1e8;
   const closePriceScaled = Number(round.closePrice) / 1e8;
 
-  // ── Live status for active (pending) bets ──────────────────────────────────
+  // Multiplier calculations
+  const upMultiplier = multipliersData ? Number((multipliersData as any)[0] || 0n) / 10000 : 1.9;
+  const downMultiplier = multipliersData ? Number((multipliersData as any)[1] || 0n) / 10000 : 1.9;
+  const lockedMultiplier = isUp ? upMultiplier : downMultiplier;
+
+  // Return & profit calculations
+  const parsedAmount = parseFloat(formatEther(bet.amount));
+  const potentialReturn = parsedAmount * lockedMultiplier;
+  const potentialProfit = potentialReturn - parsedAmount;
+
+  // Derive live status
   let badgeVariant: 'default' | 'success' | 'warning' | 'error' | 'outline' = 'default';
   let statusText = 'PENDING';
 
@@ -354,9 +366,8 @@ function PositionRow({
     if (isSettling) {
       statusText = 'SETTLING';
       badgeVariant = 'warning';
-    } else if (currentBtcPrice > 0 && startPriceScaled > 0) {
-      // Determine WINNING or LOSING based on direction and price movement
-      const priceAbove = currentBtcPrice > startPriceScaled;
+    } else if (btcPrice > 0 && startPriceScaled > 0) {
+      const priceAbove = btcPrice > startPriceScaled;
       const winning = isUp ? priceAbove : !priceAbove;
       statusText = winning ? 'WINNING' : 'LOSING';
       badgeVariant = winning ? 'success' : 'error';
@@ -365,7 +376,7 @@ function PositionRow({
       badgeVariant = 'success';
     }
   } else if (isCanceled) {
-    statusText = 'CANCELED';
+    statusText = 'REFUNDED';
     badgeVariant = 'outline';
   } else if (isWinner) {
     statusText = 'WON';
@@ -377,77 +388,97 @@ function PositionRow({
   
   const explorerUrl = explorer.getAddressUrl(marketAddress);
 
-  // ── Current / Close price column ───────────────────────────────────────────
-  const renderCurrentOrClose = () => {
-    if (!isPendingRound) {
-      // Settled: show close price
-      return (
-        <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11 }}>
-          {closePriceScaled > 0 ? `$${closePriceScaled.toFixed(2)}` : '—'}
-        </span>
-      );
-    }
-    if (currentBtcPrice > 0 && startPriceScaled > 0) {
-      const diff = currentBtcPrice - startPriceScaled;
-      const diffSign = diff >= 0 ? '+' : '';
-      return (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
-          <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: '#ffffff' }}>
-            ${currentBtcPrice.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-          </span>
-          <span style={{ fontFamily: 'var(--font-mono)', fontSize: 9, color: diff >= 0 ? 'rgba(255,255,255,0.7)' : 'rgba(255,255,255,0.4)' }}>
-            {diffSign}{diff.toFixed(2)}
-          </span>
-        </div>
-      );
-    }
-    return <span style={{ color: 'var(--text-secondary)', fontSize: 11 }}>—</span>;
-  };
-
   return (
     <TableRow>
-      <TableCell style={{ fontWeight: 600 }}>
-        {explorerUrl ? (
-          <a href={explorerUrl} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--text-secondary)', textDecoration: 'none' }} title="View Contract on Explorer">
-            #{roundId.toString()} ↗
-          </a>
-        ) : (
-          `#${roundId.toString()}`
-        )}
-      </TableCell>
+      {/* ROUND ID / TIME */}
       <TableCell>
-        <span 
-          style={{ 
-            color: isUp ? '#ffffff' : 'var(--text-secondary)', 
-            fontWeight: 700,
-            background: isUp ? 'rgba(255,255,255,0.06)' : 'rgba(82,82,82,0.15)',
-            padding: '4px 8px',
-            borderRadius: 6,
-            fontSize: 10,
-            border: isUp ? '1px solid rgba(255,255,255,0.1)' : '1px solid rgba(82,82,82,0.2)'
-          }}
-        >
-          {isUp ? '▲ UP' : '▼ DOWN'}
-        </span>
-      </TableCell>
-      <TableCell style={{ fontFamily: 'var(--font-mono)' }}>
-        {formatEther(bet.amount)} USDC
-      </TableCell>
-      <TableCell style={{ fontFamily: 'var(--font-mono)' }}>
-        {startPriceScaled > 0 ? `$${startPriceScaled.toFixed(2)}` : '—'}
-      </TableCell>
-      <TableCell>
-        {renderCurrentOrClose()}
-      </TableCell>
-      <TableCell>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 2, alignItems: 'flex-start' }}>
-          <Badge variant={badgeVariant}>{statusText}</Badge>
-          {/* Live countdown for active bets */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+          {explorerUrl ? (
+            <a href={explorerUrl} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--text-secondary)', textDecoration: 'none', fontWeight: 600 }} title="View Contract on Explorer">
+              #{roundId.toString()} ↗
+            </a>
+          ) : (
+            <span style={{ fontWeight: 600 }}>#{roundId.toString()}</span>
+          )}
           {isPendingRound && Number(round.endTimestamp) > 0 && (
             <BetCountdown endTimestamp={Number(round.endTimestamp)} />
           )}
         </div>
       </TableCell>
+
+      {/* FORECAST / MULT */}
+      <TableCell>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 3, alignItems: 'flex-start' }}>
+          <span 
+            style={{ 
+              color: isUp ? '#ffffff' : 'var(--text-secondary)', 
+              fontWeight: 700,
+              background: isUp ? 'rgba(255,255,255,0.06)' : 'rgba(82,82,82,0.15)',
+              padding: '4px 8px',
+              borderRadius: 6,
+              fontSize: 10,
+              border: isUp ? '1px solid rgba(255,255,255,0.1)' : '1px solid rgba(82,82,82,0.2)'
+            }}
+          >
+            {isUp ? '▲ UP' : '▼ DOWN'}
+          </span>
+          <span style={{ fontSize: 9, fontFamily: 'var(--font-mono)', color: 'rgba(255,255,255,0.5)' }}>
+            {lockedMultiplier.toFixed(2)}×
+          </span>
+        </div>
+      </TableCell>
+
+      {/* AMOUNT / RETURN */}
+      <TableCell>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+          <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, fontWeight: 500 }}>
+            {parsedAmount.toFixed(4)} {balanceSymbol}
+          </span>
+          <span style={{ fontSize: 9, fontFamily: 'var(--font-mono)', color: 'var(--text-secondary)' }}>
+            Ret: {potentialReturn.toFixed(4)} (+{potentialProfit.toFixed(4)})
+          </span>
+        </div>
+      </TableCell>
+
+      {/* ENTRY PRICE */}
+      <TableCell style={{ fontFamily: 'var(--font-mono)' }}>
+        {startPriceScaled > 0 ? `$${startPriceScaled.toFixed(2)}` : '—'}
+      </TableCell>
+
+      {/* CURRENT / CLOSE */}
+      <TableCell>
+        {isPendingRound ? (
+          btcPrice > 0 && startPriceScaled > 0 ? (
+            (() => {
+              const diff = btcPrice - startPriceScaled;
+              const diffSign = diff >= 0 ? '+' : '';
+              return (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                  <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: '#ffffff' }}>
+                    ${btcPrice.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                  </span>
+                  <span style={{ fontFamily: 'var(--font-mono)', fontSize: 9, color: diff >= 0 ? 'rgba(255,255,255,0.7)' : 'rgba(255,255,255,0.45)' }}>
+                    {diffSign}{diff.toFixed(2)}
+                  </span>
+                </div>
+              );
+            })()
+          ) : (
+            <span style={{ color: 'var(--text-secondary)', fontSize: 11 }}>—</span>
+          )
+        ) : (
+          <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11 }}>
+            {closePriceScaled > 0 ? `$${closePriceScaled.toFixed(2)}` : '—'}
+          </span>
+        )}
+      </TableCell>
+
+      {/* STATUS */}
+      <TableCell>
+        <Badge variant={badgeVariant}>{statusText}</Badge>
+      </TableCell>
+
+      {/* ACTION */}
       <TableCell style={{ textAlign: 'right' }}>
         {isClaimable && !bet.claimed ? (
           <Button

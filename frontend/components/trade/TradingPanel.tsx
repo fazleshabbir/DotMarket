@@ -1,50 +1,36 @@
 'use client';
 
-import React, { useState, useEffect, useRef, memo } from 'react';
+import React, { useState, useRef, memo } from 'react';
 import { PredictionChart } from '../PredictionChart';
 import { PriceTicker } from './PriceTicker';
+import { useMarket } from '@/lib/marketStore';
 
-interface TradingPanelProps {
-  btcPrice: number;
-  round: any;
-  activeUpPercent: number;
-  activeDownPercent: number;
-}
-
-function useCountdown(targetUnix: number) {
-  const [now, setNow] = useState(Math.floor(Date.now() / 1000));
-  useEffect(() => {
-    const t = window.setInterval(() => setNow(Math.floor(Date.now() / 1000)), 1000);
-    return () => window.clearInterval(t);
-  }, []);
-  const left = Math.max(0, targetUnix - now);
-  const m = Math.floor(left / 60).toString().padStart(2, '0');
-  const s = (left % 60).toString().padStart(2, '0');
-  return { timeLeft: left, display: `${m}:${s}` };
-}
-
-export const TradingPanel = memo(function TradingPanel({
-  btcPrice,
-  round,
-  activeUpPercent,
-  activeDownPercent,
-}: TradingPanelProps) {
+export const TradingPanel = memo(function TradingPanel() {
   const chartWrapperRef = useRef<HTMLDivElement>(null);
   const [isFullscreen, setIsFullscreen] = useState(false);
+
+  // Fetch unified context from Global Market Engine
+  const {
+    btcPrice,
+    activeRound: round,
+    activeUpPercent,
+    activeDownPercent,
+    timeLeftToLock,
+    timeLeftToEnd,
+    marketStatus,
+    balanceSymbol,
+  } = useMarket();
 
   const lockTimestamp  = round ? Number(round.lockTimestamp)  : 0;
   const endTimestamp   = round ? Number(round.endTimestamp)   : 0;
   const startTimestamp = round ? Number(round.startTimestamp) : 0;
   const lockPrice      = round ? Number(round.startPrice) / 1e8 : 0;
-  const isLocked       = round?.locked ?? false;
+  const isLocked       = round?.resolved ?? false; // or activeNow >= lockTimestamp
   const isResolved     = round?.resolved ?? false;
 
-  const { timeLeft: lockLeft,  display: lockDisplay  } = useCountdown(lockTimestamp);
-  const { timeLeft: endLeft,   display: endDisplay   } = useCountdown(endTimestamp);
-
   const poolSize = round
-    ? (Number(round.totalUpAmount + round.totalDownAmount) / 1e18).toFixed(2)
-    : '0.00';
+    ? (Number(round.totalUpAmount + round.totalDownAmount) / 1e18).toFixed(4)
+    : '0.0000';
 
   // SVG lock icon for status bar
   const LockSvg = () => (
@@ -54,12 +40,20 @@ export const TradingPanel = memo(function TradingPanel({
     </svg>
   );
 
-  // Derive market phase
-  const phaseIcon = isResolved ? '✓' : lockLeft > 0 ? '●' : null;
-  const phaseText = isResolved ? 'SETTLED' : lockLeft > 0 ? 'BETTING OPEN' : 'LOCKED';
-  const phaseColor = isResolved
+  // Format timers
+  const formatMinsSecs = (secondsTotal: number) => {
+    const m = Math.floor(secondsTotal / 60).toString().padStart(2, '0');
+    const s = (secondsTotal % 60).toString().padStart(2, '0');
+    return `${m}:${s}`;
+  };
+
+  const lockDisplay = formatMinsSecs(timeLeftToLock);
+  const endDisplay = formatMinsSecs(timeLeftToEnd);
+
+  // Derive status badge config
+  const badgeColor = isResolved
     ? 'rgba(255,255,255,0.35)'
-    : lockLeft > 0
+    : timeLeftToLock > 0
       ? '#ffffff'
       : 'rgba(255,255,255,0.6)';
 
@@ -113,7 +107,7 @@ export const TradingPanel = memo(function TradingPanel({
             <span style={{ fontSize: 9, fontWeight: 700, color: '#ffffff', letterSpacing: '0.1em' }}>LIVE</span>
           </div>
           <span style={{ fontSize: 9, color: 'rgba(255,255,255,0.3)', fontFamily: 'var(--font-mono)', letterSpacing: '0.08em' }}>
-            2 MINUTE MARKET
+            CONSOLIDATED ENGINE
           </span>
         </div>
 
@@ -122,14 +116,14 @@ export const TradingPanel = memo(function TradingPanel({
           <PriceTicker price={btcPrice} />
           <span style={{ width: 1, height: 12, background: 'rgba(255,255,255,0.1)', display: 'inline-block' }} />
           <span style={{ fontSize: 10, color: 'var(--text-secondary)', fontFamily: 'var(--font-mono)' }}>
-            POOL: <strong style={{ color: '#ffffff' }}>{poolSize} ETH</strong>
+            POOL: <strong style={{ color: '#ffffff' }}>{poolSize} {balanceSymbol}</strong>
           </span>
           <span style={{ width: 1, height: 12, background: 'rgba(255,255,255,0.1)', display: 'inline-block' }} />
           <span style={{ fontSize: 10, color: 'var(--text-secondary)', fontFamily: 'var(--font-mono)' }}>
-            YES <strong style={{ color: '#ffffff' }}>{activeUpPercent.toFixed(0)}%</strong>
+            UP <strong style={{ color: '#ffffff' }}>{activeUpPercent.toFixed(0)}%</strong>
           </span>
           <span style={{ fontSize: 10, color: 'var(--text-secondary)', fontFamily: 'var(--font-mono)' }}>
-            NO <strong style={{ color: '#ffffff' }}>{activeDownPercent.toFixed(0)}%</strong>
+            DOWN <strong style={{ color: '#ffffff' }}>{activeDownPercent.toFixed(0)}%</strong>
           </span>
 
           {/* Fullscreen */}
@@ -173,24 +167,24 @@ export const TradingPanel = memo(function TradingPanel({
           background: 'rgba(255,255,255,0.03)',
           border: '1px solid rgba(255,255,255,0.07)',
           whiteSpace: 'nowrap',
-          color: phaseColor,
+          color: badgeColor,
         }}>
-          {!isResolved && lockLeft === 0 && <LockSvg />}
+          {marketStatus !== 'OPEN' && <LockSvg />}
           <span style={{ fontSize: 10, fontWeight: 700, fontFamily: 'var(--font-mono)', letterSpacing: '0.06em' }}>
-            {phaseIcon && phaseIcon !== '●' ? `${phaseIcon} ` : phaseIcon === '●' ? '● ' : ''}{phaseText}
+            {marketStatus}
           </span>
         </div>
 
         <span style={{ width: 1, height: 12, background: 'rgba(255,255,255,0.08)', flexShrink: 0 }} />
 
         {/* Countdown to lock */}
-        {lockLeft > 0 && (
+        {timeLeftToLock > 0 && (
           <>
             <div style={{ display: 'flex', alignItems: 'center', gap: 5, whiteSpace: 'nowrap' }}>
               <span style={{ fontSize: 9, color: 'var(--text-secondary)', fontFamily: 'var(--font-mono)' }}>LOCK IN</span>
               <strong style={{
                 fontSize: 12, fontFamily: 'var(--font-mono)',
-                color: lockLeft <= 20 ? '#ffffff' : 'rgba(255,255,255,0.7)',
+                color: timeLeftToLock <= 20 ? '#ffffff' : 'rgba(255,255,255,0.7)',
                 letterSpacing: '0.08em',
               }}>
                 {lockDisplay}
@@ -201,7 +195,7 @@ export const TradingPanel = memo(function TradingPanel({
         )}
 
         {/* Countdown to settlement */}
-        {endLeft > 0 && (
+        {timeLeftToEnd > 0 && (
           <div style={{ display: 'flex', alignItems: 'center', gap: 5, whiteSpace: 'nowrap' }}>
             <span style={{ fontSize: 9, color: 'var(--text-secondary)', fontFamily: 'var(--font-mono)' }}>SETTLEMENT</span>
             <strong style={{ fontSize: 12, fontFamily: 'var(--font-mono)', color: 'rgba(255,255,255,0.5)', letterSpacing: '0.08em' }}>
@@ -240,7 +234,7 @@ export const TradingPanel = memo(function TradingPanel({
           roundStartTime={startTimestamp}
           roundEndTime={endTimestamp}
           roundLockTime={lockTimestamp}
-          isLocked={isLocked}
+          isLocked={marketStatus !== 'OPEN'}
           isResolved={isResolved}
         />
       </div>
