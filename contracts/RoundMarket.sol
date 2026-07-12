@@ -285,21 +285,23 @@ contract RoundMarket is ReentrancyGuard, Ownable {
         require(block.timestamp < round.lockTimestamp, "RM: round is locked");
         require(!round.resolved && !round.canceled, "RM: round settled");
         require(msg.value >= minBetAmount, "RM: bet below minimum");
-        require(bets[roundId][msg.sender].amount == 0, "RM: already placed bet");
 
-        bets[roundId][msg.sender] = Bet({
-            position: position,
-            amount:   msg.value,
-            claimed:  false
-        });
+        Bet storage bet = bets[roundId][msg.sender];
+        if (bet.amount > 0) {
+            require(bet.position == position, "RM: cannot bet both sides");
+        } else {
+            userRounds[msg.sender].push(roundId);
+        }
+
+        bet.position = position;
+        bet.amount += msg.value;
+        bet.claimed = false;
 
         if (position == Position.Up) {
             round.totalUpAmount += msg.value;
         } else {
             round.totalDownAmount += msg.value;
         }
-
-        userRounds[msg.sender].push(roundId);
 
         emit BetPlaced(roundId, msg.sender, position, msg.value);
     }
