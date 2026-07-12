@@ -20,6 +20,7 @@ export const TradingPanel = memo(function TradingPanel() {
     marketStatus,
     balanceSymbol,
     lockedEntryPrice,
+    activeUserBet,
   } = useMarket();
 
   const lockTimestamp  = round ? Number(round.lockTimestamp)  : 0;
@@ -240,6 +241,9 @@ export const TradingPanel = memo(function TradingPanel() {
           roundLockTime={lockTimestamp}
           isLocked={marketStatus !== 'OPEN'}
           isResolved={isResolved}
+          userPosition={activeUserBet && activeUserBet.amount > 0n ? activeUserBet.position : undefined}
+          userAmount={activeUserBet && activeUserBet.amount > 0n ? Number(activeUserBet.amount) / 1e18 : undefined}
+          balanceSymbol={balanceSymbol}
         />
       </div>
     </div>

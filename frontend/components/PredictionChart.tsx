@@ -11,6 +11,9 @@ interface PredictionChartProps {
   btcPrice: number;            // live price from parent
   isLocked?: boolean;
   isResolved?: boolean;
+  userPosition?: number;       // 0 for UP, 1 for DOWN, undefined if none
+  userAmount?: number;         // bet amount in USDC
+  balanceSymbol?: string;      // USDC
 }
 
 interface KlinePoint {
@@ -47,6 +50,9 @@ export const PredictionChart = memo(function PredictionChart({
   btcPrice,
   isLocked = false,
   isResolved = false,
+  userPosition,
+  userAmount,
+  balanceSymbol,
 }: PredictionChartProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const chartRef = useRef<IChartApi | null>(null);
@@ -205,6 +211,34 @@ export const PredictionChart = memo(function PredictionChart({
       }
     }
 
+    // Dynamic P&L Color Shift (Monochrome high-contrast design)
+    const hasBet = lockPrice > 0 && userPosition !== undefined;
+    if (hasBet && series) {
+      const isUp = userPosition === 0;
+      const isWinning = isUp ? price > lockPrice : price < lockPrice;
+      
+      if (isWinning) {
+        series.applyOptions({
+          lineColor: 'rgba(255, 255, 255, 0.95)',
+          topColor: 'rgba(255, 255, 255, 0.15)',
+          bottomColor: 'rgba(255, 255, 255, 0.00)',
+        });
+      } else {
+        series.applyOptions({
+          lineColor: 'rgba(255, 255, 255, 0.35)',
+          topColor: 'rgba(255, 255, 255, 0.02)',
+          bottomColor: 'rgba(255, 255, 255, 0.00)',
+        });
+      }
+    } else if (series) {
+      // Default styles when no active bet
+      series.applyOptions({
+        lineColor: 'rgba(255, 255, 255, 0.8)',
+        topColor: 'rgba(255, 255, 255, 0.06)',
+        bottomColor: 'rgba(255, 255, 255, 0.00)',
+      });
+    }
+
     // Update lock line position
     if (lockPrice > 0 && lockLineRef.current && lockPillRef.current) {
       const lockY = series.priceToCoordinate(lockPrice);
@@ -215,7 +249,7 @@ export const PredictionChart = memo(function PredictionChart({
         lockPillRef.current.style.opacity = '1';
       }
     }
-  }, [lockPrice]);
+  }, [lockPrice, userPosition]);
 
   useEffect(() => {
     updateDotAndPillRef.current = updateDotAndPill;
@@ -325,7 +359,8 @@ export const PredictionChart = memo(function PredictionChart({
               left: 0,
               right: 52,
               height: 0,
-              borderTop: '1px dashed rgba(255,255,255,0.3)',
+              borderTop: userPosition !== undefined ? '1px dashed rgba(255, 255, 255, 0.75)' : '1px dashed rgba(255, 255, 255, 0.3)',
+              boxShadow: userPosition !== undefined ? '0 0 10px rgba(255, 255, 255, 0.15)' : 'none',
               opacity: 0,
               pointerEvents: 'none',
               zIndex: 9,
@@ -337,25 +372,40 @@ export const PredictionChart = memo(function PredictionChart({
             style={{
               position: 'absolute',
               left: 8,
-              padding: '2px 8px',
+              padding: userPosition !== undefined ? '3px 10px' : '2px 8px',
               borderRadius: 8,
-              background: 'rgba(0,0,0,0.85)',
+              background: userPosition !== undefined ? '#ffffff' : 'rgba(0,0,0,0.85)',
               backdropFilter: 'blur(8px)',
-              border: '1px solid rgba(255,255,255,0.12)',
-              color: '#ffffff',
+              border: userPosition !== undefined ? 'none' : '1px solid rgba(255,255,255,0.12)',
+              color: userPosition !== undefined ? '#000000' : '#ffffff',
               fontSize: 9,
-              fontFamily: 'var(--font-mono)',
+              fontFamily: userPosition !== undefined ? 'var(--font-sans)' : 'var(--font-mono)',
+              fontWeight: userPosition !== undefined ? 800 : 700,
               opacity: 0,
               pointerEvents: 'none',
               zIndex: 10,
               whiteSpace: 'nowrap',
               transition: 'top 0.4s ease',
+              letterSpacing: '0.04em',
+              textTransform: 'uppercase',
+              boxShadow: userPosition !== undefined ? '0 4px 12px rgba(0,0,0,0.35)' : 'none',
             }}
           >
-            🔒 Lock&nbsp;
-            <strong>
-              ${lockPrice.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-            </strong>
+            {userPosition !== undefined ? (
+              <>
+                {userPosition === 0 ? '▲ UP' : '▼ DOWN'} POSITION &nbsp;
+                <strong>
+                  ${lockPrice.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                </strong>
+              </>
+            ) : (
+              <>
+                🔒 Lock&nbsp;
+                <strong>
+                  ${lockPrice.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                </strong>
+              </>
+            )}
           </div>
         </>
       )}
