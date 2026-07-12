@@ -346,7 +346,7 @@ export function BettingPanel({ currentBtcPrice: _unusedProps }: { currentBtcPric
   };
 
   // State indicators matching rules
-  const canBet = isConnected && marketStatus === 'OPEN' && !hasPlacedActiveBet && !isPending && !isConfirming;
+  const canBet = isConnected && marketStatus === 'OPEN' && !isPending && !isConfirming;
   const isWorking = isPending || isConfirming;
   const isMarketLocked = isConnected && !canBet && !isWorking;
 
@@ -663,7 +663,7 @@ export function BettingPanel({ currentBtcPrice: _unusedProps }: { currentBtcPric
                         handlePlaceBet(0);
                       }, 120);
                     }}
-                    disabled={!canBet || isWorking || !betAmount}
+                    disabled={!canBet || isWorking || !betAmount || (hasPlacedActiveBet && activeUserBet?.position === 1)}
                     style={{
                       background: '#ffffff',
                       color: '#000000',
@@ -724,7 +724,7 @@ export function BettingPanel({ currentBtcPrice: _unusedProps }: { currentBtcPric
                         handlePlaceBet(1);
                       }, 120);
                     }}
-                    disabled={!canBet || isWorking || !betAmount}
+                    disabled={!canBet || isWorking || !betAmount || (hasPlacedActiveBet && activeUserBet?.position === 0)}
                     style={{
                       background: 'transparent',
                       color: '#ffffff',

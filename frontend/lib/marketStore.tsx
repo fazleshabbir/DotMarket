@@ -1,7 +1,7 @@
 'use client';
 
 import React, { createContext, useContext, useState, useEffect, useRef } from 'react';
-import { useAccount, useReadContract, useBalance } from 'wagmi';
+import { useAccount, useReadContract, useReadContracts, useBalance } from 'wagmi';
 import { formatEther } from 'viem';
 import { ROUND_MARKET_ABI } from '@/lib/abi';
 import { useContracts } from '@/hooks/useNetworkConfig';
@@ -170,80 +170,37 @@ export function MarketProvider({ children }: { children: React.ReactNode }) {
     address: MARKET_ADDRESS,
     abi: ROUND_MARKET_ABI,
     functionName: 'currentRoundId',
-    query: { refetchInterval: 2000 },
+    query: { refetchInterval: 3000 },
   });
   const currentRoundId = rawCurrentRoundId ? BigInt(rawCurrentRoundId.toString()) : 0n;
 
   const activeRoundId = currentRoundId;
   const prevRoundId = activeRoundId > 1n ? activeRoundId - 1n : 0n;
 
-  // (b) Active Round Data
-  const { data: rawActiveRound } = useReadContract({
-    address: MARKET_ADDRESS,
-    abi: ROUND_MARKET_ABI,
-    functionName: 'getRound',
-    args: [activeRoundId],
-    query: { enabled: activeRoundId > 0n, refetchInterval: 2000 },
-  });
-  const activeRound = rawActiveRound as unknown as RoundData | undefined;
-
-  // (c) Active Round Multipliers
-  const { data: activeMultipliers } = useReadContract({
-    address: MARKET_ADDRESS,
-    abi: ROUND_MARKET_ABI,
-    functionName: 'getMultipliers',
-    args: [activeRoundId],
-    query: { enabled: activeRoundId > 0n, refetchInterval: 2000 },
+  // Batch query for active and previous round data parameters
+  const { data: batchData } = useReadContracts({
+    contracts: [
+      { address: MARKET_ADDRESS, abi: ROUND_MARKET_ABI, functionName: 'getRound', args: [activeRoundId] },
+      { address: MARKET_ADDRESS, abi: ROUND_MARKET_ABI, functionName: 'getMultipliers', args: [activeRoundId] },
+      { address: MARKET_ADDRESS, abi: ROUND_MARKET_ABI, functionName: 'getUserBet', args: [activeRoundId, address || '0x0000000000000000000000000000000000000000'] },
+      { address: MARKET_ADDRESS, abi: ROUND_MARKET_ABI, functionName: 'getRound', args: [prevRoundId] },
+      { address: MARKET_ADDRESS, abi: ROUND_MARKET_ABI, functionName: 'getMultipliers', args: [prevRoundId] },
+      { address: MARKET_ADDRESS, abi: ROUND_MARKET_ABI, functionName: 'getUserBet', args: [prevRoundId, address || '0x0000000000000000000000000000000000000000'] },
+      { address: MARKET_ADDRESS, abi: ROUND_MARKET_ABI, functionName: 'claimable', args: [prevRoundId, address || '0x0000000000000000000000000000000000000000'] }
+    ],
+    query: {
+      enabled: activeRoundId > 0n,
+      refetchInterval: 3000
+    }
   });
 
-  // (d) Active User Bet
-  const { data: rawActiveUserBet } = useReadContract({
-    address: MARKET_ADDRESS,
-    abi: ROUND_MARKET_ABI,
-    functionName: 'getUserBet',
-    args: [activeRoundId, address || '0x0000000000000000000000000000000000000000'],
-    query: { enabled: activeRoundId > 0n && !!address, refetchInterval: 2000 },
-  });
-  const activeUserBet = rawActiveUserBet as unknown as UserBet | undefined;
-
-  // (e) Previous Round Data
-  const { data: rawPrevRound } = useReadContract({
-    address: MARKET_ADDRESS,
-    abi: ROUND_MARKET_ABI,
-    functionName: 'getRound',
-    args: [prevRoundId],
-    query: { enabled: prevRoundId > 0n, refetchInterval: 2500 },
-  });
-  const prevRound = rawPrevRound as unknown as RoundData | undefined;
-
-  // (f) Previous Round Multipliers
-  const { data: prevMultipliers } = useReadContract({
-    address: MARKET_ADDRESS,
-    abi: ROUND_MARKET_ABI,
-    functionName: 'getMultipliers',
-    args: [prevRoundId],
-    query: { enabled: prevRoundId > 0n, refetchInterval: 2500 },
-  });
-
-  // (g) Previous User Bet
-  const { data: rawPrevUserBet } = useReadContract({
-    address: MARKET_ADDRESS,
-    abi: ROUND_MARKET_ABI,
-    functionName: 'getUserBet',
-    args: [prevRoundId, address || '0x0000000000000000000000000000000000000000'],
-    query: { enabled: prevRoundId > 0n && !!address, refetchInterval: 2500 },
-  });
-  const prevUserBet = rawPrevUserBet as unknown as UserBet | undefined;
-
-  // (h) Previous Round Claimable Status
-  const { data: rawIsClaimable } = useReadContract({
-    address: MARKET_ADDRESS,
-    abi: ROUND_MARKET_ABI,
-    functionName: 'claimable',
-    args: [prevRoundId, address || '0x0000000000000000000000000000000000000000'],
-    query: { enabled: prevRoundId > 0n && !!address, refetchInterval: 2500 },
-  });
-  const isClaimable = !!rawIsClaimable;
+  const activeRound = batchData?.[0]?.result as RoundData | undefined;
+  const activeMultipliers = batchData?.[1]?.result;
+  const activeUserBet = batchData?.[2]?.result as UserBet | undefined;
+  const prevRound = batchData?.[3]?.result as RoundData | undefined;
+  const prevMultipliers = batchData?.[4]?.result;
+  const prevUserBet = batchData?.[5]?.result as UserBet | undefined;
+  const isClaimable = !!batchData?.[6]?.result;
 
   // ── 5. Derived Stat Calculations ──────────────────────────────────────────
   // Active Round Stats
