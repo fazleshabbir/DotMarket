@@ -57,7 +57,6 @@ export const PredictionChart = memo(function PredictionChart({
   const containerRef = useRef<HTMLDivElement>(null);
   const chartRef = useRef<IChartApi | null>(null);
   const seriesRef = useRef<ISeriesApi<'Area', Time> | null>(null);
-  const wsRef = useRef<WebSocket | null>(null);
   const liveDotRef = useRef<HTMLDivElement>(null);
   const pricePillRef = useRef<HTMLDivElement>(null);
   const lockLineRef = useRef<HTMLDivElement>(null);
@@ -255,48 +254,15 @@ export const PredictionChart = memo(function PredictionChart({
     updateDotAndPillRef.current = updateDotAndPill;
   }, [updateDotAndPill]);
 
-  // ── Live Pyth Hermes WebSocket — streams BTC price ticks ───────────────────
+  // Update series and overlays whenever btcPrice prop changes from parent polling
   useEffect(() => {
-    if (!chartReady) return;
-
-    const ws = new WebSocket('wss://hermes.pyth.network/ws');
-    wsRef.current = ws;
-
-    ws.onopen = () => {
-      ws.send(JSON.stringify({
-        type: 'subscribe',
-        ids: ['e62df6c8b4a85fe1a67db44dc12de5db330f7ac66b72dc658afedf0f4a415b43']
-      }));
-    };
-
-    ws.onmessage = (evt) => {
-      try {
-        const msg = JSON.parse(evt.data);
-        if (msg.type === 'notify' && msg.value && msg.value.price) {
-          const priceStr = msg.value.price.price;
-          const expo = msg.value.price.expo;
-          const price = Number(priceStr) * Math.pow(10, expo);
-          const t = Math.floor(msg.value.price.publish_time) as Time;
-          const point: KlinePoint = { time: t, value: price };
-          seriesRef.current?.update(point);
-          latestPrice.current = price;
-          updateDotAndPillRef.current?.(price);
-        }
-      } catch {}
-    };
-
-    ws.onerror = () => ws.close();
-
-    return () => {
-      ws.close();
-      wsRef.current = null;
-    };
-  }, [chartReady]);
-
-  // Update overlays whenever btcPrice prop changes from parent polling
-  useEffect(() => {
+    if (!chartReady || !seriesRef.current) return;
+    const nowTime = Math.floor(Date.now() / 1000) as Time;
+    const point: KlinePoint = { time: nowTime, value: btcPrice };
+    seriesRef.current.update(point);
+    latestPrice.current = btcPrice;
     updateDotAndPill(btcPrice);
-  }, [btcPrice, updateDotAndPill]);
+  }, [btcPrice, chartReady, updateDotAndPill]);
 
   return (
     <div style={{ position: 'relative', width: '100%', height: '100%' }}>
