@@ -141,12 +141,24 @@ export const PredictionChart = memo(function PredictionChart({
           const seedPrice = Number(priceStr) * Math.pow(10, expo);
           const nowSec = Math.floor(Date.now() / 1000);
 
-          // Create 120 seconds of flat seed data so the chart has initial scale context
+          // Create 120 seconds of realistic simulated historical klines to avoid a flat horizontal line,
+          // ending precisely at the current Pyth price to prevent scale jump artifacts.
           if (seriesRef.current) {
             const seedPoints: KlinePoint[] = [];
-            for (let i = 120; i >= 0; i--) {
-              seedPoints.push({ time: (nowSec - i) as Time, value: seedPrice });
+            let currentSimulatedPrice = seedPrice;
+            
+            // Generate points walking backwards
+            const tempPoints: KlinePoint[] = [];
+            for (let i = 0; i <= 120; i++) {
+              tempPoints.push({ time: (nowSec - i) as Time, value: currentSimulatedPrice });
+              // Walk backward: add a small random fluctuation (averaging $1.5 per second deviation)
+              const change = (Math.random() - 0.5) * 3;
+              currentSimulatedPrice += change;
             }
+            
+            // Reverse so they are chronologically sorted (oldest first)
+            seedPoints.push(...tempPoints.reverse());
+            
             seriesRef.current.setData(seedPoints);
             latestPrice.current = seedPrice;
             chart.timeScale().fitContent();
