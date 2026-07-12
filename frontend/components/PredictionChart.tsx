@@ -212,15 +212,15 @@ export const PredictionChart = memo(function PredictionChart({
       
       if (isWinning) {
         series.applyOptions({
-          lineColor: 'rgba(255, 255, 255, 0.95)',
-          topColor: 'rgba(255, 255, 255, 0.15)',
-          bottomColor: 'rgba(255, 255, 255, 0.00)',
+          lineColor: 'rgba(46, 213, 115, 0.95)',
+          topColor: 'rgba(46, 213, 115, 0.18)',
+          bottomColor: 'rgba(46, 213, 115, 0.00)',
         });
       } else {
         series.applyOptions({
-          lineColor: 'rgba(255, 255, 255, 0.35)',
-          topColor: 'rgba(255, 255, 255, 0.02)',
-          bottomColor: 'rgba(255, 255, 255, 0.00)',
+          lineColor: 'rgba(255, 71, 87, 0.90)',
+          topColor: 'rgba(255, 71, 87, 0.15)',
+          bottomColor: 'rgba(255, 71, 87, 0.00)',
         });
       }
     } else if (series) {
@@ -470,30 +470,33 @@ export const PredictionChart = memo(function PredictionChart({
             if (lockPrice > 0 && lastVal > 0) {
               const isUp = userPosition === 0;
               const isWinning = isUp ? lastVal > lockPrice : lastVal < lockPrice;
-              const diff = Math.abs(lastVal - lockPrice);
               return (
                 <div style={{
                   fontSize: 10,
-                  fontFamily: 'var(--font-mono)',
+                  fontFamily: 'var(--font-sans)',
                   fontWeight: 700,
-                  color: isWinning ? '#ffffff' : 'rgba(255, 255, 255, 0.35)',
                   display: 'flex',
                   alignItems: 'center',
-                  gap: 4,
+                  gap: 6,
                   marginTop: 2
                 }}>
                   <span style={{
-                    display: 'inline-block',
-                    padding: '1px 4px',
-                    borderRadius: 3,
-                    background: isWinning ? 'rgba(255,255,255,0.15)' : 'rgba(255,255,255,0.05)',
-                    fontSize: 8,
+                    width: 6,
+                    height: 6,
+                    borderRadius: '50%',
+                    background: isWinning ? '#2ed573' : '#ff4757',
+                    boxShadow: isWinning ? '0 0 8px #2ed573' : '0 0 8px #ff4757',
+                    display: 'inline-block'
+                  }} />
+                  <span style={{
+                    color: isWinning ? '#2ed573' : '#ff4757',
+                    letterSpacing: '0.04em',
+                    fontSize: 9,
                     fontWeight: 800,
-                    letterSpacing: '0.04em'
+                    textTransform: 'uppercase'
                   }}>
-                    {isWinning ? 'BULLISH' : 'BEARISH'}
+                    {isWinning ? 'WINNING' : 'LOSING'}
                   </span>
-                  <span>{isWinning ? '+' : '-'}${diff.toFixed(2)}</span>
                 </div>
               );
             }
