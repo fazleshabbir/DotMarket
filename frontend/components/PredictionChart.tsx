@@ -2,6 +2,7 @@
 
 import React, { useEffect, useRef, useState, useCallback, memo } from 'react';
 import { createChart, AreaSeries, IChartApi, ISeriesApi, Time, LineStyle } from 'lightweight-charts';
+import { useMarket } from '@/lib/marketStore';
 
 interface PredictionChartProps {
   lockPrice?: number;          // 0 if betting still open
@@ -35,6 +36,7 @@ export const PredictionChart = memo(function PredictionChart({
   userAmount,
   balanceSymbol,
 }: PredictionChartProps) {
+  const { now } = useMarket();
   const containerRef = useRef<HTMLDivElement>(null);
   const chartRef = useRef<IChartApi | null>(null);
   const seriesRef = useRef<ISeriesApi<'Area', Time> | null>(null);
@@ -48,8 +50,26 @@ export const PredictionChart = memo(function PredictionChart({
   const updateDotAndPillRef = useRef<((price: number) => void) | null>(null);
   const [chartReady, setChartReady] = useState(false);
 
-  const [timeLeft, setTimeLeft] = useState<string>('');
-  const [phaseLabel, setPhaseLabel] = useState<string>('');
+  let timeLeft = '';
+  let phaseLabel = '';
+  
+  if (isResolved) {
+    phaseLabel = 'RESOLVED';
+  } else if (!isLocked && roundLockTime > now) {
+    const diff = roundLockTime - now;
+    const mm = Math.floor(diff / 60);
+    const ss = diff % 60;
+    timeLeft = `${mm}:${ss.toString().padStart(2, '0')}`;
+    phaseLabel = 'LOCKING';
+  } else if (isLocked && roundEndTime > now) {
+    const diff = roundEndTime - now;
+    const mm = Math.floor(diff / 60);
+    const ss = diff % 60;
+    timeLeft = `${mm}:${ss.toString().padStart(2, '0')}`;
+    phaseLabel = 'SETTLING';
+  } else {
+    phaseLabel = 'WAITING';
+  }
 
   // ── Chart initialization ────────────────────────────────────────────────────
   useEffect(() => {
@@ -128,46 +148,26 @@ export const PredictionChart = memo(function PredictionChart({
     });
     ro.observe(containerRef.current);
 
-    // Seed the chart with the current Pyth price (no Binance data — eliminates price source mismatch)
-    fetch('https://hermes.pyth.network/v2/updates/price/latest?ids[]=e62df6c8b4a85fe1a67db44dc12de5db330f7ac66b72dc658afedf0f4a415b43', {
-      signal: AbortSignal.timeout(5000)
-    })
-      .then(res => res.json())
-      .then(data => {
-        if (data && data.parsed && data.parsed[0]) {
-          const priceStr = data.parsed[0].price.price;
-          const expo = data.parsed[0].price.expo;
-          const seedPrice = Number(priceStr) * Math.pow(10, expo);
-          const nowSec = Math.floor(Date.now() / 1000);
-
-          // Create 120 seconds of realistic simulated historical klines to avoid a flat horizontal line,
-          // ending precisely at the current Pyth price to prevent scale jump artifacts.
-          if (seriesRef.current) {
-            const seedPoints: KlinePoint[] = [];
-            let currentSimulatedPrice = seedPrice;
-            
-            // Generate points walking backwards
-            const tempPoints: KlinePoint[] = [];
-            for (let i = 0; i <= 120; i++) {
-              tempPoints.push({ time: (nowSec - i) as Time, value: currentSimulatedPrice });
-              // Walk backward: add a small random fluctuation (averaging $1.5 per second deviation)
-              const change = (Math.random() - 0.5) * 3;
-              currentSimulatedPrice += change;
-            }
-            
-            // Reverse so they are chronologically sorted (oldest first)
-            seedPoints.push(...tempPoints.reverse());
-            
-            seriesRef.current.setData(seedPoints);
-            latestPrice.current = seedPrice;
-            chart.timeScale().fitContent();
-          }
-        }
-        setChartReady(true);
-      })
-      .catch(() => {
-        setChartReady(true);
-      });
+    // Seed the chart using the btcPrice prop passed from the parent
+    if (seriesRef.current && btcPrice > 0) {
+      const seedPoints: KlinePoint[] = [];
+      let currentSimulatedPrice = btcPrice;
+      const nowSec = Math.floor(Date.now() / 1000);
+      
+      const tempPoints: KlinePoint[] = [];
+      for (let i = 0; i <= 120; i++) {
+        tempPoints.push({ time: (nowSec - i) as Time, value: currentSimulatedPrice });
+        const change = (Math.random() - 0.5) * 3;
+        currentSimulatedPrice += change;
+      }
+      
+      seedPoints.push(...tempPoints.reverse());
+      
+      seriesRef.current.setData(seedPoints);
+      latestPrice.current = btcPrice;
+      chart.timeScale().fitContent();
+    }
+    setChartReady(true);
 
     return () => {
       ro.disconnect();
@@ -267,35 +267,7 @@ export const PredictionChart = memo(function PredictionChart({
     updateDotAndPillRef.current = updateDotAndPill;
   }, [updateDotAndPill]);
 
-  // Live HUD Phase Countdown calculations
-  useEffect(() => {
-    const timer = setInterval(() => {
-      const nowSec = Math.floor(Date.now() / 1000);
-      if (isResolved) {
-        setTimeLeft('');
-        setPhaseLabel('RESOLVED');
-        return;
-      }
-      if (!isLocked && roundLockTime > nowSec) {
-        const diff = roundLockTime - nowSec;
-        const mm = Math.floor(diff / 60);
-        const ss = diff % 60;
-        setTimeLeft(`${mm}:${ss.toString().padStart(2, '0')}`);
-        setPhaseLabel('LOCKING');
-      } else if (isLocked && roundEndTime > nowSec) {
-        const diff = roundEndTime - nowSec;
-        const mm = Math.floor(diff / 60);
-        const ss = diff % 60;
-        setTimeLeft(`${mm}:${ss.toString().padStart(2, '0')}`);
-        setPhaseLabel('SETTLING');
-      } else {
-        setTimeLeft('');
-        setPhaseLabel('WAITING');
-      }
-    }, 1000);
-
-    return () => clearInterval(timer);
-  }, [roundLockTime, roundEndTime, isLocked, isResolved]);
+  // HUD Phase logic is now synchronously derived from `now` in the render body.
 
   // Update series and overlays whenever btcPrice prop changes from parent polling
   useEffect(() => {

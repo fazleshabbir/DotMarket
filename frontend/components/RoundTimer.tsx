@@ -1,6 +1,7 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React from 'react';
+import { useMarket } from '@/lib/marketStore';
 
 interface RoundTimerProps {
   startTimestamp: number;
@@ -11,14 +12,7 @@ interface RoundTimerProps {
 }
 
 export function RoundTimer({ startTimestamp, endTimestamp, lockTimestamp, resolved, targetMode = 'end' }: RoundTimerProps) {
-  const [now, setNow] = useState(Math.floor(Date.now() / 1000));
-
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setNow(Math.floor(Date.now() / 1000));
-    }, 1000);
-    return () => clearInterval(interval);
-  }, []);
+  const { now } = useMarket();
 
   const isLockMode = targetMode === 'lock';
   const targetTime = isLockMode ? lockTimestamp : endTimestamp;

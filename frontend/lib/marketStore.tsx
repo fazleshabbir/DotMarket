@@ -92,11 +92,36 @@ export function MarketProvider({ children }: { children: React.ReactNode }) {
 
   // ── 1. Live Tick Clock ────────────────────────────────────────────────────
   const [now, setNow] = useState(Math.floor(Date.now() / 1000));
+  
   useEffect(() => {
-    const interval = setInterval(() => {
-      setNow(Math.floor(Date.now() / 1000));
-    }, 1000);
-    return () => clearInterval(interval);
+    let animationFrameId: number;
+    let lastSecond = Math.floor(Date.now() / 1000);
+
+    const tick = () => {
+      const currentSecond = Math.floor(Date.now() / 1000);
+      if (currentSecond !== lastSecond) {
+        setNow(currentSecond);
+        lastSecond = currentSecond;
+      }
+      animationFrameId = requestAnimationFrame(tick);
+    };
+
+    animationFrameId = requestAnimationFrame(tick);
+
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        const currentSecond = Math.floor(Date.now() / 1000);
+        setNow(currentSecond);
+        lastSecond = currentSecond;
+      }
+    };
+    
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    return () => {
+      cancelAnimationFrame(animationFrameId);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
   }, []);
 
   // ── 2. Live Pyth Hermes Price Feed (with Binance Fallback) & TWAP ──────────
