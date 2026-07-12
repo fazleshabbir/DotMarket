@@ -21,17 +21,25 @@ export const TradingPanel = memo(function TradingPanel() {
     balanceSymbol,
     lockedEntryPrice,
     activeUserBet,
+    prevRound,
+    prevUserBet,
+    prevMarketStatus,
   } = useMarket();
 
-  const lockTimestamp  = round ? Number(round.lockTimestamp)  : 0;
-  const endTimestamp   = round ? Number(round.endTimestamp)   : 0;
-  const startTimestamp = round ? Number(round.startTimestamp) : 0;
-  const lockPriceOnChain = round ? Number(round.startPrice) / 1e8 : 0;
+  const isCurrentRoundClosed = marketStatus === 'LOCKED' || marketStatus === 'SETTLING';
+  const targetRound = isCurrentRoundClosed ? round : prevRound;
+  const targetUserBet = isCurrentRoundClosed ? activeUserBet : prevUserBet;
+  const liveMarketStatusStr = isCurrentRoundClosed ? marketStatus : prevMarketStatus;
+
+  const lockTimestamp  = targetRound ? Number(targetRound.lockTimestamp)  : 0;
+  const endTimestamp   = targetRound ? Number(targetRound.endTimestamp)   : 0;
+  const startTimestamp = targetRound ? Number(targetRound.startTimestamp) : 0;
+  const lockPriceOnChain = targetRound ? Number(targetRound.startPrice) / 1e8 : 0;
   const lockPrice = lockPriceOnChain > 0
     ? lockPriceOnChain
-    : (marketStatus === 'LOCKED' || marketStatus === 'SETTLING' ? lockedEntryPrice : 0);
-  const isLocked       = round?.resolved ?? false; // or activeNow >= lockTimestamp
-  const isResolved     = round?.resolved ?? false;
+    : (isCurrentRoundClosed ? lockedEntryPrice : 0);
+  const isLocked       = liveMarketStatusStr === 'LOCKED' || liveMarketStatusStr === 'SETTLING';
+  const isResolved     = targetRound ? targetRound.resolved : false;
 
   const poolSize = round
     ? (Number(round.totalUpAmount + round.totalDownAmount) / 1e18).toFixed(4)
@@ -239,10 +247,10 @@ export const TradingPanel = memo(function TradingPanel() {
           roundStartTime={startTimestamp}
           roundEndTime={endTimestamp}
           roundLockTime={lockTimestamp}
-          isLocked={marketStatus !== 'OPEN'}
+          isLocked={isLocked}
           isResolved={isResolved}
-          userPosition={activeUserBet && activeUserBet.amount > 0n ? activeUserBet.position : undefined}
-          userAmount={activeUserBet && activeUserBet.amount > 0n ? Number(activeUserBet.amount) / 1e18 : undefined}
+          userPosition={targetUserBet && targetUserBet.amount > 0n ? targetUserBet.position : undefined}
+          userAmount={targetUserBet && targetUserBet.amount > 0n ? Number(targetUserBet.amount) / 1e18 : undefined}
           balanceSymbol={balanceSymbol}
         />
       </div>
