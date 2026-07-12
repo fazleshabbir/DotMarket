@@ -54,6 +54,12 @@ interface MarketState {
   prevUserBet: UserBet | undefined;
   isClaimable: boolean;
 
+  pastRoundId: bigint;
+  pastRound: RoundData | undefined;
+  pastMultipliers: any;
+  pastUserBet: UserBet | undefined;
+  isPastClaimable: boolean;
+
   // Calculated Stats
   activeTotalPool: bigint;
   activeUpPercent: number;
@@ -201,6 +207,7 @@ export function MarketProvider({ children }: { children: React.ReactNode }) {
 
   const activeRoundId = currentRoundId;
   const prevRoundId = activeRoundId > 1n ? activeRoundId - 1n : 0n;
+  const pastRoundId = activeRoundId > 2n ? activeRoundId - 2n : 0n;
 
   // Batch query for active and previous round data parameters
   const { data: batchData } = useReadContracts({
@@ -211,7 +218,11 @@ export function MarketProvider({ children }: { children: React.ReactNode }) {
       { address: MARKET_ADDRESS, abi: ROUND_MARKET_ABI, functionName: 'getRound', args: [prevRoundId] },
       { address: MARKET_ADDRESS, abi: ROUND_MARKET_ABI, functionName: 'getMultipliers', args: [prevRoundId] },
       { address: MARKET_ADDRESS, abi: ROUND_MARKET_ABI, functionName: 'getUserBet', args: [prevRoundId, address || '0x0000000000000000000000000000000000000000'] },
-      { address: MARKET_ADDRESS, abi: ROUND_MARKET_ABI, functionName: 'claimable', args: [prevRoundId, address || '0x0000000000000000000000000000000000000000'] }
+      { address: MARKET_ADDRESS, abi: ROUND_MARKET_ABI, functionName: 'claimable', args: [prevRoundId, address || '0x0000000000000000000000000000000000000000'] },
+      { address: MARKET_ADDRESS, abi: ROUND_MARKET_ABI, functionName: 'getRound', args: [pastRoundId] },
+      { address: MARKET_ADDRESS, abi: ROUND_MARKET_ABI, functionName: 'getMultipliers', args: [pastRoundId] },
+      { address: MARKET_ADDRESS, abi: ROUND_MARKET_ABI, functionName: 'getUserBet', args: [pastRoundId, address || '0x0000000000000000000000000000000000000000'] },
+      { address: MARKET_ADDRESS, abi: ROUND_MARKET_ABI, functionName: 'claimable', args: [pastRoundId, address || '0x0000000000000000000000000000000000000000'] }
     ],
     query: {
       enabled: activeRoundId > 0n,
@@ -226,6 +237,10 @@ export function MarketProvider({ children }: { children: React.ReactNode }) {
   const prevMultipliers = batchData?.[4]?.result;
   const prevUserBet = batchData?.[5]?.result as UserBet | undefined;
   const isClaimable = !!batchData?.[6]?.result;
+  const pastRound = batchData?.[7]?.result as RoundData | undefined;
+  const pastMultipliers = batchData?.[8]?.result;
+  const pastUserBet = batchData?.[9]?.result as UserBet | undefined;
+  const isPastClaimable = !!batchData?.[10]?.result;
 
   // ── 5. Derived Stat Calculations ──────────────────────────────────────────
   // Active Round Stats
@@ -243,6 +258,10 @@ export function MarketProvider({ children }: { children: React.ReactNode }) {
 
   const prevUpMultiplier = prevMultipliers ? Number((prevMultipliers as any)[0] || 0n) / 10000 : 0;
   const prevDownMultiplier = prevMultipliers ? Number((prevMultipliers as any)[1] || 0n) / 10000 : 0;
+
+  // Past Round Stats
+  const pastUpMultiplier = pastMultipliers ? Number((pastMultipliers as any)[0] || 0n) / 10000 : 0;
+  const pastDownMultiplier = pastMultipliers ? Number((pastMultipliers as any)[1] || 0n) / 10000 : 0;
 
   // Time Calculation details for Active Round
   const lockTimestamp = activeRound ? Number(activeRound.lockTimestamp) : 0;
@@ -306,29 +325,36 @@ export function MarketProvider({ children }: { children: React.ReactNode }) {
   const lastNotifiedRoundId = useRef<bigint>(0n);
 
   useEffect(() => {
-    if (!prevRound || !prevRound.resolved || !prevUserBet || prevUserBet.amount === 0n) return;
-    if (prevRound.roundId <= lastNotifiedRoundId.current) return;
+    const roundsToCheck = [
+      { id: prevRoundId, round: prevRound, bet: prevUserBet, upMult: prevUpMultiplier, downMult: prevDownMultiplier },
+      { id: pastRoundId, round: pastRound, bet: pastUserBet, upMult: pastUpMultiplier, downMult: pastDownMultiplier }
+    ];
 
-    lastNotifiedRoundId.current = prevRound.roundId;
+    for (const { id, round, bet, upMult, downMult } of roundsToCheck) {
+      if (!round || !round.resolved || !bet || bet.amount === 0n) continue;
+      if (round.roundId <= lastNotifiedRoundId.current) continue;
 
-    const upWins = prevRound.closePrice > prevRound.startPrice;
-    const downWins = prevRound.closePrice < prevRound.startPrice;
-    const isUp = prevUserBet.position === 0;
+      lastNotifiedRoundId.current = round.roundId;
 
-    if (prevRound.canceled) {
-      triggerToast('Round Refunded', 'Stake Returned', 'refund');
-    } else {
-      const won = (upWins && isUp) || (downWins && !isUp);
-      if (won) {
-        const winningMultiplier = isUp ? prevUpMultiplier : prevDownMultiplier;
-        const rewardMultiplier = winningMultiplier > 0 ? winningMultiplier : 1.9;
-        const profit = (Number(prevUserBet.amount) / 1e18) * (rewardMultiplier - 1);
-        triggerToast('🎉 Prediction Won', `Profit: +${profit.toFixed(4)} ${balanceSymbol}`, 'win');
+      const upWins = round.closePrice > round.startPrice;
+      const downWins = round.closePrice < round.startPrice;
+      const isUp = bet.position === 0;
+
+      if (round.canceled) {
+        triggerToast('Round Refunded', 'Stake Returned', 'refund');
       } else {
-        triggerToast('Prediction Lost', 'Better luck next round.', 'loss');
+        const won = (upWins && isUp) || (downWins && !isUp);
+        if (won) {
+          const winningMultiplier = isUp ? upMult : downMult;
+          const rewardMultiplier = winningMultiplier > 0 ? winningMultiplier : 1.9;
+          const profit = (Number(bet.amount) / 1e18) * (rewardMultiplier - 1);
+          triggerToast('🎉 Prediction Won', `Profit: +${profit.toFixed(4)} ${balanceSymbol}`, 'win');
+        } else {
+          triggerToast('Prediction Lost', 'Better luck next round.', 'loss');
+        }
       }
     }
-  }, [prevRoundId, prevRound?.resolved, prevUserBet?.amount]);
+  }, [prevRoundId, pastRoundId, prevRound?.resolved, pastRound?.resolved, prevUserBet?.amount, pastUserBet?.amount]);
 
   // Capture lock price immediately when the round enters locked status
   const [lockedEntryPrice, setLockedEntryPrice] = useState<number>(0);
@@ -359,6 +385,11 @@ export function MarketProvider({ children }: { children: React.ReactNode }) {
     prevMultipliers,
     prevUserBet,
     isClaimable,
+    pastRoundId,
+    pastRound,
+    pastMultipliers,
+    pastUserBet,
+    isPastClaimable,
     activeTotalPool,
     activeUpPercent,
     activeDownPercent,
