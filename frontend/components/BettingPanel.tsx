@@ -10,14 +10,7 @@ import { GlobalRoundTimer } from './GlobalRoundTimer';
 import { StatusBadge } from './trade/StatusBadge';
 import { PriceTicker } from './trade/PriceTicker';
 import { useMarket } from '@/lib/marketStore';
-
-// ── SVG Icon Primitives ──────────────────────────────────────────────────────
-const LockIcon = ({ size = 20 }: { size?: number }) => (
-  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" style={{ opacity: 0.8 }}>
-    <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
-    <path d="M7 11V7a5 5 0 0 1 10 0v4" />
-  </svg>
-);
+import { LockIcon } from './ui/LockIcon';
 
 // ── Premium Rolling Digit Number Component ──────────────────────────────────
 function RollingNumber({ value, decimals = 2, prefix = '', suffix = '' }: {
@@ -389,7 +382,7 @@ export function BettingPanel({ currentBtcPrice: _unusedProps }: { currentBtcPric
   const showSettlingProgress = liveMarketStatusStr === 'SETTLING';
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 16, height: '100%', boxSizing: 'border-box', position: 'relative' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 16, height: '100%', boxSizing: 'border-box', position: 'relative', overflowY: 'auto', paddingRight: '4px' }}>
       
       {/* CSS Pulse glow declarations */}
       <style>{`
@@ -429,8 +422,8 @@ export function BettingPanel({ currentBtcPrice: _unusedProps }: { currentBtcPric
       {/* ─── CARD 1: PLACE BET (Merged & Minimized) ───────────────────────── */}
       <div
         style={{
-          flex: '1 1 0%',
-          minHeight: 0,
+          flex: '0 0 auto',
+          minHeight: '340px',
           background: 'rgba(255,255,255,0.025)',
           border: '1px solid rgba(255,255,255,0.08)',
           borderRadius: 22,
@@ -765,8 +758,8 @@ export function BettingPanel({ currentBtcPrice: _unusedProps }: { currentBtcPric
       {/* ─── CARD 2: LIVE MARKET (Upgraded Previous Market) ───────────────── */}
       <div
         style={{
-          flex: '1 1 0%',
-          minHeight: 0,
+          flex: '0 0 auto',
+          minHeight: '270px',
           background: hasPlacedPrevBet 
             ? 'radial-gradient(circle at 50% 0%, rgba(255, 255, 255, 0.075) 0%, rgba(255, 255, 255, 0.015) 100%)'
             : 'linear-gradient(180deg, rgba(255, 255, 255, 0.035) 0%, rgba(255, 255, 255, 0.01) 100%)',

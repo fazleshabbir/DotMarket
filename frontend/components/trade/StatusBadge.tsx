@@ -1,14 +1,7 @@
 'use client';
 
 import React, { memo } from 'react';
-
-// ── SVG icon primitives ────────────────────────────────────────────────────────
-const IconLock = () => (
-  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" style={{ opacity: 0.9 }}>
-    <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
-    <path d="M7 11V7a5 5 0 0 1 10 0v4" />
-  </svg>
-);
+import { LockIcon } from '../ui/LockIcon';
 const IconCheck = () => (
   <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" style={{ opacity: 0.9 }}>
     <polyline points="20 6 9 17 4 12" />
@@ -85,7 +78,7 @@ const STATUS_CONFIG: Record<StatusType, {
   },
   locked: {
     label: 'LOCKED',
-    icon: <IconLock />,
+    icon: <LockIcon size={10} style={{ opacity: 0.9 }} />,
     textOpacity: 'rgba(255,255,255,0.7)',
   },
   settling: {

@@ -7,6 +7,7 @@ import { RoundTimer } from '../RoundTimer';
 import { ProgressBar } from './ProgressBar';
 import { PoolStats } from './PoolStats';
 import { PriceTicker } from './PriceTicker';
+import { LockIcon } from '../ui/LockIcon';
 
 interface ActiveRoundCardProps {
   hasValidActiveRound: boolean;
@@ -21,23 +22,6 @@ interface ActiveRoundCardProps {
   activeDownMultiplier: number;
   currentBtcPrice: number;
 }
-
-// Inline lock SVG for the locked state panel
-const LockIcon = ({ size = 28 }: { size?: number }) => (
-  <svg
-    width={size}
-    height={size}
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke="rgba(255,255,255,0.5)"
-    strokeWidth="1.5"
-    strokeLinecap="round"
-    strokeLinejoin="round"
-  >
-    <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
-    <path d="M7 11V7a5 5 0 0 1 10 0v4" />
-  </svg>
-);
 
 export const ActiveRoundCard = memo(function ActiveRoundCard({
   hasValidActiveRound,
@@ -101,7 +85,7 @@ export const ActiveRoundCard = memo(function ActiveRoundCard({
             transition: 'all 300ms ease-out',
           }}
         >
-          <LockIcon size={18} />
+          <LockIcon size={18} style={{ opacity: 0.5 }} />
 
           <div style={{
             fontSize: 11, fontWeight: 600,

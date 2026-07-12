@@ -21,15 +21,7 @@ interface KlinePoint {
   value: number;
 }
 
-// All chart data is sourced from Pyth Hermes (same as the live market panels)
-// No Binance klines — this eliminates the $5-10 price spread between price sources
-
-const IconLock = () => (
-  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ display: 'inline-block', verticalAlign: 'middle', marginRight: '4px', opacity: 0.9 }}>
-    <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
-    <path d="M7 11V7a5 5 0 0 1 10 0v4" />
-  </svg>
-);
+import { LockIcon } from './ui/LockIcon';
 
 export const PredictionChart = memo(function PredictionChart({
   lockPrice = 0,
@@ -424,7 +416,7 @@ export const PredictionChart = memo(function PredictionChart({
               </>
             ) : (
               <>
-                <IconLock /> LOCK&nbsp;
+                <LockIcon size={10} style={{ opacity: 0.9, marginRight: '4px' }} /> LOCK&nbsp;
                 <strong>
                   ${lockPrice.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                 </strong>

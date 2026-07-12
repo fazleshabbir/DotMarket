@@ -4,6 +4,7 @@ import React, { memo } from 'react';
 import { Card } from '../ui/Card';
 import { StatusBadge } from './StatusBadge';
 import { BetActions } from './BetActions';
+import { LockIcon } from '../ui/LockIcon';
 
 interface PlaceBetCardProps {
   betAmount: string;
@@ -16,14 +17,6 @@ interface PlaceBetCardProps {
   isConnected: boolean;
   connectWalletCTA: React.ReactNode;
 }
-
-// Inline lock SVG
-const LockIconSm = () => (
-  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.4)" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
-    <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
-    <path d="M7 11V7a5 5 0 0 1 10 0v4" />
-  </svg>
-);
 
 export const PlaceBetCard = memo(function PlaceBetCard({
   betAmount,
@@ -77,7 +70,7 @@ export const PlaceBetCard = memo(function PlaceBetCard({
             transition: 'all 300ms ease-out',
           }}
         >
-          <LockIconSm />
+          <LockIcon size={14} style={{ opacity: 0.4 }} />
           <span style={{
             fontSize: 11,
             color: 'rgba(255,255,255,0.4)',

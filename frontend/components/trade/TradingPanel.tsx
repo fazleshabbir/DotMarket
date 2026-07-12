@@ -4,6 +4,7 @@ import React, { useState, useRef, memo } from 'react';
 import { PredictionChart } from '../PredictionChart';
 import { PriceTicker } from './PriceTicker';
 import { useMarket } from '@/lib/marketStore';
+import { LockIcon } from '../ui/LockIcon';
 
 export const TradingPanel = memo(function TradingPanel() {
   const chartWrapperRef = useRef<HTMLDivElement>(null);
@@ -45,13 +46,7 @@ export const TradingPanel = memo(function TradingPanel() {
     ? (Number(round.totalUpAmount + round.totalDownAmount) / 1e18).toFixed(4)
     : '0.0000';
 
-  // SVG lock icon for status bar
-  const LockSvg = () => (
-    <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ opacity: 0.8 }}>
-      <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
-      <path d="M7 11V7a5 5 0 0 1 10 0v4" />
-    </svg>
-  );
+
 
   // Format timers
   const formatMinsSecs = (secondsTotal: number) => {
@@ -182,7 +177,7 @@ export const TradingPanel = memo(function TradingPanel() {
           whiteSpace: 'nowrap',
           color: badgeColor,
         }}>
-          {marketStatus !== 'OPEN' && <LockSvg />}
+          {marketStatus !== 'OPEN' && <LockIcon size={9} style={{ opacity: 0.8 }} />}
           <span style={{ fontSize: 10, fontWeight: 700, fontFamily: 'var(--font-mono)', letterSpacing: '0.06em' }}>
             {marketStatus}
           </span>
@@ -229,7 +224,7 @@ export const TradingPanel = memo(function TradingPanel() {
             whiteSpace: 'nowrap',
           }}>
             <span style={{ fontSize: 9, fontFamily: 'var(--font-mono)', color: 'var(--text-secondary)', display: 'inline-flex', alignItems: 'center', gap: 4 }}>
-              <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+              <LockIcon size={8} style={{ opacity: 0.8 }} />
               LOCK
             </span>
             <strong style={{ fontSize: 10, fontFamily: 'var(--font-mono)', color: '#ffffff' }}>
