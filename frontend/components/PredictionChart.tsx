@@ -43,9 +43,14 @@ export const PredictionChart = memo(function PredictionChart({
   const pricePillRef = useRef<HTMLDivElement>(null);
   const lockLineRef = useRef<HTMLDivElement>(null);
   const lockPillRef = useRef<HTMLDivElement>(null);
+  const lockVerticalLineRef = useRef<HTMLDivElement>(null);
+  const endVerticalLineRef = useRef<HTMLDivElement>(null);
   const latestPrice = useRef<number>(btcPrice);
   const updateDotAndPillRef = useRef<((price: number) => void) | null>(null);
   const [chartReady, setChartReady] = useState(false);
+
+  const [timeLeft, setTimeLeft] = useState<string>('');
+  const [phaseLabel, setPhaseLabel] = useState<string>('');
 
   // ── Chart initialization ────────────────────────────────────────────────────
   useEffect(() => {
@@ -225,15 +230,72 @@ export const PredictionChart = memo(function PredictionChart({
         lockPillRef.current.style.opacity = '1';
       }
     }
-  }, [lockPrice, userPosition]);
+
+    // Update vertical phase line positions
+    if (roundLockTime > 0 && lockVerticalLineRef.current) {
+      const lockX = timeScale.timeToCoordinate(roundLockTime as Time);
+      if (lockX !== null && lockX >= 0 && lockX <= container.clientWidth) {
+        lockVerticalLineRef.current.style.left = `${lockX}px`;
+        lockVerticalLineRef.current.style.opacity = '1';
+      } else {
+        lockVerticalLineRef.current.style.opacity = '0';
+      }
+    }
+    if (roundEndTime > 0 && endVerticalLineRef.current) {
+      const endX = timeScale.timeToCoordinate(roundEndTime as Time);
+      if (endX !== null && endX >= 0 && endX <= container.clientWidth) {
+        endVerticalLineRef.current.style.left = `${endX}px`;
+        endVerticalLineRef.current.style.opacity = '1';
+      } else {
+        endVerticalLineRef.current.style.opacity = '0';
+      }
+    }
+  }, [lockPrice, userPosition, roundLockTime, roundEndTime]);
 
   useEffect(() => {
     updateDotAndPillRef.current = updateDotAndPill;
   }, [updateDotAndPill]);
 
+  // Live HUD Phase Countdown calculations
+  useEffect(() => {
+    const timer = setInterval(() => {
+      const nowSec = Math.floor(Date.now() / 1000);
+      if (isResolved) {
+        setTimeLeft('');
+        setPhaseLabel('RESOLVED');
+        return;
+      }
+      if (!isLocked && roundLockTime > nowSec) {
+        const diff = roundLockTime - nowSec;
+        const mm = Math.floor(diff / 60);
+        const ss = diff % 60;
+        setTimeLeft(`${mm}:${ss.toString().padStart(2, '0')}`);
+        setPhaseLabel('LOCKING');
+      } else if (isLocked && roundEndTime > nowSec) {
+        const diff = roundEndTime - nowSec;
+        const mm = Math.floor(diff / 60);
+        const ss = diff % 60;
+        setTimeLeft(`${mm}:${ss.toString().padStart(2, '0')}`);
+        setPhaseLabel('SETTLING');
+      } else {
+        setTimeLeft('');
+        setPhaseLabel('WAITING');
+      }
+    }, 1000);
+
+    return () => clearInterval(timer);
+  }, [roundLockTime, roundEndTime, isLocked, isResolved]);
+
   // Update series and overlays whenever btcPrice prop changes from parent polling
   useEffect(() => {
-    if (!chartReady || !seriesRef.current) return;
+    if (!chartReady || !seriesRef.current || btcPrice <= 0) return;
+
+    // Spike protection: reject any price update that jumps more than $100 from the last known price
+    const lastKnown = latestPrice.current;
+    if (lastKnown > 0 && Math.abs(btcPrice - lastKnown) > 100) {
+      return; // Skip this tick — likely a bad data point
+    }
+
     const nowTime = Math.floor(Date.now() / 1000) as Time;
     const point: KlinePoint = { time: nowTime, value: btcPrice };
     seriesRef.current.update(point);
@@ -353,6 +415,187 @@ export const PredictionChart = memo(function PredictionChart({
         </>
       )}
 
+      {/* ── Active Bet Status HUD Overlay ── */}
+      {userPosition !== undefined && userAmount !== undefined && (
+        <div style={{
+          position: 'absolute',
+          top: 12,
+          left: 12,
+          padding: '8px 14px',
+          borderRadius: 10,
+          background: 'rgba(0, 0, 0, 0.85)',
+          backdropFilter: 'blur(12px)',
+          border: '1px solid rgba(255, 255, 255, 0.12)',
+          zIndex: 11,
+          display: 'flex',
+          flexDirection: 'column',
+          gap: 4,
+          pointerEvents: 'none',
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+            <span style={{
+              width: 5,
+              height: 5,
+              borderRadius: '50%',
+              background: '#ffffff',
+              animation: 'liveDotPulse 2s ease-in-out infinite'
+            }} />
+            <span style={{ fontSize: 9, fontWeight: 700, letterSpacing: '0.08em', color: 'rgba(255, 255, 255, 0.4)' }}>
+              ACTIVE POSITION
+            </span>
+          </div>
+          <div style={{ display: 'flex', alignItems: 'baseline', gap: 8 }}>
+            <span style={{ fontSize: 13, fontWeight: 800, color: '#ffffff', fontFamily: 'var(--font-sans)' }}>
+              {userPosition === 0 ? '▲ UP' : '▼ DOWN'}
+            </span>
+            <span style={{ fontSize: 10, fontWeight: 600, color: 'rgba(255, 255, 255, 0.6)', fontFamily: 'var(--font-mono)' }}>
+              {userAmount.toFixed(2)} {balanceSymbol}
+            </span>
+          </div>
+          {/* Live P&L estimate display */}
+          {(() => {
+            const lastVal = latestPrice.current;
+            if (lockPrice > 0 && lastVal > 0) {
+              const isUp = userPosition === 0;
+              const isWinning = isUp ? lastVal > lockPrice : lastVal < lockPrice;
+              const diff = Math.abs(lastVal - lockPrice);
+              return (
+                <div style={{
+                  fontSize: 10,
+                  fontFamily: 'var(--font-mono)',
+                  fontWeight: 700,
+                  color: isWinning ? '#ffffff' : 'rgba(255, 255, 255, 0.35)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 4,
+                  marginTop: 2
+                }}>
+                  <span style={{
+                    display: 'inline-block',
+                    padding: '1px 4px',
+                    borderRadius: 3,
+                    background: isWinning ? 'rgba(255,255,255,0.15)' : 'rgba(255,255,255,0.05)',
+                    fontSize: 8,
+                    fontWeight: 800,
+                    letterSpacing: '0.04em'
+                  }}>
+                    {isWinning ? 'BULLISH' : 'BEARISH'}
+                  </span>
+                  <span>{isWinning ? '+' : '-'}${diff.toFixed(2)}</span>
+                </div>
+              );
+            }
+            return null;
+          })()}
+        </div>
+      )}
+
+      {/* ── Live Phase Countdown HUD Overlay ── */}
+      {phaseLabel && (
+        <div style={{
+          position: 'absolute',
+          top: 12,
+          right: 12,
+          padding: '6px 12px',
+          borderRadius: 8,
+          background: 'rgba(0, 0, 0, 0.85)',
+          backdropFilter: 'blur(12px)',
+          border: '1px solid rgba(255, 255, 255, 0.12)',
+          zIndex: 11,
+          display: 'flex',
+          alignItems: 'center',
+          gap: 8,
+          pointerEvents: 'none',
+        }}>
+          <span style={{
+            fontSize: 9,
+            fontWeight: 700,
+            letterSpacing: '0.08em',
+            color: phaseLabel === 'SETTLING' ? '#ffffff' : 'rgba(255, 255, 255, 0.4)',
+            fontFamily: 'var(--font-sans)',
+            textTransform: 'uppercase',
+          }}>
+            {phaseLabel}
+          </span>
+          {timeLeft && (
+            <span style={{
+              fontSize: 11,
+              fontWeight: 800,
+              color: '#ffffff',
+              fontFamily: 'var(--font-mono)',
+            }}>
+              {timeLeft}
+            </span>
+          )}
+        </div>
+      )}
+
+      {/* ── Lock phase vertical marker line ── */}
+      <div
+        ref={lockVerticalLineRef}
+        style={{
+          position: 'absolute',
+          top: 0,
+          bottom: 0,
+          width: 0,
+          borderLeft: '1px dashed rgba(255, 255, 255, 0.2)',
+          opacity: 0,
+          pointerEvents: 'none',
+          zIndex: 5,
+          transition: 'left 0.4s ease',
+        }}
+      >
+        <div style={{
+          position: 'absolute',
+          bottom: 40,
+          left: 6,
+          padding: '2px 6px',
+          background: 'rgba(0,0,0,0.85)',
+          border: '1px solid rgba(255,255,255,0.12)',
+          borderRadius: 4,
+          fontSize: 8,
+          fontFamily: 'var(--font-mono)',
+          color: 'rgba(255,255,255,0.45)',
+          whiteSpace: 'nowrap',
+          letterSpacing: '0.04em'
+        }}>
+          LOCK
+        </div>
+      </div>
+
+      {/* ── Settlement phase vertical marker line ── */}
+      <div
+        ref={endVerticalLineRef}
+        style={{
+          position: 'absolute',
+          top: 0,
+          bottom: 0,
+          width: 0,
+          borderLeft: '1px dashed rgba(255, 255, 255, 0.12)',
+          opacity: 0,
+          pointerEvents: 'none',
+          zIndex: 5,
+          transition: 'left 0.4s ease',
+        }}
+      >
+        <div style={{
+          position: 'absolute',
+          bottom: 40,
+          left: 6,
+          padding: '2px 6px',
+          background: 'rgba(0,0,0,0.85)',
+          border: '1px solid rgba(255,255,255,0.12)',
+          borderRadius: 4,
+          fontSize: 8,
+          fontFamily: 'var(--font-mono)',
+          color: 'rgba(255,255,255,0.35)',
+          whiteSpace: 'nowrap',
+          letterSpacing: '0.04em'
+        }}>
+          SETTLE
+        </div>
+      </div>
+
       {/* ── Prediction zone column overlays ── */}
       <div
         style={{
@@ -360,61 +603,61 @@ export const PredictionChart = memo(function PredictionChart({
           inset: 0,
           display: 'flex',
           pointerEvents: 'none',
-          zIndex: 8,
+          zIndex: 4,
           borderRadius: 12,
           overflow: 'hidden',
         }}
       >
         {/* Previous zone */}
-        <div style={{ flex: 1, borderRight: '1px dashed rgba(255,255,255,0.07)', position: 'relative' }}>
+        <div style={{ flex: 1, borderRight: '1px dashed rgba(255,255,255,0.05)', position: 'relative' }}>
           <div style={{
-            position: 'absolute', top: 8, left: 10,
+            position: 'absolute', bottom: 8, left: 10,
             fontSize: 9, fontFamily: 'var(--font-mono)',
-            color: 'rgba(255,255,255,0.25)', letterSpacing: '0.08em'
+            color: 'rgba(255,255,255,0.2)', letterSpacing: '0.08em'
           }}>
-            ← Previous Market
+            ← PREV ROUND
           </div>
         </div>
 
         {/* Active zone */}
         <div style={{
           flex: 1.4,
-          borderLeft: '1px solid rgba(255,255,255,0.07)',
-          borderRight: '1px solid rgba(255,255,255,0.07)',
-          background: 'rgba(255,255,255,0.015)',
+          borderLeft: '1px solid rgba(255,255,255,0.05)',
+          borderRight: '1px solid rgba(255,255,255,0.05)',
+          background: 'rgba(255,255,255,0.005)',
           position: 'relative',
           animation: 'breatheZone 5s ease-in-out infinite',
         }}>
           {/* Top glow bar */}
           <div style={{
             position: 'absolute', top: 0, left: 0, right: 0, height: 1,
-            background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent)'
+            background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.15), transparent)'
           }} />
           <div style={{
-            position: 'absolute', top: 8, left: 0, right: 0,
+            position: 'absolute', bottom: 8, left: 0, right: 0,
             display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 5
           }}>
             <span style={{
-              width: 5, height: 5, borderRadius: '50%', background: '#ffffff',
+              width: 4, height: 4, borderRadius: '50%', background: '#ffffff',
               animation: 'liveDotPulse 2s ease-in-out infinite', display: 'inline-block'
             }} />
             <span style={{
               fontSize: 9, fontFamily: 'var(--font-mono)',
-              color: '#ffffff', letterSpacing: '0.1em', fontWeight: 700
+              color: 'rgba(255,255,255,0.5)', letterSpacing: '0.1em', fontWeight: 700
             }}>
-              ● LIVE MARKET
+              LIVE MARKET
             </span>
           </div>
         </div>
 
         {/* Next zone */}
-        <div style={{ flex: 1, borderLeft: '1px dashed rgba(255,255,255,0.07)', position: 'relative' }}>
+        <div style={{ flex: 1, borderLeft: '1px dashed rgba(255,255,255,0.05)', position: 'relative' }}>
           <div style={{
-            position: 'absolute', top: 8, right: 10,
+            position: 'absolute', bottom: 8, right: 10,
             fontSize: 9, fontFamily: 'var(--font-mono)',
-            color: 'rgba(255,255,255,0.25)', letterSpacing: '0.08em'
+            color: 'rgba(255,255,255,0.2)', letterSpacing: '0.08em'
           }}>
-            Next Market →
+            NEXT ROUND →
           </div>
         </div>
       </div>
@@ -427,9 +670,9 @@ export const PredictionChart = memo(function PredictionChart({
           100% { box-shadow: 0 0 0 0px rgba(255,255,255,0.3), 0 0 12px rgba(255,255,255,0.2); }
         }
         @keyframes breatheZone {
-          0%   { background: rgba(255,255,255,0.010); }
-          50%  { background: rgba(255,255,255,0.025); }
-          100% { background: rgba(255,255,255,0.010); }
+          0%   { background: rgba(255,255,255,0.005); }
+          50%  { background: rgba(255,255,255,0.015); }
+          100% { background: rgba(255,255,255,0.005); }
         }
       ` }} />
     </div>

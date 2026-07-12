@@ -101,7 +101,7 @@ const arcTestnet: Chain = {
   name: "ARC Testnet",
   nativeCurrency: { name: "ETH", symbol: "ETH", decimals: 18 },
   rpcUrls: {
-    default: { http: ["https://rpc.testnet.arc.network"] },
+    default: { http: ["https://5042002.rpc.thirdweb.com"] },
   },
   blockExplorers: {
     default: { name: "ARC Explorer", url: "https://explorer.testnet.arc.network" },
@@ -135,7 +135,7 @@ function log(emoji: string, message: string): void {
 // ─── Config ─────────────────────────────────────────────────────────────────
 
 function loadConfig() {
-  const rpc = process.env.ARC_TESTNET_RPC ?? "https://rpc.testnet.arc.network";
+  const rpc = process.env.ARC_TESTNET_RPC ?? "https://5042002.rpc.thirdweb.com";
   const privateKey = process.env.KEEPER_PRIVATE_KEY || process.env.DEPLOYER_PRIVATE_KEY;
   const marketAddress = "0x31Aeb323aEE44e3EE5036F14bBD0D7f1429B4938";
 
