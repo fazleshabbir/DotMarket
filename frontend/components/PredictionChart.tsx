@@ -21,26 +21,8 @@ interface KlinePoint {
   value: number;
 }
 
-// Fetch recent 1-second klines from Binance REST
-async function fetchKlines(limit = 300): Promise<KlinePoint[]> {
-  try {
-    const res = await fetch(
-      `https://api.binance.com/api/v3/klines?symbol=BTCUSDT&interval=1s&limit=${limit}`
-    );
-    const data: any[][] = await res.json();
-    // Deduplicate by second timestamp (take last value for each second)
-    const seen = new Map<number, number>();
-    for (const k of data) {
-      const t = Math.floor(k[0] / 1000);
-      seen.set(t, parseFloat(k[4]));
-    }
-    return Array.from(seen.entries())
-      .sort((a, b) => a[0] - b[0])
-      .map(([t, v]) => ({ time: t as Time, value: v }));
-  } catch {
-    return [];
-  }
-}
+// All chart data is sourced from Pyth Hermes (same as the live market panels)
+// No Binance klines — this eliminates the $5-10 price spread between price sources
 
 export const PredictionChart = memo(function PredictionChart({
   lockPrice = 0,
@@ -142,39 +124,34 @@ export const PredictionChart = memo(function PredictionChart({
     });
     ro.observe(containerRef.current);
 
-    // Load last 300 seconds of history and fetch latest Pyth price concurrently for perfect alignment
-    Promise.all([
-      fetchKlines(300),
-      fetch('https://hermes.pyth.network/v2/updates/price/latest?ids[]=e62df6c8b4a85fe1a67db44dc12de5db330f7ac66b72dc658afedf0f4a415b43', {
-        signal: AbortSignal.timeout(5000)
-      })
-        .then(res => res.json())
-        .then(data => {
-          if (data && data.parsed && data.parsed[0]) {
-            const priceStr = data.parsed[0].price.price;
-            const expo = data.parsed[0].price.expo;
-            return Number(priceStr) * Math.pow(10, expo);
-          }
-          return 0;
-        })
-        .catch(() => 0)
-    ]).then(([points, pythPrice]) => {
-      const activePythPrice = pythPrice > 0 ? pythPrice : latestPrice.current;
-      if (seriesRef.current && points.length > 0 && activePythPrice > 0) {
-        const lastPointValue = points[points.length - 1].value;
-        const offset = activePythPrice - lastPointValue;
-        const alignedPoints = points.map(pt => ({
-          ...pt,
-          value: pt.value + offset
-        }));
+    // Seed the chart with the current Pyth price (no Binance data — eliminates price source mismatch)
+    fetch('https://hermes.pyth.network/v2/updates/price/latest?ids[]=e62df6c8b4a85fe1a67db44dc12de5db330f7ac66b72dc658afedf0f4a415b43', {
+      signal: AbortSignal.timeout(5000)
+    })
+      .then(res => res.json())
+      .then(data => {
+        if (data && data.parsed && data.parsed[0]) {
+          const priceStr = data.parsed[0].price.price;
+          const expo = data.parsed[0].price.expo;
+          const seedPrice = Number(priceStr) * Math.pow(10, expo);
+          const nowSec = Math.floor(Date.now() / 1000);
 
-        seriesRef.current.setData(alignedPoints);
-        chart.timeScale().fitContent();
+          // Create 120 seconds of flat seed data so the chart has initial scale context
+          if (seriesRef.current) {
+            const seedPoints: KlinePoint[] = [];
+            for (let i = 120; i >= 0; i--) {
+              seedPoints.push({ time: (nowSec - i) as Time, value: seedPrice });
+            }
+            seriesRef.current.setData(seedPoints);
+            latestPrice.current = seedPrice;
+            chart.timeScale().fitContent();
+          }
+        }
         setChartReady(true);
-      } else {
+      })
+      .catch(() => {
         setChartReady(true);
-      }
-    });
+      });
 
     return () => {
       ro.disconnect();
