@@ -401,39 +401,45 @@ export function MarketProvider({ children }: { children: React.ReactNode }) {
   const marketStatus = deriveMarketStatus(activeRoundId, activeRound, timeLeftToLock, timeLeftToEnd);
   const prevMarketStatus = deriveMarketStatus(prevRoundId, prevRound, prevTimeLeftToLock, prevTimeLeftToEnd);
 
-  // ── 7b. Stable Phase (hardened — never flickers) ───────────────────────
-  // Once the market has been active (roundId > 0), AWAITING PLAYERS is NEVER
-  // used as a phase signal — it's treated as an RPC glitch and ignored.
+  // ── 7b. Stable Phase (timestamp-based, locked with minimum duration) ─────
+  // Phase is derived DIRECTLY from on-chain lockTimestamp — not from marketStatus.
+  // betting: now < lockTimestamp (bets open for ~60s)
+  // live:    now >= lockTimestamp (bets closed, settlement running for ~60s)
+  //
+  // Once the phase switches, it is LOCKED for a minimum of 10 seconds.
+  // This makes it physically impossible for the tabs to oscillate.
   const [phase, setPhase] = useState<Phase>('betting');
+  const lastPhaseChangeTimeRef = useRef(0);
   const hasEverBeenActiveRef = useRef(false);
-  const phaseTickCountRef = useRef(0);
-  const lastDerivedPhaseRef = useRef<Phase>('betting');
 
-  // Track if the market has ever been active
   if (currentRoundId > 0n) {
     hasEverBeenActiveRef.current = true;
   }
 
   useEffect(() => {
-    // If AWAITING PLAYERS but market was previously active, skip — it's an RPC glitch
-    if (marketStatus === 'AWAITING PLAYERS' && hasEverBeenActiveRef.current) {
-      return; // Do nothing — keep current phase
-    }
+    if (now === 0) return; // SSR guard
 
-    const derivedPhase: Phase = (marketStatus === 'OPEN' || marketStatus === 'AWAITING PLAYERS') ? 'betting' : 'live';
+    // Determine the desired phase from on-chain timestamps
+    let desiredPhase: Phase;
 
-    if (derivedPhase === lastDerivedPhaseRef.current) {
-      phaseTickCountRef.current += 1;
+    if (!hasEverBeenActiveRef.current) {
+      // Genesis — no rounds exist yet
+      desiredPhase = 'betting';
+    } else if (lockTimestamp > 0 && now < lockTimestamp) {
+      // Betting window: now is before lock time
+      desiredPhase = 'betting';
     } else {
-      phaseTickCountRef.current = 1;
-      lastDerivedPhaseRef.current = derivedPhase;
+      // Lock time has passed: settlement / locked / settling / next round
+      desiredPhase = 'live';
     }
 
-    // Only commit after 3 consecutive ticks of agreement (more resilient)
-    if (phaseTickCountRef.current >= 3) {
-      setPhase(prev => prev !== derivedPhase ? derivedPhase : prev);
+    // Enforce minimum lock duration: don't switch if less than 10s since last switch
+    const timeSinceLastSwitch = now - lastPhaseChangeTimeRef.current;
+    if (desiredPhase !== phase && timeSinceLastSwitch >= 10) {
+      setPhase(desiredPhase);
+      lastPhaseChangeTimeRef.current = now;
     }
-  }, [marketStatus, now]);
+  }, [now, lockTimestamp, phase]);
 
   // ── 8. Locked Entry Price (from on-chain, not off-chain approximation) ──
   const lockedEntryPrice = useMemo(() => {
