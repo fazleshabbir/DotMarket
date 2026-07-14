@@ -333,6 +333,9 @@ export function BettingPanel({ currentBtcPrice: _unusedProps }: { currentBtcPric
   // Settlement animation progress bar helpers
   const showSettlingProgress = liveMarketStatusStr === 'SETTLING';
 
+  // Toggle between Place Bet section (1 min window) and Live Market section (60 sec settle window)
+  const showPlaceBetSection = marketStatus === 'OPEN' || marketStatus === 'AWAITING PLAYERS';
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 16, height: '100%', boxSizing: 'border-box', position: 'relative', overflowY: 'auto', paddingRight: '4px' }}>
       
@@ -371,13 +374,55 @@ export function BettingPanel({ currentBtcPrice: _unusedProps }: { currentBtcPric
         }
       `}</style>
 
-      {/* ─── CARD 1: PLACE BET (Merged & Minimized) ───────────────────────── */}
-      <div
-        style={{
+      {/* ─── COMPACT CLAIM BANNER (Shown during OPEN phase if unclaimed winning exists) ─── */}
+      {showPlaceBetSection && isClaimable && prevUserBet && !prevUserBet.claimed && (
+        <div style={{
           flex: '0 0 auto',
-          minHeight: '340px',
-          background: 'rgba(255,255,255,0.025)',
-          border: '1px solid rgba(255,255,255,0.08)',
+          background: 'radial-gradient(circle at 50% 0%, rgba(255, 255, 255, 0.12) 0%, rgba(255, 255, 255, 0.03) 100%)',
+          border: '1px solid rgba(255, 255, 255, 0.3)',
+          borderRadius: 16,
+          padding: '12px 14px',
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          gap: 12,
+          animation: 'cardPulseGlow 2s infinite ease-in-out'
+        }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+            <span style={{ fontSize: 10, fontWeight: 700, color: '#ffffff', letterSpacing: '0.06em' }}>🏆 PAYOUT AVAILABLE</span>
+            <span style={{ fontSize: 11, color: 'var(--text-secondary)', fontFamily: 'var(--font-mono)' }}>
+              Round #{prevRound?.roundId.toString()} · Won {((Number(prevUserBet.amount) / 1e18) * (prevUserBet.position === 0 ? prevUpMultiplier : prevDownMultiplier)).toFixed(4)} {balanceSymbol}
+            </span>
+          </div>
+          <button
+            onClick={handleClaim}
+            disabled={isWorking}
+            style={{
+              padding: '6px 14px',
+              background: '#ffffff',
+              color: '#000000',
+              fontWeight: 700,
+              fontSize: 10,
+              borderRadius: 8,
+              border: 'none',
+              cursor: isWorking ? 'wait' : 'pointer',
+              letterSpacing: '0.04em',
+              textTransform: 'uppercase'
+            }}
+          >
+            CLAIM NOW
+          </button>
+        </div>
+      )}
+
+      {/* ─── CARD 1: PLACE BET (Open for 1 minute for multiple bets) ───────────────────────── */}
+      {showPlaceBetSection && (
+        <div
+          style={{
+            flex: '1 1 auto',
+            minHeight: '340px',
+            background: 'rgba(255,255,255,0.025)',
+            border: '1px solid rgba(255,255,255,0.08)',
           borderRadius: 22,
           padding: '16px',
           boxSizing: 'border-box',
@@ -426,7 +471,7 @@ export function BettingPanel({ currentBtcPrice: _unusedProps }: { currentBtcPric
           {/* Header */}
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
             <span style={{ fontSize: 12, fontWeight: 700, letterSpacing: '0.06em', color: '#ffffff' }}>PLACE BET</span>
-            <StatusBadge status={marketStatus === 'LOCKED' || marketStatus === 'SETTLING' ? 'locked' : 'ready'} label={marketStatus} />
+            <StatusBadge status={marketStatus === 'OPEN' ? 'ready' : 'locked'} label={marketStatus} />
           </div>
 
           {/* BTC Price feed sub-header */}
@@ -706,11 +751,13 @@ export function BettingPanel({ currentBtcPrice: _unusedProps }: { currentBtcPric
           </div>
         )}
       </div>
+      )}
 
-      {/* ─── CARD 2: LIVE MARKET (Upgraded Previous Market) ───────────────── */}
+      {/* ─── CARD 2: LIVE MARKET (Shown ONLY during 60s LOCKED / SETTLING phase) ───────────────── */}
+      {!showPlaceBetSection && (
       <div
         style={{
-          flex: '0 0 auto',
+          flex: '1 1 auto',
           minHeight: '270px',
           background: hasPlacedPrevBet 
             ? 'radial-gradient(circle at 50% 0%, rgba(255, 255, 255, 0.075) 0%, rgba(255, 255, 255, 0.015) 100%)'
@@ -768,65 +815,6 @@ export function BettingPanel({ currentBtcPrice: _unusedProps }: { currentBtcPric
           {hasPlacedPrevBet && isPrevRoundLive ? (
             <div style={{ marginBottom: 10 }}>
               <GlobalRoundTimer target="prev" />
-            </div>
-          ) : hasPlacedActiveBet && marketStatus === 'OPEN' ? (
-            <div style={{
-              position: 'relative',
-              display: 'flex',
-              flexDirection: 'column',
-              justifyContent: 'center',
-              alignItems: 'center',
-              gap: 6,
-              padding: '14px 12px',
-              borderRadius: 14,
-              background: 'rgba(255, 255, 255, 0.02)',
-              border: '1px solid rgba(255, 255, 255, 0.12)',
-              boxShadow: '0 0 12px rgba(255, 255, 255, 0.02)',
-              marginBottom: 10,
-              overflow: 'hidden'
-            }}>
-              {/* Scanline light bar */}
-              <div style={{
-                position: 'absolute',
-                bottom: 0,
-                left: 0,
-                width: '40%',
-                height: 1,
-                background: 'linear-gradient(90deg, transparent, #ffffff, transparent)',
-                animation: 'scanProgress 2s infinite linear',
-              }} />
-              
-              <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                <span style={{
-                  fontSize: 12,
-                  fontWeight: 700,
-                  color: '#ffffff',
-                  fontFamily: 'var(--font-mono)'
-                }}>
-                  {activeUserBet && activeUserBet.position === 0 ? '▲ UP' : '▼ DOWN'} · {activeUserBet ? (Number(activeUserBet.amount) / 1e18).toFixed(4) : '0.00'} {balanceSymbol}
-                </span>
-              </div>
-              
-              <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                <div style={{
-                  width: 4,
-                  height: 4,
-                  borderRadius: '50%',
-                  background: '#ffffff',
-                  boxShadow: '0 0 6px rgba(255, 255, 255, 0.6)',
-                  animation: 'pulseGlow 1.5s infinite ease-in-out',
-                }} />
-                <span style={{
-                  fontSize: 8,
-                  fontWeight: 700,
-                  color: 'rgba(255, 255, 255, 0.45)',
-                  fontFamily: 'var(--font-sans)',
-                  letterSpacing: '0.08em',
-                  textTransform: 'uppercase'
-                }}>
-                  Prediction Active · Waiting for lock
-                </span>
-              </div>
             </div>
           ) : (
             <div style={{
@@ -1230,6 +1218,7 @@ export function BettingPanel({ currentBtcPrice: _unusedProps }: { currentBtcPric
           </div>
         )}
       </div>
+      )}
 
     </div>
   );
