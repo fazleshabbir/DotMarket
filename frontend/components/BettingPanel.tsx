@@ -194,17 +194,8 @@ export function BettingPanel({ currentBtcPrice: _unusedProps }: { currentBtcPric
   // Swap Card 2 target round dynamically when the active round locks/settles locally
   const isCurrentRoundClosed = marketStatus === 'LOCKED' || marketStatus === 'SETTLING';
 
-  const [lockedEntryPrice, setLockedEntryPrice] = useState<number>(0);
-
-  useEffect(() => {
-    if (isCurrentRoundClosed) {
-      if (lockedEntryPrice === 0 && btcPrice > 0) {
-        setLockedEntryPrice(btcPrice);
-      }
-    } else {
-      setLockedEntryPrice(0);
-    }
-  }, [isCurrentRoundClosed, btcPrice, lockedEntryPrice]);
+  // lockedEntryPrice is now sourced from the central market store (on-chain startPrice)
+  const { lockedEntryPrice } = useMarket();
 
   const liveRound = isCurrentRoundClosed ? activeRound : prevRound;
   const liveUserBet = isCurrentRoundClosed ? activeUserBet : prevUserBet;
@@ -262,57 +253,8 @@ export function BettingPanel({ currentBtcPrice: _unusedProps }: { currentBtcPric
     }
   }, [isPending, isConfirming, isSuccess]);
 
-  // Handle outcome overlay notifications on round resolution
-  useEffect(() => {
-    const roundsToCheck = [
-      { round: prevRound, bet: prevUserBet, upMult: prevUpMultiplier, downMult: prevDownMultiplier },
-      { round: pastRound, bet: pastUserBet, upMult: pastRound ? (pastMultipliers ? Number(pastMultipliers[0] || 0n) / 10000 : 0) : 0, downMult: pastRound ? (pastMultipliers ? Number(pastMultipliers[1] || 0n) / 10000 : 0) : 0 }
-    ];
-
-    for (const { round, bet, upMult, downMult } of roundsToCheck) {
-      if (round && round.resolved && bet && bet.amount > 0n) {
-        const roundIdStr = round.roundId.toString();
-        if (lastOutcomeShownRoundId !== roundIdStr) {
-          const startPriceNum = Number(round.startPrice);
-          const closePriceNum = Number(round.closePrice);
-          const upWins = closePriceNum > startPriceNum;
-          const downWins = closePriceNum < startPriceNum;
-          const won = (upWins && bet.position === 0) || (downWins && bet.position === 1);
-          const canceled = round.canceled;
-
-          let title = 'LOST';
-          let amountStr = `-${(Number(bet.amount) / 1e18).toFixed(4)} ${balanceSymbol}`;
-          let details = `Round #${roundIdStr}`;
-
-          if (canceled) {
-            title = 'REFUNDED';
-            amountStr = `+${(Number(bet.amount) / 1e18).toFixed(4)} ${balanceSymbol}`;
-          } else if (won) {
-            const mult = bet.position === 0 ? upMult : downMult;
-            const payout = (Number(bet.amount) / 1e18) * mult;
-            title = 'WON';
-            amountStr = `+${payout.toFixed(4)} ${balanceSymbol}`;
-            details = `${mult.toFixed(2)}× · Round #${roundIdStr}`;
-          }
-
-          setOutcomeDetails({
-            show: true,
-            title,
-            amountStr,
-            details,
-          });
-
-          setLastOutcomeShownRoundId(roundIdStr);
-
-          // Auto-dismiss after 5 seconds (5000ms)
-          const t = setTimeout(() => {
-            setOutcomeDetails(null);
-          }, 5000);
-          return () => clearTimeout(t);
-        }
-      }
-    }
-  }, [prevRound?.resolved, pastRound?.resolved, prevUserBet, pastUserBet, prevUpMultiplier, prevDownMultiplier, pastMultipliers, lastOutcomeShownRoundId, balanceSymbol]);
+  // Result auto-check is handled centrally by MarketProvider (marketStore.tsx)
+  // No duplicate useEffect needed here
 
   const handlePlaceBet = (position: number) => {
     if (!betAmount || parseFloat(betAmount) <= 0) return;

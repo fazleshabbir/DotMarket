@@ -208,7 +208,7 @@ async function fetchPrice(pairName: string): Promise<bigint> {
     } else {
       const pairUpper = pairName.toUpperCase();
       if (pairUpper === "ETH/USD") {
-        feedId = "ff6d0bb2e285473e5311d9d3caacb525ae3538a8";
+        feedId = "ff61491a931112ddf1bd8147cd1b641375f79f5825126d665480874634fd0ace";
       } else if (pairUpper === "SOL/USD") {
         feedId = "ef0d8b6ffd224f8d5c02b18169902bd6f1214e3057ab65d83a1045509287ec50";
       }
@@ -297,7 +297,7 @@ async function fetchPrice(pairName: string): Promise<bigint> {
 let isRunning = true;
 
 async function main() {
-  log("🚀", "dotMarket Keeper Bot starting (No Pyth)...");
+  log("🚀", "dotMarket Keeper Bot starting...");
 
   // ── Load config ──
   const config = loadConfig();
@@ -368,7 +368,7 @@ async function main() {
 
       log("📊", `Current round ID: ${currentRoundId}`);
 
-      const nowSec = BigInt(Math.floor(Date.now() / 1000));
+      let nowSec = BigInt(Math.floor(Date.now() / 1000));
 
       // 2. If no round exists (id == 0) → open the first round
       if (currentRoundId === 0n) {
@@ -381,10 +381,12 @@ async function main() {
             gas: 1000000n,
           });
           log("📤", `openRound tx sent: ${hash}`);
-          const receipt = await publicClient.waitForTransactionReceipt({ hash });
+          const receipt = await publicClient.waitForTransactionReceipt({ hash, timeout: 60_000 });
           log("✅", `Genesis round opened! Gas used: ${receipt.gasUsed} | Block: ${receipt.blockNumber}`);
         });
+        nowSec = BigInt(Math.floor(Date.now() / 1000));
         await sleep(5000);
+        nowSec = BigInt(Math.floor(Date.now() / 1000));
         continue;
       }
 
@@ -414,10 +416,12 @@ async function main() {
             gas: 1000000n,
           });
           log("📤", `openRound tx sent: ${hash}`);
-          const receipt = await publicClient.waitForTransactionReceipt({ hash });
+          const receipt = await publicClient.waitForTransactionReceipt({ hash, timeout: 60_000 });
           log("✅", `New round opened! Gas used: ${receipt.gasUsed} | Block: ${receipt.blockNumber}`);
         });
+        nowSec = BigInt(Math.floor(Date.now() / 1000));
         await sleep(5000);
+        nowSec = BigInt(Math.floor(Date.now() / 1000));
         continue;
       }
 
@@ -433,21 +437,23 @@ async function main() {
         log("⏰", `Round #${currentRoundId} has ended (endTimestamp past). Resolving and opening next round...`);
 
         // Resolve the current round
+        const resolvePrice = await fetchPrice(pair);
         await withRetry(`resolveRound #${currentRoundId}`, async () => {
-          const price = await fetchPrice(pair);
           const hash = await walletClient.writeContract({
             address: config.marketAddress,
             abi: ROUND_MARKET_ABI,
             functionName: "resolveRound",
-            args: [currentRoundId, price],
+            args: [currentRoundId, resolvePrice],
             gas: 1000000n,
           });
           log("📤", `resolveRound #${currentRoundId} tx sent: ${hash}`);
-          const receipt = await publicClient.waitForTransactionReceipt({ hash });
+          const receipt = await publicClient.waitForTransactionReceipt({ hash, timeout: 60_000 });
           log("✅", `Round #${currentRoundId} resolved! Gas used: ${receipt.gasUsed} | Block: ${receipt.blockNumber}`);
         });
+        nowSec = BigInt(Math.floor(Date.now() / 1000));
 
         await sleep(RESOLVE_TO_OPEN_DELAY_MS);
+        nowSec = BigInt(Math.floor(Date.now() / 1000));
 
         // Open the next round
         await withRetry("openRound (after resolve)", async () => {
@@ -458,11 +464,13 @@ async function main() {
             gas: 1000000n,
           });
           log("📤", `openRound tx sent: ${hash}`);
-          const receipt = await publicClient.waitForTransactionReceipt({ hash });
+          const receipt = await publicClient.waitForTransactionReceipt({ hash, timeout: 60_000 });
           log("✅", `New round opened! Gas used: ${receipt.gasUsed} | Block: ${receipt.blockNumber}`);
         });
+        nowSec = BigInt(Math.floor(Date.now() / 1000));
 
         await sleep(5000);
+        nowSec = BigInt(Math.floor(Date.now() / 1000));
         continue;
       }
 
@@ -475,20 +483,22 @@ async function main() {
         nowSec >= currentRound.lockTimestamp
       ) {
         log("🔒", `Round #${currentRoundId} has reached lock time. Locking and opening next round...`);
+        const lockPrice = await fetchPrice(pair);
         await withRetry(`lockAndOpenRound #${currentRoundId}`, async () => {
-          const price = await fetchPrice(pair);
           const hash = await walletClient.writeContract({
             address: config.marketAddress,
             abi: ROUND_MARKET_ABI,
             functionName: "lockAndOpenRound",
-            args: [currentRoundId, price],
+            args: [currentRoundId, lockPrice],
             gas: 1000000n,
           });
           log("📤", `lockAndOpenRound tx sent: ${hash}`);
-          const receipt = await publicClient.waitForTransactionReceipt({ hash });
+          const receipt = await publicClient.waitForTransactionReceipt({ hash, timeout: 60_000 });
           log("✅", `Round #${currentRoundId} locked & next opened! Gas used: ${receipt.gasUsed} | Block: ${receipt.blockNumber}`);
         });
+        nowSec = BigInt(Math.floor(Date.now() / 1000));
         await sleep(5000);
+        nowSec = BigInt(Math.floor(Date.now() / 1000));
         continue;
       }
 
@@ -511,19 +521,20 @@ async function main() {
           // If the previous round was never locked, lock it first!
           if (prevRound.startPrice === 0n) {
             log("🔒", `Previous Round #${prevId} was never locked. Locking now before resolution...`);
+            const prevLockPrice = await fetchPrice(pair);
             await withRetry(`lockRound #${prevId}`, async () => {
-              const price = await fetchPrice(pair);
               const hash = await walletClient.writeContract({
                 address: config.marketAddress,
                 abi: ROUND_MARKET_ABI,
                 functionName: "lockRound",
-                args: [prevId, price],
+                args: [prevId, prevLockPrice],
                 gas: 1000000n,
               });
               log("📤", `lockRound #${prevId} tx sent: ${hash}`);
-              const receipt = await publicClient.waitForTransactionReceipt({ hash });
+              const receipt = await publicClient.waitForTransactionReceipt({ hash, timeout: 60_000 });
               log("✅", `Round #${prevId} locked! Gas used: ${receipt.gasUsed} | Block: ${receipt.blockNumber}`);
             });
+            nowSec = BigInt(Math.floor(Date.now() / 1000));
             // Refresh round details
             prevRound = await withRetry(`Refetch prevRound #${prevId}`, () =>
               publicClient.readContract({
@@ -536,19 +547,20 @@ async function main() {
           }
 
           log("⏰", `Previous Round #${prevId} has ended. Resolving...`);
+          const prevResolvePrice = await fetchPrice(pair);
           await withRetry(`resolveRound #${prevId}`, async () => {
-            const price = await fetchPrice(pair);
             const hash = await walletClient.writeContract({
               address: config.marketAddress,
               abi: ROUND_MARKET_ABI,
               functionName: "resolveRound",
-              args: [prevId, price],
+              args: [prevId, prevResolvePrice],
               gas: 1000000n,
             });
             log("📤", `resolveRound #${prevId} tx sent: ${hash}`);
-            const receipt = await publicClient.waitForTransactionReceipt({ hash });
+            const receipt = await publicClient.waitForTransactionReceipt({ hash, timeout: 60_000 });
             log("✅", `Round #${prevId} resolved! Gas used: ${receipt.gasUsed} | Block: ${receipt.blockNumber}`);
           });
+          nowSec = BigInt(Math.floor(Date.now() / 1000));
         }
       }
 
@@ -564,6 +576,7 @@ async function main() {
       }
       log("⏳", `Cooling down for ${ERROR_COOLDOWN_MS / 1000}s before retry...`);
       await sleep(ERROR_COOLDOWN_MS);
+      nowSec = BigInt(Math.floor(Date.now() / 1000));
     }
   }
 

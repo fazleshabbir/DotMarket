@@ -1,11 +1,12 @@
 'use client';
 
-import React, { createContext, useContext, useState, useEffect, useRef } from 'react';
-import { useAccount, useReadContract, useReadContracts, useBalance } from 'wagmi';
+import React, { createContext, useContext, useState, useEffect, useRef, useMemo, useCallback } from 'react';
+import { useAccount, useReadContracts, useBalance } from 'wagmi';
 import { formatEther } from 'viem';
 import { ROUND_MARKET_ABI } from '@/lib/abi';
 import { useContracts } from '@/hooks/useNetworkConfig';
 
+// ── Types ──────────────────────────────────────────────────────────────────────
 interface RoundData {
   roundId: bigint;
   startPrice: bigint;
@@ -33,6 +34,8 @@ interface Toast {
   submessage?: string;
   type: 'success' | 'info' | 'error' | 'win' | 'loss' | 'refund';
 }
+
+type MarketStatus = 'OPEN' | 'LOCKED' | 'SETTLING' | 'NEXT ROUND' | 'AWAITING PLAYERS';
 
 interface MarketState {
   // Live Tickers & Calculations
@@ -76,32 +79,63 @@ interface MarketState {
   // Global Time Status for Active Round (currentRoundId)
   timeLeftToLock: number;
   timeLeftToEnd: number;
-  marketStatus: 'OPEN' | 'LOCKED' | 'SETTLING' | 'NEXT ROUND' | 'AWAITING PLAYERS';
+  marketStatus: MarketStatus;
 
   // Global Time Status for Previous Round (prevRoundId)
   prevTimeLeftToLock: number;
   prevTimeLeftToEnd: number;
-  prevMarketStatus: 'OPEN' | 'LOCKED' | 'SETTLING' | 'NEXT ROUND' | 'AWAITING PLAYERS';
+  prevMarketStatus: MarketStatus;
 
   // Toast API
   toast: Toast | null;
-  triggerToast: (message: string, submessage?: string, type?: 'success' | 'info' | 'error' | 'win' | 'loss' | 'refund') => void;
+  triggerToast: (message: string, submessage?: string, type?: Toast['type']) => void;
   lockedEntryPrice: number;
 }
 
 const MarketContext = createContext<MarketState | undefined>(undefined);
+
+// ── Deterministic Status Derivation ────────────────────────────────────────────
+function deriveMarketStatus(
+  roundId: bigint,
+  round: RoundData | undefined,
+  timeLeftToLock: number,
+  timeLeftToEnd: number,
+): MarketStatus {
+  // No round exists yet
+  if (roundId === 0n) return 'AWAITING PLAYERS';
+
+  // Round data hasn't loaded — safe default that disables betting
+  if (!round) return 'AWAITING PLAYERS';
+
+  // Canceled rounds always show as refunded / next round (check BEFORE resolved)
+  // This handles the tie case where resolved=true AND canceled=true
+  if (round.canceled) return 'NEXT ROUND';
+
+  // Resolved rounds with a clear winner
+  if (round.resolved) return 'NEXT ROUND';
+
+  // Active lifecycle: OPEN → LOCKED → SETTLING
+  if (timeLeftToLock > 0) return 'OPEN';
+  if (timeLeftToEnd > 0) return 'LOCKED';
+
+  return 'SETTLING';
+}
 
 export function MarketProvider({ children }: { children: React.ReactNode }) {
   const { address } = useAccount();
   const contracts = useContracts();
   const MARKET_ADDRESS = contracts.predictionMarket;
 
-  // ── 1. Live Tick Clock ────────────────────────────────────────────────────
-  const [now, setNow] = useState(Math.floor(Date.now() / 1000));
-  
+  // ── 1. Authoritative Clock ───────────────────────────────────────────────
+  // Initialize to 0 to avoid SSR hydration mismatch (Date.now() differs server vs client)
+  const [now, setNow] = useState(0);
+
   useEffect(() => {
-    let animationFrameId: number;
+    // Set initial time on client mount
     let lastSecond = Math.floor(Date.now() / 1000);
+    setNow(lastSecond);
+
+    let animationFrameId: number;
 
     const tick = () => {
       const currentSecond = Math.floor(Date.now() / 1000);
@@ -114,6 +148,7 @@ export function MarketProvider({ children }: { children: React.ReactNode }) {
 
     animationFrameId = requestAnimationFrame(tick);
 
+    // Immediately sync when tab becomes visible (handles sleep, tab switch)
     const handleVisibilityChange = () => {
       if (document.visibilityState === 'visible') {
         const currentSecond = Math.floor(Date.now() / 1000);
@@ -121,7 +156,7 @@ export function MarketProvider({ children }: { children: React.ReactNode }) {
         lastSecond = currentSecond;
       }
     };
-    
+
     document.addEventListener('visibilitychange', handleVisibilityChange);
 
     return () => {
@@ -130,122 +165,154 @@ export function MarketProvider({ children }: { children: React.ReactNode }) {
     };
   }, []);
 
-  // ── 2. Live Pyth Hermes Price Feed (with Binance Fallback) & TWAP ──────────
-  const [btcPrice, setBtcPrice] = useState(64000.0);
-  const [twap, setTwap] = useState(64000.0);
+  // ── 2. Live Pyth Hermes Price Feed (with Binance Fallback) ────────────────
+  const [btcPrice, setBtcPrice] = useState(0);
+  const [twap, setTwap] = useState(0);
   const priceBuffer = useRef<number[]>([]);
+  const abortControllerRef = useRef<AbortController | null>(null);
 
   useEffect(() => {
     const fetchPrice = async () => {
-      // 1. Try Pyth Hermes API first
+      // Cancel any in-flight request before starting a new one
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+      }
+      const controller = new AbortController();
+      abortControllerRef.current = controller;
+
       try {
-        const res = await fetch('https://hermes.pyth.network/v2/updates/price/latest?ids[]=e62df6c8b4a85fe1a67db44dc12de5db330f7ac66b72dc658afedf0f4a415b43', {
-          signal: AbortSignal.timeout(5000)
-        });
+        // 1. Try Pyth Hermes API first
+        const res = await fetch(
+          'https://hermes.pyth.network/v2/updates/price/latest?ids[]=e62df6c8b4a85fe1a67db44dc12de5db330f7ac66b72dc658afedf0f4a415b43',
+          { signal: controller.signal }
+        );
         const data = await res.json();
-        if (data && data.parsed && data.parsed[0]) {
+        if (data?.parsed?.[0]) {
           const priceStr = data.parsed[0].price.price;
           const expo = data.parsed[0].price.expo;
           const currentPrice = Number(priceStr) * Math.pow(10, expo);
 
-          setBtcPrice(currentPrice);
+          if (currentPrice > 0) {
+            setBtcPrice(currentPrice);
 
-          // Update 5-second TWAP buffer
-          priceBuffer.current.push(currentPrice);
-          if (priceBuffer.current.length > 5) {
-            priceBuffer.current.shift();
+            // Update TWAP buffer
+            priceBuffer.current.push(currentPrice);
+            if (priceBuffer.current.length > 5) priceBuffer.current.shift();
+            const sum = priceBuffer.current.reduce((a, b) => a + b, 0);
+            setTwap(sum / priceBuffer.current.length);
+            return;
           }
-          const sum = priceBuffer.current.reduce((a, b) => a + b, 0);
-          setTwap(sum / priceBuffer.current.length);
-          return;
         }
-      } catch (err) {
-        console.warn('Pyth Hermes price fetch failed, trying Binance fallback:', err);
+      } catch (err: any) {
+        if (err?.name === 'AbortError') return; // Cancelled — don't fallback
+        console.warn('Pyth Hermes failed, trying Binance:', err);
       }
 
       // 2. Fallback to Binance
       try {
-        const res = await fetch('https://api.binance.com/api/v3/ticker/price?symbol=BTCUSDT');
+        const res = await fetch('https://api.binance.com/api/v3/ticker/price?symbol=BTCUSDT', {
+          signal: controller.signal,
+        });
         const data = await res.json();
-        if (data && data.price) {
+        if (data?.price) {
           const currentPrice = parseFloat(data.price);
-          setBtcPrice(currentPrice);
+          if (currentPrice > 0) {
+            setBtcPrice(currentPrice);
 
-          priceBuffer.current.push(currentPrice);
-          if (priceBuffer.current.length > 5) {
-            priceBuffer.current.shift();
+            priceBuffer.current.push(currentPrice);
+            if (priceBuffer.current.length > 5) priceBuffer.current.shift();
+            const sum = priceBuffer.current.reduce((a, b) => a + b, 0);
+            setTwap(sum / priceBuffer.current.length);
           }
-          const sum = priceBuffer.current.reduce((a, b) => a + b, 0);
-          setTwap(sum / priceBuffer.current.length);
         }
-      } catch (err) {
-        console.error('Error fetching fallback Binance price:', err);
+      } catch (err: any) {
+        if (err?.name !== 'AbortError') {
+          console.error('Binance price fetch also failed:', err);
+        }
       }
     };
 
-    fetchPrice(); // Initial fetch
+    fetchPrice();
     const interval = setInterval(fetchPrice, 1000);
-    return () => clearInterval(interval);
+
+    return () => {
+      clearInterval(interval);
+      if (abortControllerRef.current) abortControllerRef.current.abort();
+    };
   }, []);
 
-  // ── 3. Live Wallet Balance ───────────────────────────────────────────────
+  // ── 3. Wallet Balance ────────────────────────────────────────────────────
   const { data: balanceData } = useBalance({
     address: address,
     query: { enabled: !!address, refetchInterval: 5000 },
   });
   const walletBalance = balanceData ? parseFloat(formatEther(balanceData.value)) : 0;
-  const balanceSymbol = balanceData?.symbol || 'USDC';
+  const balanceSymbol = balanceData?.symbol || 'ETH';
 
-  // ── 4. Main Contract Polling ─────────────────────────────────────────────
-  const { data: rawCurrentRoundId } = useReadContract({
-    address: MARKET_ADDRESS,
-    abi: ROUND_MARKET_ABI,
-    functionName: 'currentRoundId',
+  // ── 4. Contract Polling ──────────────────────────────────────────────────
+  // Fetch currentRoundId
+  const { data: roundIdBatch } = useReadContracts({
+    contracts: [
+      { address: MARKET_ADDRESS, abi: ROUND_MARKET_ABI, functionName: 'currentRoundId' },
+    ],
     query: { refetchInterval: 3000 },
   });
-  const currentRoundId = rawCurrentRoundId ? BigInt(rawCurrentRoundId.toString()) : 0n;
+
+  const currentRoundId = roundIdBatch?.[0]?.result
+    ? BigInt(roundIdBatch[0].result.toString())
+    : 0n;
 
   const activeRoundId = currentRoundId;
   const prevRoundId = activeRoundId > 1n ? activeRoundId - 1n : 0n;
   const pastRoundId = activeRoundId > 2n ? activeRoundId - 2n : 0n;
 
-  // Batch query for active and previous round data parameters
+  // Zero address constant for when wallet is disconnected
+  const userAddress = address || '0x0000000000000000000000000000000000000000' as `0x${string}`;
+  const hasAddress = !!address;
+
+  // Batch all round data in a SINGLE multicall (atomic — no race condition between rounds)
   const { data: batchData } = useReadContracts({
     contracts: [
+      // Active round (indices 0-2)
       { address: MARKET_ADDRESS, abi: ROUND_MARKET_ABI, functionName: 'getRound', args: [activeRoundId] },
       { address: MARKET_ADDRESS, abi: ROUND_MARKET_ABI, functionName: 'getMultipliers', args: [activeRoundId] },
-      { address: MARKET_ADDRESS, abi: ROUND_MARKET_ABI, functionName: 'getUserBet', args: [activeRoundId, address || '0x0000000000000000000000000000000000000000'] },
+      { address: MARKET_ADDRESS, abi: ROUND_MARKET_ABI, functionName: 'getUserBet', args: [activeRoundId, userAddress] },
+      // Previous round (indices 3-6)
       { address: MARKET_ADDRESS, abi: ROUND_MARKET_ABI, functionName: 'getRound', args: [prevRoundId] },
       { address: MARKET_ADDRESS, abi: ROUND_MARKET_ABI, functionName: 'getMultipliers', args: [prevRoundId] },
-      { address: MARKET_ADDRESS, abi: ROUND_MARKET_ABI, functionName: 'getUserBet', args: [prevRoundId, address || '0x0000000000000000000000000000000000000000'] },
-      { address: MARKET_ADDRESS, abi: ROUND_MARKET_ABI, functionName: 'claimable', args: [prevRoundId, address || '0x0000000000000000000000000000000000000000'] },
+      { address: MARKET_ADDRESS, abi: ROUND_MARKET_ABI, functionName: 'getUserBet', args: [prevRoundId, userAddress] },
+      { address: MARKET_ADDRESS, abi: ROUND_MARKET_ABI, functionName: 'claimable', args: [prevRoundId, userAddress] },
+      // Past round (indices 7-10)
       { address: MARKET_ADDRESS, abi: ROUND_MARKET_ABI, functionName: 'getRound', args: [pastRoundId] },
       { address: MARKET_ADDRESS, abi: ROUND_MARKET_ABI, functionName: 'getMultipliers', args: [pastRoundId] },
-      { address: MARKET_ADDRESS, abi: ROUND_MARKET_ABI, functionName: 'getUserBet', args: [pastRoundId, address || '0x0000000000000000000000000000000000000000'] },
-      { address: MARKET_ADDRESS, abi: ROUND_MARKET_ABI, functionName: 'claimable', args: [pastRoundId, address || '0x0000000000000000000000000000000000000000'] }
+      { address: MARKET_ADDRESS, abi: ROUND_MARKET_ABI, functionName: 'getUserBet', args: [pastRoundId, userAddress] },
+      { address: MARKET_ADDRESS, abi: ROUND_MARKET_ABI, functionName: 'claimable', args: [pastRoundId, userAddress] },
     ],
     query: {
       enabled: activeRoundId > 0n,
-      refetchInterval: 3000
-    }
+      refetchInterval: 3000,
+    },
   });
 
+  // Destructure batch results — always from same multicall, guaranteed consistent
   const activeRound = batchData?.[0]?.result as RoundData | undefined;
   const activeMultipliers = batchData?.[1]?.result;
-  const activeUserBet = batchData?.[2]?.result as UserBet | undefined;
+  const activeUserBet = (hasAddress ? batchData?.[2]?.result : undefined) as UserBet | undefined;
   const prevRound = batchData?.[3]?.result as RoundData | undefined;
   const prevMultipliers = batchData?.[4]?.result;
-  const prevUserBet = batchData?.[5]?.result as UserBet | undefined;
-  const isClaimable = !!batchData?.[6]?.result;
+  const prevUserBet = (hasAddress ? batchData?.[5]?.result : undefined) as UserBet | undefined;
+  const isClaimable = hasAddress ? !!batchData?.[6]?.result : false;
   const pastRound = batchData?.[7]?.result as RoundData | undefined;
   const pastMultipliers = batchData?.[8]?.result;
-  const pastUserBet = batchData?.[9]?.result as UserBet | undefined;
-  const isPastClaimable = !!batchData?.[10]?.result;
+  const pastUserBet = (hasAddress ? batchData?.[9]?.result : undefined) as UserBet | undefined;
+  const isPastClaimable = hasAddress ? !!batchData?.[10]?.result : false;
 
-  // ── 5. Derived Stat Calculations ──────────────────────────────────────────
+  // ── 5. Derived Stats (pure calculations, no state) ───────────────────────
   // Active Round Stats
   const activeTotalPool = activeRound ? activeRound.totalUpAmount + activeRound.totalDownAmount : 0n;
-  const activeUpPercent = activeTotalPool > 0n ? Number((activeRound!.totalUpAmount * 10000n) / activeTotalPool) / 100 : 50;
+  const activeUpPercent = activeTotalPool > 0n && activeRound
+    ? Number((activeRound.totalUpAmount * 10000n) / activeTotalPool) / 100
+    : 50;
   const activeDownPercent = activeTotalPool > 0n ? 100 - activeUpPercent : 50;
 
   const activeUpMultiplier = activeMultipliers ? Number((activeMultipliers as any)[0] || 0n) / 10000 : 0;
@@ -253,97 +320,90 @@ export function MarketProvider({ children }: { children: React.ReactNode }) {
 
   // Previous Round Stats
   const prevTotalPool = prevRound ? prevRound.totalUpAmount + prevRound.totalDownAmount : 0n;
-  const prevUpPercent = prevTotalPool > 0n ? Number((prevRound!.totalUpAmount * 10000n) / prevTotalPool) / 100 : 50;
+  const prevUpPercent = prevTotalPool > 0n && prevRound
+    ? Number((prevRound.totalUpAmount * 10000n) / prevTotalPool) / 100
+    : 50;
   const prevDownPercent = prevTotalPool > 0n ? 100 - prevUpPercent : 50;
 
   const prevUpMultiplier = prevMultipliers ? Number((prevMultipliers as any)[0] || 0n) / 10000 : 0;
   const prevDownMultiplier = prevMultipliers ? Number((prevMultipliers as any)[1] || 0n) / 10000 : 0;
 
-  // Past Round Stats
-  const pastUpMultiplier = pastMultipliers ? Number((pastMultipliers as any)[0] || 0n) / 10000 : 0;
-  const pastDownMultiplier = pastMultipliers ? Number((pastMultipliers as any)[1] || 0n) / 10000 : 0;
-
-  // Time Calculation details for Active Round
+  // ── 6. Timer Derivations (pure math from on-chain timestamps + now) ──────
   const lockTimestamp = activeRound ? Number(activeRound.lockTimestamp) : 0;
   const endTimestamp = activeRound ? Number(activeRound.endTimestamp) : 0;
+  const timeLeftToLock = (lockTimestamp > 0 && now > 0) ? Math.max(0, lockTimestamp - now) : 0;
+  const timeLeftToEnd = (endTimestamp > 0 && now > 0) ? Math.max(0, endTimestamp - now) : 0;
 
-  const timeLeftToLock = lockTimestamp > 0 ? Math.max(0, lockTimestamp - now) : 0;
-  const timeLeftToEnd = endTimestamp > 0 ? Math.max(0, endTimestamp - now) : 0;
-
-  // Time Calculation details for Previous Round
   const prevLockTimestamp = prevRound ? Number(prevRound.lockTimestamp) : 0;
   const prevEndTimestamp = prevRound ? Number(prevRound.endTimestamp) : 0;
+  const prevTimeLeftToLock = (prevLockTimestamp > 0 && now > 0) ? Math.max(0, prevLockTimestamp - now) : 0;
+  const prevTimeLeftToEnd = (prevEndTimestamp > 0 && now > 0) ? Math.max(0, prevEndTimestamp - now) : 0;
 
-  const prevTimeLeftToLock = prevLockTimestamp > 0 ? Math.max(0, prevLockTimestamp - now) : 0;
-  const prevTimeLeftToEnd = prevEndTimestamp > 0 ? Math.max(0, prevEndTimestamp - now) : 0;
+  // ── 7. Deterministic State Machine ──────────────────────────────────────
+  const marketStatus = deriveMarketStatus(activeRoundId, activeRound, timeLeftToLock, timeLeftToEnd);
+  const prevMarketStatus = deriveMarketStatus(prevRoundId, prevRound, prevTimeLeftToLock, prevTimeLeftToEnd);
 
-  // Derived marketStatus
-  let marketStatus: 'OPEN' | 'LOCKED' | 'SETTLING' | 'NEXT ROUND' | 'AWAITING PLAYERS' = 'AWAITING PLAYERS';
+  // ── 8. Locked Entry Price (from on-chain, not off-chain approximation) ──
+  const lockedEntryPrice = useMemo(() => {
+    if (marketStatus === 'LOCKED' || marketStatus === 'SETTLING') {
+      const onChainPrice = activeRound ? Number(activeRound.startPrice) / 1e8 : 0;
+      if (onChainPrice > 0) return onChainPrice;
+      return btcPrice > 0 ? btcPrice : 0;
+    }
+    return 0;
+  }, [marketStatus, activeRound, btcPrice]);
 
-  if (activeRoundId === 0n) {
-    marketStatus = 'AWAITING PLAYERS';
-  } else if (!activeRound) {
-    marketStatus = 'OPEN'; // Fallback to OPEN while loading round metadata
-  } else if (activeRound.resolved || activeRound.canceled) {
-    marketStatus = 'NEXT ROUND';
-  } else if (timeLeftToLock > 0) {
-    marketStatus = 'OPEN';
-  } else if (timeLeftToEnd > 0) {
-    marketStatus = 'LOCKED';
-  } else {
-    marketStatus = 'SETTLING';
-  }
-
-  // Derived prevMarketStatus
-  let prevMarketStatus: 'OPEN' | 'LOCKED' | 'SETTLING' | 'NEXT ROUND' | 'AWAITING PLAYERS' = 'AWAITING PLAYERS';
-
-  if (prevRoundId === 0n) {
-    prevMarketStatus = 'AWAITING PLAYERS';
-  } else if (!prevRound) {
-    prevMarketStatus = 'LOCKED'; // Fallback to LOCKED while loading previous round metadata
-  } else if (prevRound.resolved || prevRound.canceled) {
-    prevMarketStatus = 'NEXT ROUND';
-  } else if (prevTimeLeftToLock > 0) {
-    prevMarketStatus = 'OPEN';
-  } else if (prevTimeLeftToEnd > 0) {
-    prevMarketStatus = 'LOCKED';
-  } else {
-    prevMarketStatus = 'SETTLING';
-  }
-
-  // ── Toast overlay API ───────────────────────────────────────────────────
+  // ── 9. Toast System (with proper cleanup) ────────────────────────────────
   const [toast, setToast] = useState<Toast | null>(null);
+  const toastTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const triggerToast = (message: string, submessage?: string, type: 'success' | 'info' | 'error' | 'win' | 'loss' | 'refund' = 'success') => {
+  const triggerToast = useCallback((
+    message: string,
+    submessage?: string,
+    type: Toast['type'] = 'success'
+  ) => {
+    if (toastTimeoutRef.current) clearTimeout(toastTimeoutRef.current);
     setToast({ show: true, message, submessage, type });
-    setTimeout(() => {
+    toastTimeoutRef.current = setTimeout(() => {
       setToast(null);
+      toastTimeoutRef.current = null;
     }, 4000);
-  };
+  }, []);
 
-  // ── Result Auto-check logic ─────────────────────────────────────────────
+  useEffect(() => {
+    return () => {
+      if (toastTimeoutRef.current) clearTimeout(toastTimeoutRef.current);
+    };
+  }, []);
+
+  // ── 10. Result Auto-Check (notifications for resolved rounds) ───────────
   const lastNotifiedRoundId = useRef<bigint>(0n);
 
   useEffect(() => {
+    const pastUpMultiplier = pastMultipliers ? Number((pastMultipliers as any)[0] || 0n) / 10000 : 0;
+    const pastDownMultiplier = pastMultipliers ? Number((pastMultipliers as any)[1] || 0n) / 10000 : 0;
+
     const roundsToCheck = [
       { id: prevRoundId, round: prevRound, bet: prevUserBet, upMult: prevUpMultiplier, downMult: prevDownMultiplier },
-      { id: pastRoundId, round: pastRound, bet: pastUserBet, upMult: pastUpMultiplier, downMult: pastDownMultiplier }
+      { id: pastRoundId, round: pastRound, bet: pastUserBet, upMult: pastUpMultiplier, downMult: pastDownMultiplier },
     ];
 
     for (const { id, round, bet, upMult, downMult } of roundsToCheck) {
-      if (!round || !round.resolved || !bet || bet.amount === 0n) continue;
-      if (round.roundId <= lastNotifiedRoundId.current) continue;
+      if (!round || !bet || bet.amount === 0n) continue;
+      // Check canceled FIRST (tie = resolved+canceled, should show refund not loss)
+      if (!round.resolved && !round.canceled) continue;
+      if (id <= lastNotifiedRoundId.current) continue;
 
-      lastNotifiedRoundId.current = round.roundId;
-
-      const upWins = round.closePrice > round.startPrice;
-      const downWins = round.closePrice < round.startPrice;
-      const isUp = bet.position === 0;
+      lastNotifiedRoundId.current = id;
 
       if (round.canceled) {
         triggerToast('Round Refunded', 'Stake Returned', 'refund');
       } else {
+        const upWins = round.closePrice > round.startPrice;
+        const downWins = round.closePrice < round.startPrice;
+        const isUp = bet.position === 0;
         const won = (upWins && isUp) || (downWins && !isUp);
+
         if (won) {
           const winningMultiplier = isUp ? upMult : downMult;
           const rewardMultiplier = winningMultiplier > 0 ? winningMultiplier : 1.9;
@@ -354,23 +414,10 @@ export function MarketProvider({ children }: { children: React.ReactNode }) {
         }
       }
     }
-  }, [prevRoundId, pastRoundId, prevRound?.resolved, pastRound?.resolved, prevUserBet?.amount, pastUserBet?.amount]);
+  }, [prevRoundId, pastRoundId, prevRound?.resolved, prevRound?.canceled, pastRound?.resolved, pastRound?.canceled, prevUserBet?.amount, pastUserBet?.amount, triggerToast, balanceSymbol]);
 
-  // Capture lock price immediately when the round enters locked status
-  const [lockedEntryPrice, setLockedEntryPrice] = useState<number>(0);
-
-  useEffect(() => {
-    const isCurrentRoundClosed = marketStatus === 'LOCKED' || marketStatus === 'SETTLING';
-    if (isCurrentRoundClosed) {
-      if (lockedEntryPrice === 0 && btcPrice > 0) {
-        setLockedEntryPrice(btcPrice);
-      }
-    } else {
-      setLockedEntryPrice(0);
-    }
-  }, [marketStatus, btcPrice, lockedEntryPrice]);
-
-  const value: MarketState = {
+  // ── 11. Memoized Context Value ──────────────────────────────────────────
+  const value: MarketState = useMemo(() => ({
     btcPrice,
     twap,
     now,
@@ -409,7 +456,18 @@ export function MarketProvider({ children }: { children: React.ReactNode }) {
     toast,
     triggerToast,
     lockedEntryPrice,
-  };
+  }), [
+    btcPrice, twap, now, walletBalance, balanceSymbol,
+    currentRoundId,
+    activeRound, activeMultipliers, activeUserBet,
+    prevRoundId, prevRound, prevMultipliers, prevUserBet, isClaimable,
+    pastRoundId, pastRound, pastMultipliers, pastUserBet, isPastClaimable,
+    activeTotalPool, activeUpPercent, activeDownPercent, activeUpMultiplier, activeDownMultiplier,
+    prevTotalPool, prevUpPercent, prevDownPercent, prevUpMultiplier, prevDownMultiplier,
+    timeLeftToLock, timeLeftToEnd, marketStatus,
+    prevTimeLeftToLock, prevTimeLeftToEnd, prevMarketStatus,
+    toast, triggerToast, lockedEntryPrice,
+  ]);
 
   return (
     <MarketContext.Provider value={value}>
@@ -428,7 +486,7 @@ export function MarketProvider({ children }: { children: React.ReactNode }) {
           color: '#ffffff',
           boxShadow: '0 8px 32px rgba(0, 0, 0, 0.5)',
           display: 'flex',
-          flexDirection: 'column',
+          flexDirection: 'column' as const,
           gap: 4,
           minWidth: 260,
           maxWidth: 320,

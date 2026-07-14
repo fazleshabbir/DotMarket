@@ -34,12 +34,8 @@ interface BetData {
 
 // ── Live countdown helper for individual bet row ────────────────────────────
 function BetCountdown({ endTimestamp }: { endTimestamp: number }) {
-  const [now, setNow] = useState(Math.floor(Date.now() / 1000));
-
-  useEffect(() => {
-    const interval = setInterval(() => setNow(Math.floor(Date.now() / 1000)), 1000);
-    return () => clearInterval(interval);
-  }, []);
+  // Use the single authoritative clock from market context — no independent timer
+  const { now } = useMarket();
 
   const timeLeft = Math.max(0, endTimestamp - now);
   const minutes = Math.floor(timeLeft / 60);
@@ -49,7 +45,7 @@ function BetCountdown({ endTimestamp }: { endTimestamp: number }) {
 
   return (
     <span style={{ fontSize: 9, fontFamily: 'var(--font-mono)', color: 'rgba(255,255,255,0.6)' }}>
-      {minutes}:${seconds.toString().padStart(2, '0')}
+      {minutes}:{seconds.toString().padStart(2, '0')}
     </span>
   );
 }
@@ -67,7 +63,6 @@ export function PositionsTable() {
     setMounted(true);
   }, []);
 
-  // Read user's round IDs
   const { data: userRoundIds } = useReadContract({
     address: MARKET_ADDRESS,
     abi: ROUND_MARKET_ABI,
@@ -77,9 +72,8 @@ export function PositionsTable() {
   });
 
   const roundIds = (userRoundIds as bigint[] | undefined) || [];
-  const recentIds = roundIds.slice(-10).reverse(); // Show last 10, newest first
+  const recentIds = roundIds.slice(-15).reverse();
 
-  // Write contract for claiming
   const { writeContract, data: txHash, isPending } = useWriteContract();
   const { isLoading: isConfirming, isSuccess } = useWaitForTransactionReceipt({ hash: txHash });
 
@@ -103,137 +97,95 @@ export function PositionsTable() {
 
   if (!mounted) {
     return (
-      <Card hoverEffect={false} style={{ padding: '24px 20px', textAlign: 'center', minHeight: '220px', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', boxSizing: 'border-box' }}>
+      <div style={{ padding: '24px', textAlign: 'center', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
         <p style={{ color: 'var(--text-secondary)', fontSize: 12, fontFamily: 'var(--font-mono)' }}>LOADING TERMINAL ACTIVITY...</p>
-      </Card>
-    );
-  }
-
-  if (!isConnected) {
-    return (
-      <Card
-        hoverEffect={false}
-        style={{
-          minHeight: '220px',
-          height: '100%',
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'center',
-          justifyContent: 'center',
-          padding: '24px 20px',
-          boxSizing: 'border-box',
-          gap: 12,
-        }}
-      >
-        <svg
-          viewBox="0 0 24 24"
-          width="24"
-          height="24"
-          fill="none"
-          stroke="rgba(255, 255, 255, 0.4)"
-          strokeWidth="1.5"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-        >
-          <rect x="2" y="4" width="20" height="16" rx="2" ry="2" />
-          <path d="M16 11h.01M22 10h-6a2 2 0 0 0-2 2v2a2 2 0 0 0 2 2h6" />
-        </svg>
-        <div style={{ textAlign: 'center' }}>
-          <strong style={{ display: 'block', fontSize: 13, color: '#ffffff', marginBottom: 4, letterSpacing: '0.5px' }}>
-            No Active Bets
-          </strong>
-          <p style={{ margin: 0, fontSize: 11, color: 'var(--text-secondary)', maxWidth: 280, lineHeight: 1.4 }}>
-            Connect your wallet to place your first prediction.
-          </p>
-        </div>
-      </Card>
+      </div>
     );
   }
 
   return (
-    <Card 
-      hoverEffect={false} 
+    <div 
+      className="premium-card"
       style={{ 
         overflow: 'hidden',
         padding: 0,
         display: 'flex',
         flexDirection: 'column',
-        minHeight: '220px',
         height: '100%',
-        boxSizing: 'border-box'
+        boxSizing: 'border-box',
+        background: 'transparent',
+        border: '1px solid rgba(255, 255, 255, 0.05)',
       }}
     >
-      {/* Table Header Section */}
+      {/* Exchange-style Tabs Header */}
       <div 
         style={{ 
           display: 'flex', 
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          borderBottom: '1px solid rgba(255, 255, 255, 0.06)',
-          background: 'rgba(255, 255, 255, 0.005)',
-          padding: '10px 16px',
-          flexShrink: 0
+          borderBottom: '1px solid rgba(255, 255, 255, 0.08)',
+          background: 'rgba(5, 5, 5, 0.5)',
+          padding: '0 16px',
+          flexShrink: 0,
+          gap: 24,
         }}
       >
-        <span style={{ fontSize: '11px', fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#ffffff' }}>
-          YOUR ACTIVITY
-        </span>
-        <div style={{ display: 'flex', gap: '6px', background: 'rgba(255,255,255,0.02)', padding: '2px', borderRadius: '20px', border: '1px solid rgba(255,255,255,0.05)' }}>
-          <button
-            onClick={() => setActiveTab('positions')}
-            style={{
-              padding: '4px 10px',
-              fontSize: '10px',
-              fontWeight: 600,
-              borderRadius: '12px',
-              border: 'none',
-              cursor: 'pointer',
-              background: activeTab === 'positions' ? '#ffffff' : 'transparent',
-              color: activeTab === 'positions' ? '#000000' : 'var(--text-secondary)',
-              transition: 'all 200ms ease'
-            }}
-          >
-            ACTIVE BETS
-          </button>
-          <button
-            onClick={() => setActiveTab('history')}
-            style={{
-              padding: '4px 10px',
-              fontSize: '10px',
-              fontWeight: 600,
-              borderRadius: '12px',
-              border: 'none',
-              cursor: 'pointer',
-              background: activeTab === 'history' ? '#ffffff' : 'transparent',
-              color: activeTab === 'history' ? '#000000' : 'var(--text-secondary)',
-              transition: 'all 200ms ease'
-            }}
-          >
-            HISTORY
-          </button>
-        </div>
+        <button
+          onClick={() => setActiveTab('positions')}
+          style={{
+            padding: '12px 4px',
+            fontSize: '12px',
+            fontWeight: activeTab === 'positions' ? 700 : 500,
+            border: 'none',
+            cursor: 'pointer',
+            background: 'transparent',
+            color: activeTab === 'positions' ? '#ffffff' : 'var(--text-secondary)',
+            borderBottom: activeTab === 'positions' ? '2px solid #ffffff' : '2px solid transparent',
+            transition: 'all 200ms ease',
+            letterSpacing: '0.04em'
+          }}
+        >
+          Open Positions
+        </button>
+        <button
+          onClick={() => setActiveTab('history')}
+          style={{
+            padding: '12px 4px',
+            fontSize: '12px',
+            fontWeight: activeTab === 'history' ? 700 : 500,
+            border: 'none',
+            cursor: 'pointer',
+            background: 'transparent',
+            color: activeTab === 'history' ? '#ffffff' : 'var(--text-secondary)',
+            borderBottom: activeTab === 'history' ? '2px solid #ffffff' : '2px solid transparent',
+            transition: 'all 200ms ease',
+            letterSpacing: '0.04em'
+          }}
+        >
+          Trade History
+        </button>
       </div>
 
       {/* Table Content */}
-      <div style={{ flex: 1, overflowY: 'auto', minHeight: 0 }}>
-        {recentIds.length === 0 ? (
+      <div style={{ flex: 1, overflowY: 'auto', minHeight: 0, background: 'rgba(0,0,0,0.4)' }}>
+        {!isConnected ? (
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', gap: 10, padding: 20 }}>
-            <svg
-              viewBox="0 0 24 24"
-              width="20"
-              height="20"
-              fill="none"
-              stroke="rgba(255, 255, 255, 0.3)"
-              strokeWidth="1.5"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            >
+            <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="rgba(255, 255, 255, 0.3)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
               <rect x="2" y="4" width="20" height="16" rx="2" ry="2" />
               <path d="M16 11h.01M22 10h-6a2 2 0 0 0-2 2v2a2 2 0 0 0 2 2h6" />
             </svg>
             <div style={{ textAlign: 'center' }}>
-              <span style={{ display: 'block', fontSize: 12, color: '#ffffff', fontWeight: 600 }}>No Active Bets</span>
-              <span style={{ fontSize: 10, color: 'var(--text-secondary)' }}>Connect your wallet to place your first prediction.</span>
+              <span style={{ display: 'block', fontSize: 12, color: '#ffffff', fontWeight: 600 }}>Wallet Disconnected</span>
+              <span style={{ fontSize: 10, color: 'var(--text-secondary)' }}>Connect your wallet to view active positions.</span>
+            </div>
+          </div>
+        ) : recentIds.length === 0 ? (
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', gap: 10, padding: 20 }}>
+            <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="rgba(255, 255, 255, 0.3)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+              <rect x="2" y="4" width="20" height="16" rx="2" ry="2" />
+              <path d="M16 11h.01M22 10h-6a2 2 0 0 0-2 2v2a2 2 0 0 0 2 2h6" />
+            </svg>
+            <div style={{ textAlign: 'center' }}>
+              <span style={{ display: 'block', fontSize: 12, color: '#ffffff', fontWeight: 600 }}>No {activeTab === 'positions' ? 'Active Positions' : 'History'} Found</span>
+              <span style={{ fontSize: 10, color: 'var(--text-secondary)' }}>Place a prediction to see it here.</span>
             </div>
           </div>
         ) : (
@@ -254,11 +206,11 @@ export function PositionsTable() {
       </div>
 
       {claimStatus && (
-        <div style={{ padding: '8px 12px', background: 'rgba(255, 255, 255, 0.02)', borderTop: '1px solid rgba(255,255,255,0.06)', color: '#ffffff', fontSize: 10, textAlign: 'center', fontFamily: 'var(--font-mono)' }}>
+        <div style={{ padding: '8px 12px', background: 'rgba(255, 255, 255, 0.05)', borderTop: '1px solid rgba(255,255,255,0.06)', color: '#ffffff', fontSize: 10, textAlign: 'center', fontFamily: 'var(--font-mono)' }}>
           {claimStatus}
         </div>
       )}
-    </Card>
+    </div>
   );
 }
 
@@ -279,15 +231,9 @@ function PositionRow({
 }) {
   const currentChain = useCurrentChain();
   const explorer = useExplorer();
-  const [now, setNow] = useState(Math.floor(Date.now() / 1000));
 
-  useEffect(() => {
-    const interval = setInterval(() => setNow(Math.floor(Date.now() / 1000)), 1000);
-    return () => clearInterval(interval);
-  }, []);
-
-  // Fetch live elements from central market context
-  const { btcPrice, balanceSymbol } = useMarket();
+  // Use the single authoritative clock and price from market context — no independent timer
+  const { now, btcPrice, balanceSymbol } = useMarket();
 
   const { data: roundData } = useReadContract({
     address: marketAddress,
