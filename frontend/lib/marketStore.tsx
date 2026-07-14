@@ -37,6 +37,9 @@ interface Toast {
 
 type MarketStatus = 'OPEN' | 'LOCKED' | 'SETTLING' | 'NEXT ROUND' | 'AWAITING PLAYERS';
 
+// Phase determines which panel the user sees — betting or live
+type Phase = 'betting' | 'live';
+
 interface MarketState {
   // Live Tickers & Calculations
   btcPrice: number;
@@ -86,6 +89,9 @@ interface MarketState {
   prevTimeLeftToEnd: number;
   prevMarketStatus: MarketStatus;
 
+  // Stable Phase (never flickers — debounced)
+  phase: Phase;
+
   // Toast API
   toast: Toast | null;
   triggerToast: (message: string, submessage?: string, type?: Toast['type']) => void;
@@ -105,13 +111,12 @@ function deriveMarketStatus(
   if (roundId === 0n) return 'AWAITING PLAYERS';
 
   // If round data hasn't loaded yet OR is still returning a stale round during transition:
-  // Since roundId > 0n, we know the round is active/newly opened. Show OPEN so UI never flickers to AWAITING PLAYERS.
+  // Since roundId > 0n, we know the round is active/newly opened. Show OPEN so UI never flickers.
   if (!round || round.roundId !== roundId) {
     return 'OPEN';
   }
 
   // Canceled rounds always show as refunded / next round (check BEFORE resolved)
-  // This handles the tie case where resolved=true AND canceled=true
   if (round.canceled) return 'NEXT ROUND';
 
   // Resolved rounds with a clear winner
@@ -332,15 +337,43 @@ export function MarketProvider({ children }: { children: React.ReactNode }) {
   const prevDownMultiplier = prevMultipliers ? Number((prevMultipliers as any)[1] || 0n) / 10000 : 0;
 
   // ── 6. Timer Derivations (pure math from on-chain timestamps + now) ──────
-  const isActiveLoaded = activeRound && activeRound.roundId === activeRoundId && activeRoundId > 0n;
+  // Use a stable ref for fallback timestamps to avoid recalculating every tick
+  const fallbackLockRef = useRef(0);
+  const fallbackEndRef = useRef(0);
 
-  const lockTimestamp = isActiveLoaded
-    ? Number(activeRound.lockTimestamp)
-    : (prevRound && Number(prevRound.lockTimestamp) > 0 ? Number(prevRound.lockTimestamp) + 60 : (activeRoundId > 0n ? now + 60 : 0));
+  const isActiveLoaded = !!(activeRound && activeRound.roundId === activeRoundId && activeRoundId > 0n);
 
-  const endTimestamp = isActiveLoaded
-    ? Number(activeRound.endTimestamp)
-    : (prevRound && Number(prevRound.endTimestamp) > 0 ? Number(prevRound.endTimestamp) + 60 : (activeRoundId > 0n ? now + 120 : 0));
+  // When activeRound loads, clear fallbacks
+  useEffect(() => {
+    if (isActiveLoaded) {
+      fallbackLockRef.current = 0;
+      fallbackEndRef.current = 0;
+    }
+  }, [isActiveLoaded]);
+
+  let lockTimestamp: number;
+  let endTimestamp: number;
+
+  if (isActiveLoaded) {
+    lockTimestamp = Number(activeRound.lockTimestamp);
+    endTimestamp = Number(activeRound.endTimestamp);
+  } else if (activeRoundId > 0n) {
+    // During RPC transition: calculate fallback ONCE and freeze it via ref
+    if (fallbackLockRef.current === 0 && now > 0) {
+      if (prevRound && Number(prevRound.lockTimestamp) > 0) {
+        fallbackLockRef.current = Number(prevRound.lockTimestamp) + 60;
+        fallbackEndRef.current = Number(prevRound.endTimestamp) + 60;
+      } else {
+        fallbackLockRef.current = now + 60;
+        fallbackEndRef.current = now + 120;
+      }
+    }
+    lockTimestamp = fallbackLockRef.current;
+    endTimestamp = fallbackEndRef.current;
+  } else {
+    lockTimestamp = 0;
+    endTimestamp = 0;
+  }
 
   const timeLeftToLock = (lockTimestamp > 0 && now > 0) ? Math.max(0, lockTimestamp - now) : 0;
   const timeLeftToEnd = (endTimestamp > 0 && now > 0) ? Math.max(0, endTimestamp - now) : 0;
@@ -353,6 +386,29 @@ export function MarketProvider({ children }: { children: React.ReactNode }) {
   // ── 7. Deterministic State Machine ──────────────────────────────────────
   const marketStatus = deriveMarketStatus(activeRoundId, activeRound, timeLeftToLock, timeLeftToEnd);
   const prevMarketStatus = deriveMarketStatus(prevRoundId, prevRound, prevTimeLeftToLock, prevTimeLeftToEnd);
+
+  // ── 7b. Stable Phase (debounced — never flickers) ────────────────────────
+  // The phase only transitions after 2 consecutive ticks of the same derived status.
+  // This prevents momentary flickers during RPC round transitions from switching the panel.
+  const [phase, setPhase] = useState<Phase>('betting');
+  const phaseTickCountRef = useRef(0);
+  const lastDerivedPhaseRef = useRef<Phase>('betting');
+
+  useEffect(() => {
+    const derivedPhase: Phase = (marketStatus === 'OPEN' || marketStatus === 'AWAITING PLAYERS') ? 'betting' : 'live';
+
+    if (derivedPhase === lastDerivedPhaseRef.current) {
+      phaseTickCountRef.current += 1;
+    } else {
+      phaseTickCountRef.current = 1;
+      lastDerivedPhaseRef.current = derivedPhase;
+    }
+
+    // Only commit the phase change after 2 consecutive ticks of agreement
+    if (phaseTickCountRef.current >= 2) {
+      setPhase(prev => prev !== derivedPhase ? derivedPhase : prev);
+    }
+  }, [marketStatus, now]);
 
   // ── 8. Locked Entry Price (from on-chain, not off-chain approximation) ──
   const lockedEntryPrice = useMemo(() => {
@@ -464,6 +520,7 @@ export function MarketProvider({ children }: { children: React.ReactNode }) {
     prevTimeLeftToLock,
     prevTimeLeftToEnd,
     prevMarketStatus,
+    phase,
     toast,
     triggerToast,
     lockedEntryPrice,
@@ -477,7 +534,7 @@ export function MarketProvider({ children }: { children: React.ReactNode }) {
     prevTotalPool, prevUpPercent, prevDownPercent, prevUpMultiplier, prevDownMultiplier,
     timeLeftToLock, timeLeftToEnd, marketStatus,
     prevTimeLeftToLock, prevTimeLeftToEnd, prevMarketStatus,
-    toast, triggerToast, lockedEntryPrice,
+    phase, toast, triggerToast, lockedEntryPrice,
   ]);
 
   return (

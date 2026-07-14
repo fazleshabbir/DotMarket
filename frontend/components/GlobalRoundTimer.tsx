@@ -13,6 +13,7 @@ export function GlobalRoundTimer({ target = 'active' }: { target?: 'active' | 'p
     prevTimeLeftToLock,
     prevTimeLeftToEnd,
     prevRound,
+    phase,
   } = useMarket();
 
   // Pick variables depending on the target round, with fallback when active round closes/locks
@@ -54,25 +55,25 @@ export function GlobalRoundTimer({ target = 'active' }: { target?: 'active' | 'p
     labelText = 'SETTLING';
     descText = 'Waiting for settlement…';
   } else if (status === 'NEXT ROUND') {
-    timeLeft = 60; // default loop timer buffer
+    timeLeft = 60;
     totalDuration = 60;
     strokeColor = 'rgba(255,255,255,0.2)';
     labelText = 'NEXT ROUND';
     descText = 'Starting soon…';
   } else {
-    // AWAITING PLAYERS
+    // AWAITING PLAYERS — but if phase is 'betting' or 'live', show something useful
     timeLeft = 0;
     totalDuration = 60;
     strokeColor = 'rgba(255,255,255,0.2)';
-    labelText = 'AWAITING PLAYERS';
-    descText = 'Waiting for genesis round';
+    labelText = phase === 'live' ? 'PROCESSING' : 'AWAITING PLAYERS';
+    descText = phase === 'live' ? 'Round in progress…' : 'Waiting for genesis round';
   }
 
   const progress = totalDuration > 0 ? Math.max(0, Math.min(1, timeLeft / totalDuration)) : 0;
   const minutes = Math.floor(timeLeft / 60);
   const seconds = timeLeft % 60;
 
-  // Ring rendering specifications (matches RoundTimer exactly)
+  // Ring rendering specifications
   const size = 60;
   const strokeWidth = 2.5;
   const radius = (size - strokeWidth) / 2;
