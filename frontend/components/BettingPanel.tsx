@@ -1,8 +1,8 @@
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
-import { useAccount, useWriteContract, useWaitForTransactionReceipt } from 'wagmi';
-import { parseEther } from 'viem';
+import { useAccount, useSendTransaction, useWaitForTransactionReceipt } from 'wagmi';
+import { parseEther, encodeFunctionData } from 'viem';
 import { ROUND_MARKET_ABI } from '@/lib/abi';
 import { useContracts } from '@/hooks/useNetworkConfig';
 import { ConnectButton } from './ConnectButton';
@@ -200,8 +200,8 @@ export function BettingPanel({ currentBtcPrice: _unusedProps }: { currentBtcPric
   const liveDownPercent = isCurrentRoundClosed ? activeDownPercent : prevDownPercent;
   const hasPlacedPrevBet = isCurrentRoundClosed ? hasPlacedActiveBet : !!(prevUserBet && prevUserBet.amount > 0n);
 
-  // Write contract actions
-  const { writeContract, data: txHash, isPending } = useWriteContract();
+  // Write contract actions - Zero Latency Pipeline
+  const { sendTransaction, data: txHash, isPending } = useSendTransaction();
   const { isLoading: isConfirming, isSuccess } = useWaitForTransactionReceipt({ hash: txHash });
 
   // Handle transaction confirmation notifications
@@ -252,13 +252,17 @@ export function BettingPanel({ currentBtcPrice: _unusedProps }: { currentBtcPric
     if (!betAmount || parseFloat(betAmount) <= 0) return;
     pendingBetDetails.current = { position, amount: betAmount };
     try {
-      writeContract({
-        address: MARKET_ADDRESS,
+      const data = encodeFunctionData({
         abi: ROUND_MARKET_ABI,
         functionName: 'placeBet',
         args: [currentRoundId, position],
+      });
+      
+      sendTransaction({
+        to: MARKET_ADDRESS,
+        data,
         value: parseEther(betAmount),
-        gas: 1000000n,
+        gas: 1000000n, // Hardcode gas to bypass eth_estimateGas and spawn wallet instantly
       });
     } catch (err) {
       setTxStatus(`Error: ${err instanceof Error ? err.message : 'Unknown error'}`);
@@ -270,12 +274,16 @@ export function BettingPanel({ currentBtcPrice: _unusedProps }: { currentBtcPric
   const handleClaim = () => {
     const prevRoundId = currentRoundId > 1n ? currentRoundId - 1n : 0n;
     try {
-      writeContract({
-        address: MARKET_ADDRESS,
+      const data = encodeFunctionData({
         abi: ROUND_MARKET_ABI,
         functionName: 'claim',
         args: [prevRoundId],
-        gas: 1000000n,
+      });
+      
+      sendTransaction({
+        to: MARKET_ADDRESS,
+        data,
+        gas: 1000000n, // Instant wallet popup
       });
     } catch (err) {
       setTxStatus(`Error: ${err instanceof Error ? err.message : 'Unknown error'}`);
@@ -283,7 +291,7 @@ export function BettingPanel({ currentBtcPrice: _unusedProps }: { currentBtcPric
   };
 
   // State indicators matching rules
-  const canBet = isConnected && marketStatus === 'OPEN' && !isPending && !isConfirming;
+  const canBet = isConnected && phase === 'betting' && timeLeftToLock > 0 && !isPending && !isConfirming;
   const isWorking = isPending || isConfirming;
 
   // Potential Return & Profit calculations while typing
