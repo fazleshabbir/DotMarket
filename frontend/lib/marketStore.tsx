@@ -101,11 +101,14 @@ function deriveMarketStatus(
   timeLeftToLock: number,
   timeLeftToEnd: number,
 ): MarketStatus {
-  // No round exists yet
+  // No round exists yet (genesis round has not been opened on contract)
   if (roundId === 0n) return 'AWAITING PLAYERS';
 
-  // Round data hasn't loaded — safe default that disables betting
-  if (!round) return 'AWAITING PLAYERS';
+  // If round data hasn't loaded yet OR is still returning a stale round during transition:
+  // Since roundId > 0n, we know the round is active/newly opened. Show OPEN so UI never flickers to AWAITING PLAYERS.
+  if (!round || round.roundId !== roundId) {
+    return 'OPEN';
+  }
 
   // Canceled rounds always show as refunded / next round (check BEFORE resolved)
   // This handles the tie case where resolved=true AND canceled=true
@@ -329,8 +332,16 @@ export function MarketProvider({ children }: { children: React.ReactNode }) {
   const prevDownMultiplier = prevMultipliers ? Number((prevMultipliers as any)[1] || 0n) / 10000 : 0;
 
   // ── 6. Timer Derivations (pure math from on-chain timestamps + now) ──────
-  const lockTimestamp = activeRound ? Number(activeRound.lockTimestamp) : 0;
-  const endTimestamp = activeRound ? Number(activeRound.endTimestamp) : 0;
+  const isActiveLoaded = activeRound && activeRound.roundId === activeRoundId && activeRoundId > 0n;
+
+  const lockTimestamp = isActiveLoaded
+    ? Number(activeRound.lockTimestamp)
+    : (prevRound && Number(prevRound.lockTimestamp) > 0 ? Number(prevRound.lockTimestamp) + 60 : (activeRoundId > 0n ? now + 60 : 0));
+
+  const endTimestamp = isActiveLoaded
+    ? Number(activeRound.endTimestamp)
+    : (prevRound && Number(prevRound.endTimestamp) > 0 ? Number(prevRound.endTimestamp) + 60 : (activeRoundId > 0n ? now + 120 : 0));
+
   const timeLeftToLock = (lockTimestamp > 0 && now > 0) ? Math.max(0, lockTimestamp - now) : 0;
   const timeLeftToEnd = (endTimestamp > 0 && now > 0) ? Math.max(0, endTimestamp - now) : 0;
 
