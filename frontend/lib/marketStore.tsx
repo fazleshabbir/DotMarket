@@ -266,9 +266,16 @@ export function MarketProvider({ children }: { children: React.ReactNode }) {
     query: { refetchInterval: 3000 },
   });
 
-  const currentRoundId = roundIdBatch?.[0]?.result
+  // ▶ STICKY roundId: once it goes above 0, it NEVER regresses back to 0
+  //   This prevents AWAITING PLAYERS flicker when RPC fails or is slow
+  const stickyRoundIdRef = useRef(0n);
+  const rawRoundId = roundIdBatch?.[0]?.result
     ? BigInt(roundIdBatch[0].result.toString())
     : 0n;
+  if (rawRoundId > stickyRoundIdRef.current) {
+    stickyRoundIdRef.current = rawRoundId;
+  }
+  const currentRoundId = rawRoundId > 0n ? rawRoundId : stickyRoundIdRef.current;
 
   const activeRoundId = currentRoundId;
   const prevRoundId = activeRoundId > 1n ? activeRoundId - 1n : 0n;
@@ -302,18 +309,25 @@ export function MarketProvider({ children }: { children: React.ReactNode }) {
     },
   });
 
+  // ▶ STICKY batch data: keep the last good data when RPC returns nothing
+  const stickyBatchRef = useRef(batchData);
+  if (batchData && batchData.length > 0) {
+    stickyBatchRef.current = batchData;
+  }
+  const safeBatch = batchData ?? stickyBatchRef.current;
+
   // Destructure batch results — always from same multicall, guaranteed consistent
-  const activeRound = batchData?.[0]?.result as RoundData | undefined;
-  const activeMultipliers = batchData?.[1]?.result;
-  const activeUserBet = (hasAddress ? batchData?.[2]?.result : undefined) as UserBet | undefined;
-  const prevRound = batchData?.[3]?.result as RoundData | undefined;
-  const prevMultipliers = batchData?.[4]?.result;
-  const prevUserBet = (hasAddress ? batchData?.[5]?.result : undefined) as UserBet | undefined;
-  const isClaimable = hasAddress ? !!batchData?.[6]?.result : false;
-  const pastRound = batchData?.[7]?.result as RoundData | undefined;
-  const pastMultipliers = batchData?.[8]?.result;
-  const pastUserBet = (hasAddress ? batchData?.[9]?.result : undefined) as UserBet | undefined;
-  const isPastClaimable = hasAddress ? !!batchData?.[10]?.result : false;
+  const activeRound = safeBatch?.[0]?.result as RoundData | undefined;
+  const activeMultipliers = safeBatch?.[1]?.result;
+  const activeUserBet = (hasAddress ? safeBatch?.[2]?.result : undefined) as UserBet | undefined;
+  const prevRound = safeBatch?.[3]?.result as RoundData | undefined;
+  const prevMultipliers = safeBatch?.[4]?.result;
+  const prevUserBet = (hasAddress ? safeBatch?.[5]?.result : undefined) as UserBet | undefined;
+  const isClaimable = hasAddress ? !!safeBatch?.[6]?.result : false;
+  const pastRound = safeBatch?.[7]?.result as RoundData | undefined;
+  const pastMultipliers = safeBatch?.[8]?.result;
+  const pastUserBet = (hasAddress ? safeBatch?.[9]?.result : undefined) as UserBet | undefined;
+  const isPastClaimable = hasAddress ? !!safeBatch?.[10]?.result : false;
 
   // ── 5. Derived Stats (pure calculations, no state) ───────────────────────
   // Active Round Stats
@@ -387,14 +401,25 @@ export function MarketProvider({ children }: { children: React.ReactNode }) {
   const marketStatus = deriveMarketStatus(activeRoundId, activeRound, timeLeftToLock, timeLeftToEnd);
   const prevMarketStatus = deriveMarketStatus(prevRoundId, prevRound, prevTimeLeftToLock, prevTimeLeftToEnd);
 
-  // ── 7b. Stable Phase (debounced — never flickers) ────────────────────────
-  // The phase only transitions after 2 consecutive ticks of the same derived status.
-  // This prevents momentary flickers during RPC round transitions from switching the panel.
+  // ── 7b. Stable Phase (hardened — never flickers) ───────────────────────
+  // Once the market has been active (roundId > 0), AWAITING PLAYERS is NEVER
+  // used as a phase signal — it's treated as an RPC glitch and ignored.
   const [phase, setPhase] = useState<Phase>('betting');
+  const hasEverBeenActiveRef = useRef(false);
   const phaseTickCountRef = useRef(0);
   const lastDerivedPhaseRef = useRef<Phase>('betting');
 
+  // Track if the market has ever been active
+  if (currentRoundId > 0n) {
+    hasEverBeenActiveRef.current = true;
+  }
+
   useEffect(() => {
+    // If AWAITING PLAYERS but market was previously active, skip — it's an RPC glitch
+    if (marketStatus === 'AWAITING PLAYERS' && hasEverBeenActiveRef.current) {
+      return; // Do nothing — keep current phase
+    }
+
     const derivedPhase: Phase = (marketStatus === 'OPEN' || marketStatus === 'AWAITING PLAYERS') ? 'betting' : 'live';
 
     if (derivedPhase === lastDerivedPhaseRef.current) {
@@ -404,8 +429,8 @@ export function MarketProvider({ children }: { children: React.ReactNode }) {
       lastDerivedPhaseRef.current = derivedPhase;
     }
 
-    // Only commit the phase change after 2 consecutive ticks of agreement
-    if (phaseTickCountRef.current >= 2) {
+    // Only commit after 3 consecutive ticks of agreement (more resilient)
+    if (phaseTickCountRef.current >= 3) {
       setPhase(prev => prev !== derivedPhase ? derivedPhase : prev);
     }
   }, [marketStatus, now]);
