@@ -576,7 +576,6 @@ async function main() {
       }
       log("⏳", `Cooling down for ${ERROR_COOLDOWN_MS / 1000}s before retry...`);
       await sleep(ERROR_COOLDOWN_MS);
-      nowSec = BigInt(Math.floor(Date.now() / 1000));
     }
   }
 
