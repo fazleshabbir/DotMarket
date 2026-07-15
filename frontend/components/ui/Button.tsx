@@ -36,59 +36,59 @@ export const Button = memo(forwardRef<HTMLButtonElement, ButtonProps>(
           return {
             background: '#ffffff',
             color: '#000000',
-            border: '1px solid rgba(255, 255, 255, 0.95)',
-            boxShadow: isHovered 
-              ? '0 12px 24px -10px rgba(255, 255, 255, 0.15)' 
-              : '0 4px 12px -5px rgba(255, 255, 255, 0.08)',
+            border: '1px solid rgba(255, 255, 255, 0.9)',
+            boxShadow: isHovered
+              ? '0 8px 20px -8px rgba(255, 255, 255, 0.14)'
+              : '0 2px 8px -4px rgba(255, 255, 255, 0.08)',
           };
         case 'secondary':
           return {
-            background: 'rgba(255, 255, 255, 0.02)',
-            color: '#ffffff',
-            border: '1px solid rgba(255, 255, 255, 0.08)',
-            borderColor: isHovered ? 'rgba(255, 255, 255, 0.22)' : 'rgba(255, 255, 255, 0.08)',
-            boxShadow: isHovered ? '0 10px 20px -10px rgba(0,0,0,0.5)' : 'none',
+            background: isHovered ? 'rgba(255, 255, 255, 0.05)' : 'rgba(255, 255, 255, 0.025)',
+            color: 'var(--text-1)',
+            border: '1px solid',
+            borderColor: isHovered ? 'var(--border-3)' : 'var(--border-2)',
+            boxShadow: isHovered ? 'var(--shadow-sm)' : 'none',
           };
         case 'outline':
           return {
             background: 'transparent',
-            color: '#ffffff',
+            color: 'var(--text-1)',
             border: '1px solid',
-            borderColor: isHovered ? 'rgba(255, 255, 255, 0.45)' : 'rgba(255, 255, 255, 0.15)',
+            borderColor: isHovered ? 'var(--border-4)' : 'var(--border-2)',
             boxShadow: 'none',
           };
         case 'ghost':
           return {
-            background: isHovered ? 'rgba(255, 255, 255, 0.04)' : 'transparent',
-            color: '#ffffff',
+            background: isHovered ? 'rgba(255, 255, 255, 0.05)' : 'transparent',
+            color: 'var(--text-1)',
             border: '1px solid transparent',
             boxShadow: 'none',
           };
         case 'link':
           return {
             background: 'transparent',
-            color: '#ffffff',
+            color: 'var(--text-1)',
             border: 'none',
             padding: 0,
             borderRadius: 0,
             boxShadow: 'none',
             display: 'inline-flex',
           };
-        case 'up': // Up-Bet style B&W primary variation
+        case 'up':
           return {
             background: '#ffffff',
             color: '#000000',
-            border: '1px solid rgba(255,255,255,0.95)',
-            boxShadow: isHovered 
-              ? '0 12px 28px rgba(255, 255, 255, 0.22)' 
-              : '0 4px 12px rgba(255, 255, 255, 0.08)',
+            border: '1px solid rgba(255,255,255,0.9)',
+            boxShadow: isHovered
+              ? '0 8px 24px rgba(255, 255, 255, 0.18)'
+              : '0 2px 8px rgba(255, 255, 255, 0.07)',
           };
-        case 'down': // Down-Bet style B&W outline variation
+        case 'down':
           return {
             background: isHovered ? 'rgba(255, 255, 255, 0.05)' : 'transparent',
-            color: '#ffffff',
-            border: '1px solid rgba(255, 255, 255, 0.15)',
-            borderColor: isHovered ? 'rgba(255, 255, 255, 0.35)' : 'rgba(255, 255, 255, 0.15)',
+            color: 'var(--text-1)',
+            border: '1px solid',
+            borderColor: isHovered ? 'var(--border-3)' : 'var(--border-2)',
             boxShadow: 'none',
           };
         default:
@@ -100,11 +100,11 @@ export const Button = memo(forwardRef<HTMLButtonElement, ButtonProps>(
       if (variant === 'link') return {};
       switch (size) {
         case 'sm':
-          return { padding: '8px 16px', fontSize: '12px', borderRadius: '8px' };
+          return { padding: '7px 14px', fontSize: '12px', borderRadius: 'var(--radius-md)', gap: '6px' };
         case 'md':
-          return { padding: '12px 24px', fontSize: '13px', borderRadius: '9999px' };
+          return { padding: '10px 22px', fontSize: '13px', borderRadius: 'var(--radius-full)', gap: '8px' };
         case 'lg':
-          return { padding: '16px 36px', fontSize: '14px', borderRadius: '9999px' };
+          return { padding: '13px 32px', fontSize: '14px', borderRadius: 'var(--radius-full)', gap: '8px' };
         default:
           return {};
       }
@@ -173,13 +173,18 @@ export const Button = memo(forwardRef<HTMLButtonElement, ButtonProps>(
           alignItems: 'center',
           justifyContent: 'center',
           fontWeight: 600,
-          fontFamily: 'inherit',
+          fontFamily: 'var(--font-sans)',
+          letterSpacing: '0',
           cursor: 'pointer',
           outline: 'none',
-          letterSpacing: '-0.2px',
           position: 'relative',
           overflow: 'hidden',
-          transition: 'background 250ms ease, border-color 250ms ease, color 250ms ease, box-shadow 250ms ease',
+          transition: [
+            `background var(--duration-fast) var(--ease-out)`,
+            `border-color var(--duration-fast) var(--ease-out)`,
+            `color var(--duration-fast) var(--ease-out)`,
+            `box-shadow var(--duration-base) var(--ease-out)`,
+          ].join(', '),
           ...getVariantStyles(),
           ...getSizeStyles(),
           ...style,

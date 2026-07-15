@@ -27,13 +27,13 @@ export const PriceTicker = memo(function PriceTicker({ price }: PriceTickerProps
   return (
     <strong
       style={{
-        color: direction === 'up' ? '#ffffff' : direction === 'down' ? '#ffffff' : '#ffffff',
+        color: 'var(--text-1)',
         fontFamily: 'var(--font-mono)',
         fontSize: '13px',
         fontWeight: 700,
         display: 'inline-block',
         transform: direction ? 'scale(1.05)' : 'scale(1)',
-        transition: 'transform 150ms cubic-bezier(0.16, 1, 0.3, 1), color 150ms ease',
+        transition: 'transform var(--duration-fast) var(--ease-out), color var(--duration-fast) var(--ease-out)',
       }}
     >
       ${price.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}

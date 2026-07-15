@@ -45,7 +45,7 @@ export const PageHeader = memo(function PageHeader({ title, subtitle, align = 'c
         variants={revealHeading}
         style={{
           fontFamily: "'Cormorant Garamond', serif",
-          fontSize: '42px',
+          fontSize: 'min(48px, 9vw)',
           fontWeight: 400,
           color: '#ffffff',
           marginBottom: '16px',

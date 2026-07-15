@@ -650,13 +650,12 @@ export function RoadmapSection() {
                   <div>
                     <h3
                       style={{
-                        fontFamily: "'Cormorant Garamond', serif",
-                        fontSize: '22px',
-                        fontWeight: isActive ? 600 : 400,
+                        fontFamily: 'var(--font-sans)',
+                        fontSize: '18px',
+                        fontWeight: 700,
                         color: '#ffffff',
-                        marginBottom: '8px',
-                        letterSpacing: '-0.2px',
-                        transition: 'font-weight 250ms ease',
+                        marginBottom: '10px',
+                        letterSpacing: '-0.3px',
                       }}
                     >
                       {m.title}

@@ -224,7 +224,7 @@ export function PortfolioView({ onClaim, claimPending }: PortfolioViewProps) {
           backdropFilter: 'blur(20px)',
           WebkitBackdropFilter: 'blur(20px)',
           border: '1px solid rgba(255,255,255,0.07)',
-          borderRadius: 20,
+          borderRadius: 'var(--radius-xl)',
           padding: '28px 32px',
           display: 'grid',
           gridTemplateColumns: '1fr auto',
@@ -243,9 +243,9 @@ export function PortfolioView({ onClaim, claimPending }: PortfolioViewProps) {
         <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
             <div style={{ width: 7, height: 7, borderRadius: '50%', background: 'rgba(255,255,255,0.5)' }} />
-            <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.1em', color: 'rgba(255,255,255,0.4)' }}>WALLET BALANCE</span>
+            <span style={{ fontSize: 11, fontWeight: 500, letterSpacing: '0.08em', textTransform: 'uppercase' as const, color: 'var(--text-3)', fontFamily: 'var(--font-sans)' }}>Wallet Balance</span>
           </div>
-          <div style={{ fontSize: 42, fontWeight: 300, fontFamily: 'var(--font-mono)', color: '#fff', lineHeight: 1, letterSpacing: '-1px' }}>
+          <div style={{ fontSize: 42, fontWeight: 300, fontFamily: 'var(--font-mono)', color: 'var(--text-1)', lineHeight: 1, letterSpacing: '-1px', fontFeatureSettings: "'tnum'" }}>
             <Counter value={walletBalance} decimals={4} />
             <span style={{ fontSize: 18, color: 'rgba(255,255,255,0.4)', marginLeft: 8 }}>{balanceSymbol}</span>
           </div>
@@ -257,14 +257,14 @@ export function PortfolioView({ onClaim, claimPending }: PortfolioViewProps) {
         {/* Right: live BTC + refresh */}
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 12 }}>
           <div style={{ textAlign: 'right' }}>
-            <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.1em', color: 'rgba(255,255,255,0.35)' }}>BTC / USD</div>
-            <div style={{ fontSize: 22, fontWeight: 300, fontFamily: 'var(--font-mono)', color: '#fff', marginTop: 2 }}>
+            <div style={{ fontSize: 11, fontWeight: 500, letterSpacing: '0.08em', textTransform: 'uppercase' as const, color: 'var(--text-3)', fontFamily: 'var(--font-sans)' }}>BTC / USD</div>
+            <div style={{ fontSize: 22, fontWeight: 300, fontFamily: 'var(--font-mono)', color: 'var(--text-1)', marginTop: 2, fontFeatureSettings: "'tnum'" }}>
               $<Counter value={btcPrice} decimals={2} />
             </div>
           </div>
           <button
             onClick={handleRefresh}
-            style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'none', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 10, padding: '7px 14px', color: 'rgba(255,255,255,0.45)', cursor: 'pointer', fontSize: 12, transition: 'all 150ms' }}
+            style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'none', border: '1px solid var(--border-2)', borderRadius: 'var(--radius-md)', padding: '8px 16px', color: 'var(--text-3)', cursor: 'pointer', fontSize: 12, fontFamily: 'var(--font-sans)', transition: 'all 150ms' }}
           >
             <RefreshCw size={12} style={{ animation: refreshing ? 'spin 0.7s linear infinite' : 'none' }} />
             Refresh
@@ -314,22 +314,22 @@ export function PortfolioView({ onClaim, claimPending }: PortfolioViewProps) {
             transition={{ delay: i * 0.06, duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
             style={{
               background: 'rgba(255,255,255,0.02)',
-              border: '1px solid rgba(255,255,255,0.07)',
-              borderRadius: 14,
-              padding: '16px 18px',
+              border: '1px solid var(--border-2)',
+              borderRadius: 'var(--radius-lg)',
+              padding: '16px 20px',
               display: 'flex',
               flexDirection: 'column',
               gap: 8,
             }}
           >
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <span style={{ fontSize: 9, fontWeight: 700, letterSpacing: '0.08em', color: 'rgba(255,255,255,0.35)' }}>{s.label}</span>
-              <span style={{ color: 'rgba(255,255,255,0.2)' }}>{s.icon}</span>
+              <span style={{ fontSize: 11, fontWeight: 500, letterSpacing: '0.06em', textTransform: 'uppercase' as const, color: 'var(--text-3)', fontFamily: 'var(--font-sans)' }}>{s.label}</span>
+              <span style={{ color: 'var(--text-3)' }}>{s.icon}</span>
             </div>
-            <div style={{ fontSize: 22, fontWeight: 300, fontFamily: 'var(--font-mono)', color: s.negative ? 'rgba(255,255,255,0.45)' : '#fff' }}>
+            <div style={{ fontSize: 16, fontWeight: 600, fontFamily: 'var(--font-mono)', color: s.negative ? 'var(--text-2)' : 'var(--text-1)', fontFeatureSettings: "'tnum'" }}>
               {s.value}
             </div>
-            <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.3)' }}>{s.sub}</div>
+            <div style={{ fontSize: 12, color: 'var(--text-3)', fontFamily: 'var(--font-sans)' }}>{s.sub}</div>
           </motion.div>
         ))}
       </div>
@@ -340,24 +340,24 @@ export function PortfolioView({ onClaim, claimPending }: PortfolioViewProps) {
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.2, duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
       >
-        <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.1em', color: 'rgba(255,255,255,0.3)', marginBottom: 10 }}>
-          ACTIVE POSITION
+        <div style={{ fontSize: 11, fontWeight: 500, letterSpacing: '0.08em', textTransform: 'uppercase' as const, color: 'var(--text-3)', fontFamily: 'var(--font-sans)', marginBottom: 12 }}>
+          Active Position
         </div>
 
         {!open ? (
-          <div style={{ border: '1px dashed rgba(255,255,255,0.07)', borderRadius: 16, padding: '36px 24px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 12, color: 'rgba(255,255,255,0.25)', flexDirection: 'column' }}>
+          <div style={{ border: '1px dashed var(--border-2)', borderRadius: 'var(--radius-lg)', padding: '36px 24px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 12, color: 'rgba(255,255,255,0.25)', flexDirection: 'column' }}>
             <div style={{ width: 44, height: 44, borderRadius: '50%', border: '1px solid rgba(255,255,255,0.07)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
               <Activity size={18} style={{ color: 'rgba(255,255,255,0.2)' }} />
             </div>
             <div style={{ textAlign: 'center' }}>
-              <p style={{ margin: 0, fontSize: 13, color: 'rgba(255,255,255,0.5)', fontWeight: 600 }}>No active position</p>
-              <p style={{ margin: '4px 0 0', fontSize: 11, color: 'rgba(255,255,255,0.25)' }}>Switch to Live Market to place a prediction</p>
+              <p style={{ margin: 0, fontSize: 14, color: 'var(--text-2)', fontWeight: 600, fontFamily: 'var(--font-sans)' }}>No active position</p>
+              <p style={{ margin: '4px 0 0', fontSize: 12, color: 'var(--text-3)', fontFamily: 'var(--font-sans)' }}>Switch to Live Market to place a prediction</p>
             </div>
           </div>
         ) : (
           <div style={{
-            border: `1.5px solid ${open.isWinning ? 'rgba(255,255,255,0.2)' : 'rgba(255,255,255,0.08)'}`,
-            borderRadius: 18,
+            border: `1.5px solid ${open.isWinning ? 'rgba(255,255,255,0.2)' : 'var(--border-2)'}`,
+            borderRadius: 'var(--radius-lg)',
             overflow: 'hidden',
             background: open.isWinning ? 'rgba(255,255,255,0.025)' : 'rgba(255,255,255,0.01)',
             transition: 'all 500ms ease',
@@ -367,7 +367,7 @@ export function PortfolioView({ onClaim, claimPending }: PortfolioViewProps) {
             <div style={{ padding: '12px 24px', background: 'rgba(255,255,255,0.03)', borderBottom: '1px solid rgba(255,255,255,0.05)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                 <div style={{ width: 7, height: 7, borderRadius: '50%', background: '#fff', boxShadow: '0 0 8px rgba(255,255,255,0.7)', animation: 'urgentPulse 2s infinite' }} />
-                <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', color: 'rgba(255,255,255,0.7)' }}>LIVE — ROUND #{open.roundId}</span>
+                <span style={{ fontSize: 11, fontWeight: 600, letterSpacing: '0.06em', color: 'var(--text-2)', fontFamily: 'var(--font-sans)' }}>LIVE — ROUND #{open.roundId}</span>
               </div>
               <span style={{ fontSize: 10, fontWeight: 700, padding: '3px 10px', borderRadius: 20, background: open.marketStatus === 'OPEN' ? '#fff' : 'rgba(255,255,255,0.08)', color: open.marketStatus === 'OPEN' ? '#000' : '#fff', letterSpacing: '0.05em' }}>
                 {open.marketStatus}
@@ -435,12 +435,12 @@ export function PortfolioView({ onClaim, claimPending }: PortfolioViewProps) {
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.28, duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
       >
-        <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.1em', color: 'rgba(255,255,255,0.3)', marginBottom: 10 }}>
-          RECENT ROUNDS
+        <div style={{ fontSize: 11, fontWeight: 500, letterSpacing: '0.08em', textTransform: 'uppercase' as const, color: 'var(--text-3)', fontFamily: 'var(--font-sans)', marginBottom: 12 }}>
+          Recent Rounds
         </div>
 
         {rounds.length === 0 ? (
-          <div style={{ border: '1px dashed rgba(255,255,255,0.07)', borderRadius: 16, padding: '36px 24px', textAlign: 'center', color: 'rgba(255,255,255,0.2)', fontSize: 13 }}>
+          <div style={{ border: '1px dashed var(--border-2)', borderRadius: 'var(--radius-lg)', padding: '36px 24px', textAlign: 'center', color: 'var(--text-3)', fontSize: 13, fontFamily: 'var(--font-sans)' }}>
             Your settled prediction history will appear here once rounds complete.
           </div>
         ) : (
@@ -460,8 +460,8 @@ export function PortfolioView({ onClaim, claimPending }: PortfolioViewProps) {
                     animate={{ opacity: 1, x: 0 }}
                     transition={{ delay: i * 0.07, duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
                     style={{
-                      border: r.claimable ? '1.5px solid rgba(255,255,255,0.22)' : '1px solid rgba(255,255,255,0.07)',
-                      borderRadius: 16,
+                      border: r.claimable ? '1.5px solid rgba(255,255,255,0.22)' : '1px solid var(--border-2)',
+                      borderRadius: 'var(--radius-lg)',
                       overflow: 'hidden',
                       background: r.claimable ? 'rgba(255,255,255,0.025)' : 'transparent',
                       animation: r.claimable ? 'breathe 2.5s ease-in-out infinite' : 'none',
@@ -489,7 +489,7 @@ export function PortfolioView({ onClaim, claimPending }: PortfolioViewProps) {
                       {/* Info */}
                       <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
-                          <span style={{ fontFamily: 'var(--font-mono)', fontSize: 14, fontWeight: 700, color: '#fff' }}>
+                          <span style={{ fontFamily: 'var(--font-mono)', fontSize: 14, fontWeight: 600, color: 'var(--text-1)', fontFeatureSettings: "'tnum'" }}>
                             Round #{r.roundId.toString()}
                           </span>
                           {/* Result badge */}
@@ -500,18 +500,18 @@ export function PortfolioView({ onClaim, claimPending }: PortfolioViewProps) {
                           }}>
                             {r.result}
                           </span>
-                          <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.3)' }}>{r.label}</span>
+                          <span style={{ fontSize: 12, color: 'var(--text-3)', fontFamily: 'var(--font-sans)' }}>{r.label}</span>
                         </div>
 
                         {/* Numbers */}
-                        <div style={{ display: 'flex', gap: 20, flexWrap: 'wrap', fontSize: 12, fontFamily: 'var(--font-mono)', color: 'rgba(255,255,255,0.4)' }}>
-                          <span>Staked <strong style={{ color: '#fff' }}>{r.amount.toFixed(4)}</strong> {balanceSymbol}</span>
+                        <div style={{ display: 'flex', gap: 20, flexWrap: 'wrap', fontSize: 13, fontFamily: 'var(--font-mono)', color: 'var(--text-3)', fontFeatureSettings: "'tnum'" }}>
+                          <span>Staked <strong style={{ color: 'var(--text-1)', fontWeight: 600 }}>{r.amount.toFixed(4)}</strong> {balanceSymbol}</span>
                           {!pending && r.payout > 0 && (
-                            <span>Payout <strong style={{ color: '#fff' }}>{r.payout.toFixed(4)}</strong> {balanceSymbol}</span>
+                            <span>Payout <strong style={{ color: 'var(--text-1)', fontWeight: 600 }}>{r.payout.toFixed(4)}</strong> {balanceSymbol}</span>
                           )}
                           {!pending && r.pnl !== 0 && (
-                            <span style={{ color: r.pnl > 0 ? 'rgba(255,255,255,0.8)' : 'rgba(255,255,255,0.35)' }}>
-                              PnL <strong>{r.pnl > 0 ? '+' : ''}{r.pnl.toFixed(4)}</strong> {balanceSymbol}
+                            <span style={{ color: r.pnl > 0 ? 'var(--text-1)' : 'var(--text-3)' }}>
+                              PnL <strong style={{ fontWeight: 600 }}>{r.pnl > 0 ? '+' : ''}{r.pnl.toFixed(4)}</strong> {balanceSymbol}
                             </span>
                           )}
                         </div>
@@ -528,10 +528,11 @@ export function PortfolioView({ onClaim, claimPending }: PortfolioViewProps) {
                               background: '#fff',
                               color: '#000',
                               border: 'none',
-                              borderRadius: 10,
-                              padding: '10px 22px',
-                              fontSize: 12,
-                              fontWeight: 800,
+                              borderRadius: 'var(--radius-md)',
+                              padding: '10px 20px',
+                              fontSize: 13,
+                              fontWeight: 700,
+                              fontFamily: 'var(--font-sans)',
                               cursor: claimPending ? 'wait' : 'pointer',
                               letterSpacing: '0.04em',
                               display: 'flex',
@@ -574,12 +575,12 @@ export function PortfolioView({ onClaim, claimPending }: PortfolioViewProps) {
 function OpenStat({ label, value, unit, sub }: { label: string; value: string; unit?: string; sub?: string }) {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-      <span style={{ fontSize: 9, fontWeight: 700, letterSpacing: '0.08em', color: 'rgba(255,255,255,0.35)' }}>{label}</span>
-      <span style={{ fontSize: 20, fontWeight: 300, fontFamily: 'var(--font-mono)', color: '#fff', lineHeight: 1 }}>
+      <span style={{ fontSize: 11, fontWeight: 500, letterSpacing: '0.06em', textTransform: 'uppercase' as const, color: 'var(--text-3)', fontFamily: 'var(--font-sans)' }}>{label}</span>
+      <span style={{ fontSize: 16, fontWeight: 600, fontFamily: 'var(--font-mono)', color: 'var(--text-1)', lineHeight: 1, fontFeatureSettings: "'tnum'" }}>
         {value}
-        {unit && <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.45)', marginLeft: 4 }}>{unit}</span>}
+        {unit && <span style={{ fontSize: 12, color: 'var(--text-3)', marginLeft: 4, fontFamily: 'var(--font-sans)' }}>{unit}</span>}
       </span>
-      {sub && <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.35)', fontFamily: 'var(--font-mono)' }}>{sub}</span>}
+      {sub && <span style={{ fontSize: 12, color: 'var(--text-3)', fontFamily: 'var(--font-mono)', fontFeatureSettings: "'tnum'" }}>{sub}</span>}
     </div>
   );
 }

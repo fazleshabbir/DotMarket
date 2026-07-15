@@ -232,9 +232,9 @@ function FAQItem({ question, answer }: FAQItemProps) {
   return (
     <div 
       style={{ 
-        borderBottom: '1px solid rgba(255, 255, 255, 0.05)',
-        background: isOpen ? 'rgba(255, 255, 255, 0.005)' : 'transparent',
-        transition: 'background-color 0.3s ease'
+        borderBottom: `1px solid var(--border-2)`,
+        background: isOpen ? 'rgba(255, 255, 255, 0.015)' : 'transparent',
+        transition: 'background-color var(--duration-base) var(--ease-out)'
       }}
     >
       <button
@@ -245,14 +245,14 @@ function FAQItem({ question, answer }: FAQItemProps) {
           justifyContent: 'space-between',
           alignItems: 'center',
           width: '100%',
-          padding: '22px 24px',
+          padding: '18px 20px',
           background: 'transparent',
           border: 'none',
           cursor: 'pointer',
           textAlign: 'left',
-          color: '#ffffff',
-          fontWeight: 600,
-          fontSize: '15px'
+          color: 'var(--text-1)',
+          fontWeight: 500,
+          fontSize: '14px'
         }}
       >
         <span>{question}</span>
@@ -283,7 +283,7 @@ function FAQItem({ question, answer }: FAQItemProps) {
           transition: 'max-height 0.3s cubic-bezier(0.16, 1, 0.3, 1)'
         }}
       >
-        <div style={{ padding: '0 24px 24px', fontSize: '14px', lineHeight: '1.6', color: 'var(--text-secondary)' }}>
+        <div style={{ padding: '0 20px 20px', fontSize: '14px', lineHeight: '1.65', color: 'var(--text-2)' }}>
           {answer}
         </div>
       </div>
@@ -386,20 +386,20 @@ export default function LandingPage() {
           top: 0,
           zIndex: 100,
           margin: isDesktop ? '24px 24px 0' : '12px 12px 0',
-          padding: isDesktop ? '12px 24px' : '10px 16px',
+          padding: isDesktop ? '10px 24px' : '8px 16px',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
-          borderRadius: 16,
-          background: 'rgba(5, 5, 5, 0.4)',
-          backdropFilter: 'blur(16px)',
-          WebkitBackdropFilter: 'blur(16px)',
-          border: '1px solid rgba(255, 255, 255, 0.05)',
+          borderRadius: 'var(--radius-xl)',
+          background: 'rgba(4, 4, 4, 0.7)',
+          backdropFilter: 'blur(20px)',
+          WebkitBackdropFilter: 'blur(20px)',
+          border: '1px solid var(--border-2)',
         }}
       >
         {/* Logo */}
         <div style={{ display: 'flex', alignItems: 'center' }}>
-          <svg viewBox="0 0 200 60" width={isDesktop ? "160" : "130"} height={isDesktop ? "48" : "39"} xmlns="http://www.w3.org/2000/svg">
+          <svg viewBox="0 0 200 60" width={isDesktop ? "148" : "124"} height={isDesktop ? "44" : "37"} xmlns="http://www.w3.org/2000/svg">
             <defs>
               <mask id="headerLogoMask">
                 <rect x="0" y="0" width="200" height="60" fill="white" />
@@ -559,8 +559,8 @@ export default function LandingPage() {
               fontSize: isMobile ? '38px' : isTablet ? '56px' : '72px',
               fontWeight: 400,
               lineHeight: 1.1,
-              color: '#ffffff',
-              margin: '0 0 20px',
+              color: 'var(--text-1)',
+              margin: '0 0 24px',
               maxWidth: 950,
               letterSpacing: '-1.5px',
             }}
@@ -573,10 +573,10 @@ export default function LandingPage() {
             variants={revealSubtitle}
             style={{
               fontSize: isMobile ? '15px' : isTablet ? '17px' : '19px',
-              color: 'var(--text-secondary)',
-              margin: '0 0 40px',
+              color: 'var(--text-2)',
+              margin: '0 0 48px',
               maxWidth: 680,
-              lineHeight: 1.6,
+              lineHeight: 1.65,
               fontWeight: 400,
             }}
           >
@@ -606,25 +606,26 @@ export default function LandingPage() {
             style={{
               fontSize: 11,
               fontFamily: 'var(--font-mono)',
-              color: 'var(--text-secondary)',
-              letterSpacing: '1px',
+              color: 'var(--text-3)',
+              letterSpacing: '0.08em',
               textTransform: 'uppercase',
-              marginBottom: 64,
+              marginBottom: 56,
               display: 'flex',
               alignItems: 'center',
               flexWrap: 'wrap',
               justifyContent: 'center',
-              gap: 12,
-              background: 'rgba(255, 255, 255, 0.02)',
-              padding: '8px 18px',
-              borderRadius: 8,
-              border: '1px solid rgba(255, 255, 255, 0.04)',
+              gap: 10,
+              background: 'rgba(255, 255, 255, 0.025)',
+              padding: 'var(--space-2) var(--space-5)',
+              borderRadius: 'var(--radius-sm)',
+              border: '1px solid var(--border-2)',
             }}
           >
-            <span>LIVE BTC FORECAST SENTIMENT:</span>
-            <span style={{ color: '#ffffff', fontWeight: 600 }}>⚪ {sentiment}% UP</span>
-            <span style={{ opacity: 0.2 }}>|</span>
-            <span style={{ color: 'var(--text-muted)', fontWeight: 600 }}>⚫ {100 - sentiment}% DOWN</span>
+            <span style={{ color: 'var(--text-3)' }}>BTC SENTIMENT</span>
+            <span style={{ color: 'var(--text-2)', opacity: 0.25 }}>·</span>
+            <span style={{ color: 'var(--text-1)', fontWeight: 600 }}>⚪ {sentiment}% UP</span>
+            <span style={{ color: 'var(--text-3)', opacity: 0.35 }}>|</span>
+            <span style={{ color: 'var(--text-2)', fontWeight: 500 }}>⚫ {100 - sentiment}% DOWN</span>
           </motion.div>
 
           {/* Trust Badges Row */}
@@ -651,14 +652,14 @@ export default function LandingPage() {
                 style={{
                   display: 'flex',
                   alignItems: 'center',
-                  gap: 8,
-                  fontSize: 12,
-                  fontWeight: 600,
-                  color: 'var(--text-secondary)',
-                  background: 'rgba(255, 255, 255, 0.01)',
-                  border: '1px solid rgba(255, 255, 255, 0.03)',
-                  padding: '6px 14px',
-                  borderRadius: 20
+                  gap: 6,
+                  fontSize: 11,
+                  fontWeight: 500,
+                  color: 'var(--text-2)',
+                  background: 'rgba(255, 255, 255, 0.025)',
+                  border: '1px solid var(--border-2)',
+                  padding: 'var(--space-2) var(--space-3)',
+                  borderRadius: 'var(--radius-xl)'
                 }}
               >
                 <span style={{ display: 'flex', alignItems: 'center', color: '#ffffff', opacity: 0.8 }}>{badge.icon}</span>
@@ -794,28 +795,28 @@ export default function LandingPage() {
             </div>
 
             {/* Product Column */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-              <strong style={{ fontSize: 13, color: '#ffffff', letterSpacing: '0.5px' }}>PRODUCT</strong>
-              <Link href="/trade" className="premium-text-link">Trade</Link>
-              <Link href="/docs/user-guide/introduction" className="premium-text-link">Documentation</Link>
-              <a href="#roadmap" className="premium-text-link">Roadmap</a>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+              <strong style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-3)', letterSpacing: '0.08em', textTransform: 'uppercase' }}>Product</strong>
+              <Link href="/trade" className="premium-text-link" style={{ fontSize: 13 }}>Trade</Link>
+              <Link href="/docs/user-guide/introduction" className="premium-text-link" style={{ fontSize: 13 }}>Documentation</Link>
+              <a href="#roadmap" className="premium-text-link" style={{ fontSize: 13 }}>Roadmap</a>
             </div>
 
             {/* Resources Column */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-              <strong style={{ fontSize: 13, color: '#ffffff', letterSpacing: '0.5px' }}>RESOURCES</strong>
-              <Link href="/docs/developers/api-reference" className="premium-text-link">API</Link>
-              <Link href="/brand-kit" className="premium-text-link">Brand Kit</Link>
-              <Link href="/docs/community/faq" className="premium-text-link">FAQ</Link>
-              <Link href="/docs/community/changelog-roadmap" className="premium-text-link">Changelog</Link>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+              <strong style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-3)', letterSpacing: '0.08em', textTransform: 'uppercase' }}>Resources</strong>
+              <Link href="/docs/developers/api-reference" className="premium-text-link" style={{ fontSize: 13 }}>API</Link>
+              <Link href="/brand-kit" className="premium-text-link" style={{ fontSize: 13 }}>Brand Kit</Link>
+              <Link href="/docs/community/faq" className="premium-text-link" style={{ fontSize: 13 }}>FAQ</Link>
+              <Link href="/docs/community/changelog-roadmap" className="premium-text-link" style={{ fontSize: 13 }}>Changelog</Link>
             </div>
 
             {/* Community Column */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-              <strong style={{ fontSize: 13, color: '#ffffff', letterSpacing: '0.5px' }}>COMMUNITY</strong>
-              <a href={COMMUNITY_LINKS.discord} target="_blank" rel="noopener noreferrer" aria-label="Join DotMarket Discord" className="premium-text-link">Discord</a>
-              <a href={COMMUNITY_LINKS.twitter} target="_blank" rel="noopener noreferrer" aria-label="Visit DotMarket on X" className="premium-text-link">X</a>
-              <a href={COMMUNITY_LINKS.telegram} target="_blank" rel="noopener noreferrer" aria-label="Join DotMarket Telegram" className="premium-text-link">Telegram</a>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+              <strong style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-3)', letterSpacing: '0.08em', textTransform: 'uppercase' }}>Community</strong>
+              <a href={COMMUNITY_LINKS.discord} target="_blank" rel="noopener noreferrer" aria-label="Join DotMarket Discord" className="premium-text-link" style={{ fontSize: 13 }}>Discord</a>
+              <a href={COMMUNITY_LINKS.twitter} target="_blank" rel="noopener noreferrer" aria-label="Visit DotMarket on X" className="premium-text-link" style={{ fontSize: 13 }}>X</a>
+              <a href={COMMUNITY_LINKS.telegram} target="_blank" rel="noopener noreferrer" aria-label="Join DotMarket Telegram" className="premium-text-link" style={{ fontSize: 13 }}>Telegram</a>
             </div>
           </div>
 
@@ -827,11 +828,11 @@ export default function LandingPage() {
               justifyContent: 'space-between', 
               alignItems: 'center', 
               fontSize: 12,
-              color: 'var(--text-muted)',
-              gap: 16,
+              color: 'var(--text-3)',
+              gap: 12,
               textAlign: 'center',
-              borderTop: '1px solid rgba(255,255,255,0.03)',
-              paddingTop: 24
+              borderTop: '1px solid var(--border-2)',
+              paddingTop: 20
             }}
           >
             <div style={{ display: 'flex', gap: 16, alignItems: 'center', flexWrap: 'wrap', justifyContent: 'center' }}>

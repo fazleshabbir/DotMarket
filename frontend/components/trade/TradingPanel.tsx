@@ -14,10 +14,6 @@ export const TradingPanel = memo(function TradingPanel() {
   const {
     btcPrice,
     activeRound: round,
-    activeUpPercent,
-    activeDownPercent,
-    timeLeftToLock,
-    timeLeftToEnd,
     marketStatus,
     balanceSymbol,
     lockedEntryPrice,
@@ -42,29 +38,6 @@ export const TradingPanel = memo(function TradingPanel() {
   const isLocked       = liveMarketStatusStr === 'LOCKED' || liveMarketStatusStr === 'SETTLING';
   const isResolved     = targetRound ? targetRound.resolved : false;
 
-  const poolSize = round
-    ? (Number(round.totalUpAmount + round.totalDownAmount) / 1e18).toFixed(4)
-    : '0.0000';
-
-
-
-  // Format timers
-  const formatMinsSecs = (secondsTotal: number) => {
-    const m = Math.floor(secondsTotal / 60).toString().padStart(2, '0');
-    const s = (secondsTotal % 60).toString().padStart(2, '0');
-    return `${m}:${s}`;
-  };
-
-  const lockDisplay = formatMinsSecs(timeLeftToLock);
-  const endDisplay = formatMinsSecs(timeLeftToEnd);
-
-  // Derive status badge config
-  const badgeColor = isResolved
-    ? 'rgba(255,255,255,0.35)'
-    : timeLeftToLock > 0
-      ? '#ffffff'
-      : 'rgba(255,255,255,0.6)';
-
   const handleToggleFullscreen = () => {
     if (!chartWrapperRef.current) return;
     if (!document.fullscreenElement) {
@@ -88,150 +61,65 @@ export const TradingPanel = memo(function TradingPanel() {
         position: 'relative',
       }}
     >
-      {/* ── Top Header ─────────────────────────────────────────────────────── */}
+      {/* ── Minimal Chart Header ───────────────────────────────────────────── */}
       <div style={{
         display: 'flex',
         justifyContent: 'space-between',
         alignItems: 'center',
-        padding: '10px 16px',
-        borderBottom: '1px solid rgba(255,255,255,0.05)',
+        padding: '8px 16px',
+        borderBottom: '1px solid var(--border-2)',
+        background: 'rgba(255, 255, 255, 0.01)',
         flexShrink: 0,
-        gap: 12,
+        height: 38,
+        boxSizing: 'border-box',
       }}>
-        {/* Left: Symbol + badge */}
+        {/* Left: Chart Title + Lock Price if present */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-          <span style={{ fontSize: 14, fontWeight: 800, color: '#ffffff', letterSpacing: '0.04em' }}>
-            BTC/USD
+          <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-1)', letterSpacing: '0.04em' }}>
+            PREDICTION CHART
           </span>
-          <div style={{
-            display: 'inline-flex', alignItems: 'center', gap: 4,
-            padding: '2px 8px', borderRadius: 20,
-            background: 'rgba(255,255,255,0.04)',
-            border: '1px solid rgba(255,255,255,0.08)',
-          }}>
-            <span className="animate-pulse-live" style={{
-              width: 5, height: 5, borderRadius: '50%', background: '#ffffff', display: 'inline-block'
-            }} />
-            <span style={{ fontSize: 9, fontWeight: 700, color: '#ffffff', letterSpacing: '0.1em' }}>LIVE</span>
-          </div>
-          <span style={{ fontSize: 9, color: 'rgba(255,255,255,0.3)', fontFamily: 'var(--font-mono)', letterSpacing: '0.08em' }}>
+          <span style={{ fontSize: 10, color: 'var(--text-3)', fontFamily: 'var(--font-mono)' }}>
             CONSOLIDATED ENGINE
           </span>
-        </div>
-
-        {/* Right: price + pool stats */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
-          <PriceTicker price={btcPrice} />
-          <span style={{ width: 1, height: 12, background: 'rgba(255,255,255,0.1)', display: 'inline-block' }} />
-          <span style={{ fontSize: 10, color: 'var(--text-secondary)', fontFamily: 'var(--font-mono)' }}>
-            POOL: <strong style={{ color: '#ffffff' }}>{poolSize} {balanceSymbol}</strong>
-          </span>
-          <span style={{ width: 1, height: 12, background: 'rgba(255,255,255,0.1)', display: 'inline-block' }} />
-          <span style={{ fontSize: 10, color: 'var(--text-secondary)', fontFamily: 'var(--font-mono)' }}>
-            UP <strong style={{ color: '#ffffff' }}>{activeUpPercent.toFixed(0)}%</strong>
-          </span>
-          <span style={{ fontSize: 10, color: 'var(--text-secondary)', fontFamily: 'var(--font-mono)' }}>
-            DOWN <strong style={{ color: '#ffffff' }}>{activeDownPercent.toFixed(0)}%</strong>
-          </span>
-
-          {/* Fullscreen */}
-          <button
-            onClick={handleToggleFullscreen}
-            title="Toggle Fullscreen"
-            style={{
-              background: 'rgba(255,255,255,0.02)',
-              border: '1px solid rgba(255,255,255,0.06)',
-              color: 'var(--text-secondary)',
-              borderRadius: 6, padding: '3px 7px',
-              display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-              cursor: 'pointer', transition: 'all 150ms ease',
-            }}
-            onMouseEnter={e => { e.currentTarget.style.color = '#ffffff'; e.currentTarget.style.borderColor = 'rgba(255,255,255,0.14)'; }}
-            onMouseLeave={e => { e.currentTarget.style.color = 'var(--text-secondary)'; e.currentTarget.style.borderColor = 'rgba(255,255,255,0.06)'; }}
-          >
-            <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M15 3h6v6"/><path d="M9 21H3v-6"/><path d="M21 3l-7 7"/><path d="M3 21l7-7"/>
-            </svg>
-          </button>
-        </div>
-      </div>
-
-      {/* ── Market Status Bar ──────────────────────────────────────────────── */}
-      <div style={{
-        display: 'flex',
-        alignItems: 'center',
-        gap: 20,
-        padding: '6px 16px',
-        borderBottom: '1px solid rgba(255,255,255,0.04)',
-        background: 'rgba(255,255,255,0.01)',
-        flexShrink: 0,
-        flexWrap: 'nowrap',
-        overflowX: 'auto',
-      }}>
-        {/* Phase badge */}
-        <div style={{
-          display: 'inline-flex', alignItems: 'center', gap: 5,
-          padding: '3px 10px', borderRadius: 20,
-          background: 'rgba(255,255,255,0.03)',
-          border: '1px solid rgba(255,255,255,0.07)',
-          whiteSpace: 'nowrap',
-          color: badgeColor,
-        }}>
-          {marketStatus !== 'OPEN' && <LockIcon size={9} style={{ opacity: 0.8 }} />}
-          <span style={{ fontSize: 10, fontWeight: 700, fontFamily: 'var(--font-mono)', letterSpacing: '0.06em' }}>
-            {marketStatus}
-          </span>
-        </div>
-
-        <span style={{ width: 1, height: 12, background: 'rgba(255,255,255,0.08)', flexShrink: 0 }} />
-
-        {/* Countdown to lock */}
-        {timeLeftToLock > 0 && (
-          <>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 5, whiteSpace: 'nowrap' }}>
-              <span style={{ fontSize: 9, color: 'var(--text-secondary)', fontFamily: 'var(--font-mono)' }}>LOCK IN</span>
-              <strong style={{
-                fontSize: 12, fontFamily: 'var(--font-mono)',
-                color: timeLeftToLock <= 20 ? '#ffffff' : 'rgba(255,255,255,0.7)',
-                letterSpacing: '0.08em',
-              }}>
-                {lockDisplay}
+          {lockPrice > 0 && (
+            <div style={{
+              display: 'inline-flex', alignItems: 'center', gap: 5,
+              padding: '2px 8px', borderRadius: 'var(--radius-full)',
+              background: 'rgba(255, 255, 255, 0.04)',
+              border: '1px solid var(--border-2)',
+            }}>
+              <LockIcon size={9} style={{ opacity: 0.8, color: 'var(--text-2)' }} />
+              <span style={{ fontSize: 10, fontFamily: 'var(--font-mono)', color: 'var(--text-2)' }}>LOCK</span>
+              <strong style={{ fontSize: 10, fontFamily: 'var(--font-mono)', color: 'var(--text-1)' }}>
+                ${lockPrice.toLocaleString(undefined, { minimumFractionDigits: 2 })}
               </strong>
             </div>
-            <span style={{ width: 1, height: 12, background: 'rgba(255,255,255,0.08)', flexShrink: 0 }} />
-          </>
-        )}
+          )}
+        </div>
 
-        {/* Countdown to settlement */}
-        {timeLeftToEnd > 0 && (
-          <div style={{ display: 'flex', alignItems: 'center', gap: 5, whiteSpace: 'nowrap' }}>
-            <span style={{ fontSize: 9, color: 'var(--text-secondary)', fontFamily: 'var(--font-mono)' }}>SETTLEMENT</span>
-            <strong style={{ fontSize: 12, fontFamily: 'var(--font-mono)', color: 'rgba(255,255,255,0.5)', letterSpacing: '0.08em' }}>
-              {endDisplay}
-            </strong>
-          </div>
-        )}
-
-        <div style={{ flexGrow: 1 }} />
-
-        {/* Lock price chip */}
-        {lockPrice > 0 && (
-          <div style={{
-            display: 'inline-flex', alignItems: 'center', gap: 5,
-            padding: '3px 10px', borderRadius: 20,
-            background: 'rgba(255,255,255,0.03)',
-            border: '1px solid rgba(255,255,255,0.07)',
-            whiteSpace: 'nowrap',
-          }}>
-            <span style={{ fontSize: 9, fontFamily: 'var(--font-mono)', color: 'var(--text-secondary)', display: 'inline-flex', alignItems: 'center', gap: 4 }}>
-              <LockIcon size={8} style={{ opacity: 0.8 }} />
-              LOCK
-            </span>
-            <strong style={{ fontSize: 10, fontFamily: 'var(--font-mono)', color: '#ffffff' }}>
-              ${lockPrice.toLocaleString(undefined, { minimumFractionDigits: 2 })}
-            </strong>
-          </div>
-        )}
+        {/* Right: Fullscreen Toggle */}
+        <button
+          onClick={handleToggleFullscreen}
+          title="Toggle Fullscreen"
+          style={{
+            background: 'transparent',
+            border: '1px solid var(--border-2)',
+            color: 'var(--text-2)',
+            borderRadius: 'var(--radius-sm)',
+            padding: '4px 8px',
+            display: 'inline-flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            cursor: 'pointer',
+            transition: 'all var(--duration-fast) var(--ease-out)',
+          }}
+          onMouseEnter={e => { e.currentTarget.style.color = 'var(--text-1)'; e.currentTarget.style.borderColor = 'var(--border-3)'; }}
+          onMouseLeave={e => { e.currentTarget.style.color = 'var(--text-2)'; e.currentTarget.style.borderColor = 'var(--border-2)'; }}
+        >
+          <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M15 3h6v6"/><path d="M9 21H3v-6"/><path d="M21 3l-7 7"/><path d="M3 21l7-7"/>
+          </svg>
+        </button>
       </div>
 
       {/* ── Prediction Chart ───────────────────────────────────────────────── */}

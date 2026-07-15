@@ -16,25 +16,25 @@ const steps: Step[] = [
   {
     num: '01',
     title: 'Connect Wallet',
-    desc: 'Connect your Web3 wallet securely.',
+    desc: 'Connect your Web3 wallet in seconds. Trade directly with USDC without sign-ups or KYC.',
     icon: Wallet,
   },
   {
     num: '02',
     title: 'Choose a Market',
-    desc: 'Select an active prediction market.',
+    desc: 'Select a live 1-minute or 5-minute crypto market (BTC, ETH, SOL) tracked by real-time oracle prices.',
     icon: CandlestickChart,
   },
   {
     num: '03',
-    title: 'Predict YES or NO',
-    desc: 'Take your position using USDC.',
+    title: 'Predict UP or DOWN',
+    desc: 'Choose where the price will settle before the round locks. Payout multipliers scale dynamically with pool volume.',
     icon: Target,
   },
   {
     num: '04',
-    title: 'Claim Rewards',
-    desc: 'Receive winnings automatically after settlement.',
+    title: 'Collect Instant Payouts',
+    desc: 'When the round ends, oracle prices settle the market automatically. Claim your winnings directly to your wallet.',
     icon: Trophy,
   },
 ];
@@ -197,12 +197,13 @@ export function HowItWorksSection() {
           style={{
             color: 'var(--text-secondary)',
             fontSize: '16px',
-            maxWidth: '500px',
+            maxWidth: '480px',
             margin: '0 auto',
             fontWeight: 400,
+            lineHeight: 1.6,
           }}
         >
-          Predict outcomes in four simple on-chain steps.
+          Trade crypto price movements in four simple, non-custodial steps.
         </motion.p>
       </div>
 
@@ -383,7 +384,8 @@ export function HowItWorksSection() {
                       fontSize: '13px',
                       color: 'var(--text-secondary)',
                       lineHeight: 1.6,
-                      maxWidth: '220px',
+                      maxWidth: '260px',
+                      margin: '0 auto',
                     }}
                   >
                     {step.desc}

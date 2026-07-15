@@ -29,8 +29,10 @@ const MarketCard = memo(({ pair, id, vol, upPct, time, target, revealCardVariant
         padding: 24, 
         display: 'flex', 
         flexDirection: 'column', 
+        justifyContent: 'space-between',
         gap: 20,
-        height: '240px',
+        height: '100%',
+        minHeight: '320px',
       }}
     >
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -42,7 +44,7 @@ const MarketCard = memo(({ pair, id, vol, upPct, time, target, revealCardVariant
       </div>
 
       <div>
-        <h3 style={{ fontSize: 17, fontWeight: 600, color: '#ffffff', marginBottom: 4 }}>{target}</h3>
+        <h3 style={{ fontSize: 16, fontWeight: 700, color: '#ffffff', letterSpacing: '-0.2px', marginBottom: 4 }}>{target}</h3>
         <span style={{ fontSize: 12, color: 'var(--text-secondary)' }}>Will price settle higher than current?</span>
       </div>
 
@@ -164,13 +166,12 @@ export function LiveMarketsSection() {
         variants={staggerContainer(0.08)}
         style={{ 
           display: 'grid', 
-          gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', 
+          gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 320px), 1fr))', 
           gap: 24,
-          minHeight: '240px',
         }}
       >
         {marketsList.map((m, idx) => (
-          <ScrollFade key={idx}>
+          <ScrollFade key={idx} style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
             <MarketCard 
               pair={m.pair}
               id={m.id}

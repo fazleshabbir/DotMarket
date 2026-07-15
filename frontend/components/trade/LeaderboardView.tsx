@@ -199,7 +199,7 @@ export function LeaderboardView() {
           backdropFilter: 'blur(32px)',
           WebkitBackdropFilter: 'blur(32px)',
           border: '1px solid rgba(255,255,255,0.1)',
-          borderRadius: 24,
+          borderRadius: 'var(--radius-xl)',
           boxShadow: '0 32px 80px rgba(0,0,0,0.8), inset 0 1px 0 rgba(255,255,255,0.07)',
           display: 'flex',
           flexDirection: 'row',
@@ -242,10 +242,10 @@ export function LeaderboardView() {
 
           {/* Heading */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-            <h2 style={{ margin: 0, fontSize: 36, fontWeight: 300, fontFamily: "'Cormorant Garamond', serif", color: '#ffffff', lineHeight: 1.1 }}>
+            <h2 style={{ margin: 0, fontSize: 34, fontWeight: 300, fontFamily: "'Cormorant Garamond', serif", color: '#ffffff', lineHeight: 1.1 }}>
               Leaderboard
             </h2>
-            <p style={{ margin: 0, fontSize: 14, color: 'rgba(255,255,255,0.45)', lineHeight: 1.6 }}>
+            <p style={{ margin: 0, fontSize: 13, color: 'var(--text-2)', lineHeight: 1.6, fontFamily: 'var(--font-sans)' }}>
               On-chain rankings are being indexed from the contract. The leaderboard will go live once enough round data is collected.
             </p>
           </div>
@@ -254,7 +254,7 @@ export function LeaderboardView() {
 
           {/* Footer inside Left Section */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginTop: 12 }}>
-            <p style={{ margin: 0, fontSize: 12, color: 'rgba(255,255,255,0.3)' }}>
+            <p style={{ margin: 0, fontSize: 11, color: 'var(--text-3)', fontFamily: 'var(--font-sans)' }}>
               Continue trading to contribute to the rankings data.
             </p>
             <a
@@ -281,18 +281,18 @@ export function LeaderboardView() {
                 transition={{ delay: 0.2 + i * 0.08, duration: 0.4 }}
                 style={{
                   background: 'rgba(255,255,255,0.02)',
-                  border: '1px solid rgba(255,255,255,0.06)',
-                  borderRadius: 14,
-                  padding: '16px 18px',
+                  border: '1px solid var(--border-2)',
+                  borderRadius: 'var(--radius-md)',
+                  padding: '14px 16px',
                   display: 'flex',
                   flexDirection: 'column',
                   gap: 8,
                   textAlign: 'left',
                 }}
               >
-                <div style={{ color: 'rgba(255,255,255,0.4)' }}>{f.icon}</div>
-                <div style={{ fontSize: 13, fontWeight: 700, color: '#fff' }}>{f.title}</div>
-                <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.35)', lineHeight: 1.5 }}>{f.desc}</div>
+                <div style={{ color: 'var(--text-3)' }}>{f.icon}</div>
+                <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-1)', fontFamily: 'var(--font-sans)' }}>{f.title}</div>
+                <div style={{ fontSize: 11, color: 'var(--text-3)', lineHeight: 1.5, fontFamily: 'var(--font-sans)' }}>{f.desc}</div>
               </motion.div>
             ))}
           </div>

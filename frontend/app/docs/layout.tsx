@@ -58,13 +58,13 @@ export default function DocsLayout({
         .docs-sidebar-container {
           width: 280px;
           flex-shrink: 0;
-          border-right: 1px solid rgba(255,255,255,0.06);
+          border-right: 1px solid var(--border-2, rgba(255,255,255,0.08));
           height: calc(100vh - 64px);
           position: sticky;
           top: 64px;
           overflow-y: auto;
-          padding: 32px 0;
-          background: #000000;
+          padding: 28px 0;
+          background: rgba(4,4,4,0.5);
         }
 
         .mobile-sub-header {
@@ -85,6 +85,119 @@ export default function DocsLayout({
           min-width: 0;
           padding: 48px 64px 96px;
           max-width: 880px;
+          font-family: 'Inter', system-ui, sans-serif;
+          font-size: 15px;
+          line-height: 1.65;
+          color: var(--text-1, #f0f0f0);
+        }
+
+        /* ── Prose: Headings ── */
+        .docs-main-content h1 {
+          font-size: 2rem;
+          font-weight: 700;
+          line-height: 1.25;
+          color: var(--text-1, #f0f0f0);
+          letter-spacing: -0.03em;
+          margin: 0 0 24px;
+        }
+        .docs-main-content h2 {
+          font-size: 1.35rem;
+          font-weight: 650;
+          line-height: 1.35;
+          color: var(--text-1, #f0f0f0);
+          letter-spacing: -0.02em;
+          margin: 48px 0 16px;
+          padding-bottom: 10px;
+          border-bottom: 1px solid var(--border-2, rgba(255,255,255,0.08));
+        }
+        .docs-main-content h3 {
+          font-size: 1.05rem;
+          font-weight: 600;
+          line-height: 1.4;
+          color: var(--text-1, #f0f0f0);
+          letter-spacing: -0.01em;
+          margin: 32px 0 12px;
+        }
+        .docs-main-content h4 {
+          font-size: 0.95rem;
+          font-weight: 600;
+          color: var(--text-1, #f0f0f0);
+          margin: 24px 0 8px;
+        }
+
+        /* ── Prose: Paragraphs & Lists ── */
+        .docs-main-content p {
+          margin: 0 0 16px;
+          color: var(--text-2, #a3a3a3);
+        }
+        .docs-main-content ul,
+        .docs-main-content ol {
+          margin: 0 0 16px;
+          padding-left: 24px;
+          color: var(--text-2, #a3a3a3);
+        }
+        .docs-main-content li {
+          margin-bottom: 6px;
+        }
+
+        /* ── Prose: Inline Code ── */
+        .docs-main-content code {
+          font-family: var(--font-mono, 'JetBrains Mono', monospace);
+          font-size: 0.82em;
+          background: var(--bg-raised, #0a0a0a);
+          color: var(--text-1, #f0f0f0);
+          border: 1px solid var(--border-2, rgba(255,255,255,0.08));
+          border-radius: var(--radius-md, 10px);
+          padding: 2px 7px;
+        }
+
+        /* ── Prose: Code Blocks ── */
+        .docs-main-content pre {
+          font-family: var(--font-mono, 'JetBrains Mono', monospace);
+          font-size: 0.85em;
+          background: var(--bg-raised, #0a0a0a);
+          border: 1px solid var(--border-2, rgba(255,255,255,0.08));
+          border-radius: var(--radius-lg, 14px);
+          padding: 20px 24px;
+          overflow-x: auto;
+          margin: 0 0 24px;
+          line-height: 1.6;
+        }
+        .docs-main-content pre code {
+          background: none;
+          border: none;
+          border-radius: 0;
+          padding: 0;
+          font-size: inherit;
+        }
+
+        /* ── Prose: Links ── */
+        .docs-main-content a {
+          color: var(--text-1, #f0f0f0);
+          text-decoration: none;
+          border-bottom: 1px solid transparent;
+          transition: border-color 0.15s ease;
+        }
+        .docs-main-content a:hover {
+          border-bottom-color: var(--text-1, #f0f0f0);
+        }
+
+        /* ── Prose: Blockquote ── */
+        .docs-main-content blockquote {
+          margin: 0 0 20px;
+          padding: 14px 20px;
+          border-left: 3px solid rgba(255,255,255,0.15);
+          background: var(--bg-raised, #0a0a0a);
+          border-radius: 0 var(--radius-md, 10px) var(--radius-md, 10px) 0;
+          color: var(--text-2, #a3a3a3);
+          font-style: italic;
+        }
+
+        /* ── Prose: HR ── */
+        .docs-main-content hr {
+          border: none;
+          border-top: 1px solid var(--border-2, rgba(255,255,255,0.08));
+          margin: 40px 0;
         }
 
         .docs-mobile-overlay {

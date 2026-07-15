@@ -12,7 +12,7 @@ export const Input = memo(function Input({ label, error, prefixSymbol, style, ..
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', width: '100%' }}>
       {label && (
-        <span style={{ fontSize: '11px', color: 'var(--text-secondary)', fontWeight: 600, letterSpacing: '0.5px', textTransform: 'uppercase' }}>
+        <span style={{ fontSize: '11px', color: 'var(--text-2)', fontWeight: 600, letterSpacing: '0.06em', textTransform: 'uppercase' }}>
           {label}
         </span>
       )}
@@ -21,23 +21,23 @@ export const Input = memo(function Input({ label, error, prefixSymbol, style, ..
           position: 'relative',
           display: 'flex',
           alignItems: 'center',
-          background: 'rgba(15, 15, 15, 0.4)',
+          background: 'rgba(255, 255, 255, 0.02)',
           border: '1px solid',
           borderColor: focused
-            ? 'rgba(255, 255, 255, 0.25)'
+            ? 'var(--border-4)'
             : error
-              ? 'rgba(239, 68, 68, 0.4)'
-              : 'rgba(255, 255, 255, 0.08)',
-          borderRadius: '12px',
-          boxShadow: focused 
-            ? '0 0 15px rgba(255, 255, 255, 0.03), inset 0 1px 0 rgba(255,255,255,0.05)'
-            : 'inset 0 1px 0 rgba(255,255,255,0.02)',
-          transition: 'all 200ms cubic-bezier(0.16, 1, 0.3, 1)',
-          padding: '0 16px',
+              ? 'var(--text-2)'
+              : 'var(--border-2)',
+          borderRadius: 'var(--radius-md)',
+          boxShadow: focused
+            ? '0 0 12px rgba(255, 255, 255, 0.05), inset 0 1px 0 rgba(255, 255, 255, 0.04)'
+            : 'inset 0 1px 0 rgba(255, 255, 255, 0.015)',
+          transition: 'all var(--duration-fast) var(--ease-out)',
+          padding: '0 14px',
         }}
       >
         {prefixSymbol && (
-          <span style={{ color: 'var(--text-secondary)', fontSize: '13px', marginRight: '8px', fontFamily: 'var(--font-mono)' }}>
+          <span style={{ color: 'var(--text-3)', fontSize: '13px', marginRight: '8px', fontFamily: 'var(--font-mono)' }}>
             {prefixSymbol}
           </span>
         )}
@@ -48,10 +48,10 @@ export const Input = memo(function Input({ label, error, prefixSymbol, style, ..
             background: 'transparent',
             border: 'none',
             outline: 'none',
-            color: '#ffffff',
+            color: 'var(--text-1)',
             fontSize: '13px',
             fontFamily: 'var(--font-mono)',
-            padding: '12px 0',
+            padding: '10px 0',
             width: '100%',
             ...style
           }}
@@ -59,7 +59,7 @@ export const Input = memo(function Input({ label, error, prefixSymbol, style, ..
         />
       </div>
       {error && (
-        <span style={{ fontSize: '11px', color: '#ef4444' }}>{error}</span>
+        <span style={{ fontSize: '11px', color: 'var(--text-2)' }}>{error}</span>
       )}
     </div>
   );

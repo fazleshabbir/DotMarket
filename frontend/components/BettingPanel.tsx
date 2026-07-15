@@ -332,54 +332,15 @@ export function BettingPanel({ currentBtcPrice: _unusedProps }: { currentBtcPric
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%', boxSizing: 'border-box', position: 'relative' }}>
       
-      {/* CSS Animations */}
-      <style>{`
-        @keyframes cardPulseGlow {
-          0% { border-color: rgba(255, 255, 255, 0.2); box-shadow: 0 0 15px rgba(255, 255, 255, 0.04); }
-          50% { border-color: rgba(255, 255, 255, 0.55); box-shadow: 0 0 35px rgba(255, 255, 255, 0.18), inset 0 0 15px rgba(255, 255, 255, 0.02); }
-          100% { border-color: rgba(255, 255, 255, 0.2); box-shadow: 0 0 15px rgba(255, 255, 255, 0.04); }
-        }
-        @keyframes buttonPulseGlow {
-          0% { box-shadow: 0 0 8px rgba(255, 255, 255, 0.15); border-color: rgba(255, 255, 255, 0.6); }
-          50% { box-shadow: 0 0 16px rgba(255, 255, 255, 0.35); border-color: rgba(255, 255, 255, 0.95); }
-          100% { box-shadow: 0 0 8px rgba(255, 255, 255, 0.15); border-color: rgba(255, 255, 255, 0.6); }
-        }
-        @keyframes fadeIn {
-          from { opacity: 0; transform: translateY(4px); }
-          to { opacity: 1; transform: translateY(0); }
-        }
-        @keyframes scanProgress {
-          0% { left: -30%; }
-          100% { left: 100%; }
-        }
-        @keyframes pulseGlow {
-          0% { opacity: 0.3; transform: scale(0.9); }
-          50% { opacity: 0.8; transform: scale(1.1); }
-          100% { opacity: 0.3; transform: scale(0.9); }
-        }
-        @keyframes spin {
-          from { transform: rotate(0deg); }
-          to { transform: rotate(360deg); }
-        }
-        @keyframes slideInLeft {
-          from { opacity: 0; transform: translateX(-8px); }
-          to { opacity: 1; transform: translateX(0); }
-        }
-        @keyframes slideInRight {
-          from { opacity: 0; transform: translateX(8px); }
-          to { opacity: 1; transform: translateX(0); }
-        }
-      `}</style>
-
       {/* ─── TAB HEADER — strictly user-controlled ─────────── */}
       <div style={{
         display: 'flex',
-        gap: 0,
+        gap: '3px',
         marginBottom: 12,
-        background: 'rgba(255,255,255,0.03)',
-        borderRadius: 14,
-        padding: 3,
-        border: '1px solid rgba(255,255,255,0.06)',
+        background: 'rgba(255, 255, 255, 0.025)',
+        borderRadius: 'var(--radius-full)',
+        padding: '3px',
+        border: '1px solid var(--border-2)',
       }}>
         <button
           onClick={() => setActiveTab('betting')}
@@ -390,12 +351,12 @@ export function BettingPanel({ currentBtcPrice: _unusedProps }: { currentBtcPric
             fontWeight: 700,
             letterSpacing: '0.06em',
             border: 'none',
-            borderRadius: 11,
+            borderRadius: 'var(--radius-full)',
             cursor: 'pointer',
-            transition: 'all 300ms cubic-bezier(0.16, 1, 0.3, 1)',
-            background: isBettingTab ? 'rgba(255,255,255,0.1)' : 'transparent',
-            color: isBettingTab ? '#ffffff' : 'rgba(255,255,255,0.35)',
-            boxShadow: isBettingTab ? '0 2px 8px rgba(255,255,255,0.06)' : 'none',
+            transition: 'all var(--duration-fast) var(--ease-out)',
+            background: isBettingTab ? '#ffffff' : 'transparent',
+            color: isBettingTab ? '#000000' : 'var(--text-2)',
+            boxShadow: isBettingTab ? '0 2px 8px rgba(255, 255, 255, 0.1)' : 'none',
           }}
         >
           {isBettingTab && <span style={{ marginRight: 4 }}>●</span>}
@@ -410,12 +371,12 @@ export function BettingPanel({ currentBtcPrice: _unusedProps }: { currentBtcPric
             fontWeight: 700,
             letterSpacing: '0.06em',
             border: 'none',
-            borderRadius: 11,
+            borderRadius: 'var(--radius-full)',
             cursor: 'pointer',
-            transition: 'all 300ms cubic-bezier(0.16, 1, 0.3, 1)',
-            background: !isBettingTab ? 'rgba(255,255,255,0.1)' : 'transparent',
-            color: !isBettingTab ? '#ffffff' : 'rgba(255,255,255,0.35)',
-            boxShadow: !isBettingTab ? '0 2px 8px rgba(255,255,255,0.06)' : 'none',
+            transition: 'all var(--duration-fast) var(--ease-out)',
+            background: !isBettingTab ? '#ffffff' : 'transparent',
+            color: !isBettingTab ? '#000000' : 'var(--text-2)',
+            boxShadow: !isBettingTab ? '0 2px 8px rgba(255, 255, 255, 0.1)' : 'none',
           }}
         >
           {!isBettingTab && <span style={{ marginRight: 4 }}>●</span>}
@@ -475,9 +436,9 @@ export function BettingPanel({ currentBtcPrice: _unusedProps }: { currentBtcPric
             {/* Main Betting Card */}
             <div
               style={{
-                background: 'rgba(255,255,255,0.025)',
-                border: '1px solid rgba(255,255,255,0.08)',
-                borderRadius: 20,
+                background: 'rgba(255, 255, 255, 0.025)',
+                border: '1px solid var(--border-2)',
+                borderRadius: 'var(--radius-xl)',
                 padding: '16px',
                 boxSizing: 'border-box',
                 display: 'flex',
@@ -502,15 +463,15 @@ export function BettingPanel({ currentBtcPrice: _unusedProps }: { currentBtcPric
                   animation: 'fadeIn 200ms ease-in-out forwards',
                   padding: 16
                 }}>
-                  <div style={{ fontSize: 13, fontWeight: 700, letterSpacing: '0.1em', color: '#ffffff' }}>✓ BET ACCEPTED</div>
+                  <div style={{ fontSize: 13, fontWeight: 700, letterSpacing: '0.1em', color: 'var(--text-1)' }}>✓ BET ACCEPTED</div>
                   <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
-                    <span style={{ fontSize: 11, fontWeight: 700, fontFamily: 'var(--font-mono)', color: 'rgba(255,255,255,0.6)' }}>
+                    <span style={{ fontSize: 11, fontWeight: 700, fontFamily: 'var(--font-mono)', color: 'var(--text-2)' }}>
                       {betConfirmedDetails.direction}
                     </span>
                     <span style={{ fontSize: 14, fontWeight: 800, fontFamily: 'var(--font-mono)' }}>
                       {betConfirmedDetails.amount}
                     </span>
-                    <div style={{ display: 'flex', gap: 8, fontSize: 10, fontFamily: 'var(--font-mono)', color: 'rgba(255,255,255,0.4)', marginTop: 4 }}>
+                    <div style={{ display: 'flex', gap: 8, fontSize: 10, fontFamily: 'var(--font-mono)', color: 'var(--text-3)', marginTop: 4 }}>
                       <span>{betConfirmedDetails.multiplier}</span>
                       <span>·</span>
                       <span>{betConfirmedDetails.round}</span>
@@ -522,7 +483,7 @@ export function BettingPanel({ currentBtcPrice: _unusedProps }: { currentBtcPric
               {/* Header Row */}
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                  <span style={{ fontSize: 9, color: 'var(--text-secondary)', fontFamily: 'var(--font-mono)', letterSpacing: '0.08em' }}>BTC/USD</span>
+                  <span style={{ fontSize: 9, color: 'var(--text-2)', fontFamily: 'var(--font-mono)', letterSpacing: '0.08em' }}>BTC/USD</span>
                   <PriceTicker price={btcPrice} />
                 </div>
                 <StatusBadge status={marketStatus === 'OPEN' ? 'ready' : 'locked'} label={marketStatus === 'OPEN' ? 'OPEN' : marketStatus} />
@@ -533,11 +494,11 @@ export function BettingPanel({ currentBtcPrice: _unusedProps }: { currentBtcPric
 
               {/* Balance */}
               {isConnected && (
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '4px 0', borderTop: '1px solid rgba(255,255,255,0.04)' }}>
-                  <span style={{ fontSize: 9, color: 'var(--text-secondary)', fontFamily: 'var(--font-mono)', letterSpacing: '0.06em' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '4px 0', borderTop: '1px solid var(--border-1)' }}>
+                  <span style={{ fontSize: 9, color: 'var(--text-2)', fontFamily: 'var(--font-mono)', letterSpacing: '0.06em' }}>
                     BALANCE
                   </span>
-                  <span style={{ fontSize: 10, fontFamily: 'var(--font-mono)', color: 'rgba(255,255,255,0.7)', fontWeight: 600 }}>
+                  <span style={{ fontSize: 10, fontFamily: 'var(--font-mono)', color: 'var(--text-1)', fontWeight: 600 }}>
                     <RollingNumber value={walletBalance} decimals={4} suffix={` ${balanceSymbol}`} />
                   </span>
                 </div>
@@ -547,7 +508,7 @@ export function BettingPanel({ currentBtcPrice: _unusedProps }: { currentBtcPric
               {isConnected ? (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                   <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
-                    <span style={{ position: 'absolute', left: 10, fontSize: 11, fontFamily: 'var(--font-mono)', color: 'rgba(255,255,255,0.3)' }}>Ξ</span>
+                    <span style={{ position: 'absolute', left: 10, fontSize: 11, fontFamily: 'var(--font-mono)', color: 'var(--text-3)' }}>Ξ</span>
                     <input
                       type="number"
                       step="0.01"
@@ -560,15 +521,15 @@ export function BettingPanel({ currentBtcPrice: _unusedProps }: { currentBtcPric
                         padding: '8px 10px 8px 24px',
                         fontSize: 13,
                         fontFamily: 'var(--font-mono)',
-                        background: 'rgba(255,255,255,0.02)',
-                        border: '1px solid rgba(255,255,255,0.08)',
-                        borderRadius: 10,
-                        color: '#ffffff',
+                        background: 'rgba(255, 255, 255, 0.02)',
+                        border: '1px solid var(--border-2)',
+                        borderRadius: 'var(--radius-md)',
+                        color: 'var(--text-1)',
                         outline: 'none',
-                        transition: 'border-color 200ms ease',
+                        transition: 'border-color var(--duration-fast) var(--ease-out)',
                       }}
-                      onFocus={(e) => e.target.style.borderColor = 'rgba(255,255,255,0.25)'}
-                      onBlur={(e) => e.target.style.borderColor = 'rgba(255,255,255,0.08)'}
+                      onFocus={(e) => e.target.style.borderColor = 'var(--border-4)'}
+                      onBlur={(e) => e.target.style.borderColor = 'var(--border-2)'}
                     />
                   </div>
 
@@ -586,12 +547,12 @@ export function BettingPanel({ currentBtcPrice: _unusedProps }: { currentBtcPric
                           fontSize: 10,
                           fontFamily: 'var(--font-mono)',
                           fontWeight: 600,
-                          background: 'rgba(255,255,255,0.02)',
-                          border: '1px solid rgba(255,255,255,0.06)',
-                          borderRadius: 6,
-                          color: 'rgba(255,255,255,0.5)',
+                          background: 'rgba(255, 255, 255, 0.02)',
+                          border: '1px solid var(--border-2)',
+                          borderRadius: 'var(--radius-sm)',
+                          color: 'var(--text-2)',
                           cursor: canBet ? 'pointer' : 'default',
-                          transition: 'all 150ms ease',
+                          transition: 'all var(--duration-fast) var(--ease-out)',
                         }}
                       >
                         {pct === 100 ? 'MAX' : `${pct}%`}
@@ -607,20 +568,20 @@ export function BettingPanel({ currentBtcPrice: _unusedProps }: { currentBtcPric
               {isConnected && (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 9, fontFamily: 'var(--font-sans)', fontWeight: 700, letterSpacing: '0.04em' }}>
-                    <span style={{ color: '#ffffff' }}>
+                    <span style={{ color: 'var(--text-1)' }}>
                       UP <RollingNumber value={activeUpPercent} decimals={0} suffix="%" />
                     </span>
-                    <span style={{ color: 'rgba(255, 255, 255, 0.55)' }}>
+                    <span style={{ color: 'var(--text-2)' }}>
                       <RollingNumber value={activeDownPercent} decimals={0} suffix="%" /> DOWN
                     </span>
                   </div>
-                  <div style={{ height: 3, background: 'rgba(255, 255, 255, 0.06)', borderRadius: 2, overflow: 'hidden' }}>
+                  <div style={{ height: 3, background: 'rgba(255, 255, 255, 0.06)', borderRadius: 'var(--radius-full)', overflow: 'hidden' }}>
                     <div style={{
                       height: '100%',
                       background: 'linear-gradient(90deg, #ffffff, rgba(255,255,255,0.5))',
                       width: `${activeUpPercent}%`,
-                      transition: 'width 400ms cubic-bezier(0.16, 1, 0.3, 1)',
-                      borderRadius: 2,
+                      transition: 'width var(--duration-normal) var(--ease-out)',
+                      borderRadius: 'var(--radius-full)',
                     }} />
                   </div>
                 </div>
@@ -634,16 +595,16 @@ export function BettingPanel({ currentBtcPrice: _unusedProps }: { currentBtcPric
                   alignItems: 'center',
                   fontSize: 9,
                   padding: '4px 0',
-                  borderTop: '1px solid rgba(255,255,255,0.04)',
+                  borderTop: '1px solid var(--border-1)',
                 }}>
                   {stakeAmount > 0 ? (
                     <>
-                      <span style={{ color: 'var(--text-secondary)', fontFamily: 'var(--font-mono)', letterSpacing: '0.06em' }}>EST. PAYOUT</span>
+                      <span style={{ color: 'var(--text-2)', fontFamily: 'var(--font-mono)', letterSpacing: '0.06em' }}>EST. PAYOUT</span>
                       <div style={{ display: 'flex', gap: 10 }}>
-                        <span style={{ fontFamily: 'var(--font-mono)', color: '#ffffff', fontWeight: 600 }}>
+                        <span style={{ fontFamily: 'var(--font-mono)', color: 'var(--text-1)', fontWeight: 600 }}>
                           ▲ <RollingNumber value={potentialUpReturn} decimals={4} />
                         </span>
-                        <span style={{ fontFamily: 'var(--font-mono)', color: 'rgba(255,255,255,0.55)', fontWeight: 600 }}>
+                        <span style={{ fontFamily: 'var(--font-mono)', color: 'var(--text-2)', fontWeight: 600 }}>
                           ▼ <RollingNumber value={potentialDownReturn} decimals={4} />
                         </span>
                       </div>
@@ -652,10 +613,10 @@ export function BettingPanel({ currentBtcPrice: _unusedProps }: { currentBtcPric
                     <>
                       <span style={{ color: 'var(--text-secondary)', fontFamily: 'var(--font-mono)', letterSpacing: '0.06em' }}>MULTIPLIERS</span>
                       <div style={{ display: 'flex', gap: 10 }}>
-                        <span style={{ fontFamily: 'var(--font-mono)', color: '#ffffff' }}>
+                        <span style={{ fontFamily: 'var(--font-mono)', color: 'var(--text-1)' }}>
                           ▲ <RollingNumber value={activeUpMultiplier} decimals={2} suffix="×" />
                         </span>
-                        <span style={{ fontFamily: 'var(--font-mono)', color: 'rgba(255,255,255,0.55)' }}>
+                        <span style={{ fontFamily: 'var(--font-mono)', color: 'var(--text-2)' }}>
                           ▼ <RollingNumber value={activeDownMultiplier} decimals={2} suffix="×" />
                         </span>
                       </div>
@@ -692,14 +653,14 @@ export function BettingPanel({ currentBtcPrice: _unusedProps }: { currentBtcPric
                           color: '#000000',
                           fontWeight: 700,
                           fontSize: 12,
-                          borderRadius: 10,
+                          borderRadius: 'var(--radius-md)',
                           height: 36,
                           cursor: canBet && betAmount ? 'pointer' : 'default',
                           letterSpacing: '0.04em',
-                          transition: 'transform 120ms ease, border-color 200ms ease, box-shadow 200ms ease',
+                          transition: 'transform var(--duration-fast) var(--ease-out), border-color var(--duration-fast) var(--ease-out), box-shadow var(--duration-fast) var(--ease-out)',
                           transform: isDepressed ? 'scale(0.96)' : (isHovered && canBet && betAmount ? 'scale(1.02)' : 'scale(1)'),
-                          border: isSelectedOnChain ? '1px solid #ffffff' : isHovered ? '1px solid rgba(255,255,255,0.4)' : '1px solid transparent',
-                          boxShadow: isSelectedOnChain ? '0 0 10px rgba(255,255,255,0.15)' : 'none',
+                          border: isSelectedOnChain ? '1px solid #ffffff' : isHovered ? '1px solid rgba(255, 255, 255, 0.4)' : '1px solid transparent',
+                          boxShadow: isSelectedOnChain ? '0 0 10px rgba(255, 255, 255, 0.15)' : 'none',
                           ...(isSelectedOnChain ? { animation: 'buttonPulseGlow 3.5s infinite ease-in-out' } : {}),
                         }}
                       >
@@ -733,18 +694,18 @@ export function BettingPanel({ currentBtcPrice: _unusedProps }: { currentBtcPric
                         }}
                         disabled={!canBet || isWorking || !betAmount || (hasPlacedActiveBet && activeUserBet?.position === 0)}
                         style={{
-                          background: 'transparent',
-                          color: '#ffffff',
+                          background: 'rgba(255, 255, 255, 0.05)',
+                          color: 'var(--text-1)',
                           fontWeight: 700,
                           fontSize: 12,
-                          borderRadius: 10,
+                          borderRadius: 'var(--radius-md)',
                           height: 36,
                           cursor: canBet && betAmount ? 'pointer' : 'default',
                           letterSpacing: '0.04em',
-                          transition: 'transform 120ms ease, border-color 200ms ease, box-shadow 200ms ease',
+                          transition: 'transform var(--duration-fast) var(--ease-out), border-color var(--duration-fast) var(--ease-out), box-shadow var(--duration-fast) var(--ease-out)',
                           transform: isDepressed ? 'scale(0.96)' : (isHovered && canBet && betAmount ? 'scale(1.02)' : 'scale(1)'),
-                          border: isSelectedOnChain ? '1px solid #ffffff' : isHovered ? '1px solid rgba(255,255,255,0.4)' : '1px solid rgba(255,255,255,0.2)',
-                          boxShadow: isSelectedOnChain ? '0 0 10px rgba(255,255,255,0.15)' : 'none',
+                          border: isSelectedOnChain ? '1px solid var(--border-4)' : isHovered ? '1px solid var(--border-3)' : '1px solid var(--border-2)',
+                          boxShadow: isSelectedOnChain ? '0 0 10px rgba(255, 255, 255, 0.15)' : 'none',
                           ...(isSelectedOnChain ? { animation: 'buttonPulseGlow 3.5s infinite ease-in-out' } : {}),
                         }}
                       >
@@ -760,7 +721,7 @@ export function BettingPanel({ currentBtcPrice: _unusedProps }: { currentBtcPric
               )}
 
               {txStatus && (
-                <div style={{ fontSize: 9, fontFamily: 'var(--font-mono)', color: 'rgba(255,255,255,0.4)', textAlign: 'center' }}>
+                <div style={{ fontSize: 9, fontFamily: 'var(--font-mono)', color: 'var(--text-3)', textAlign: 'center' }}>
                   {txStatus}
                 </div>
               )}
@@ -774,7 +735,7 @@ export function BettingPanel({ currentBtcPrice: _unusedProps }: { currentBtcPric
         {/* active round (just locked). During 'betting' phase this is prevRound */}
         {/* ══════════════════════════════════════════════════════════════════════ */}
         {!isBettingTab && (
-          <div key="live" style={{ animation: 'slideInRight 300ms cubic-bezier(0.16, 1, 0.3, 1)' }}>
+          <div key="live" style={{ animation: 'slideInRight var(--duration-normal) var(--ease-out)' }}>
             <div
               style={{
                 background: hasPlacedLiveBet
@@ -782,14 +743,14 @@ export function BettingPanel({ currentBtcPrice: _unusedProps }: { currentBtcPric
                   : 'linear-gradient(180deg, rgba(255, 255, 255, 0.035) 0%, rgba(255, 255, 255, 0.01) 100%)',
                 borderStyle: 'solid',
                 borderWidth: 1,
-                borderRadius: 20,
+                borderRadius: 'var(--radius-xl)',
                 padding: '16px',
                 boxSizing: 'border-box',
                 display: 'flex',
                 flexDirection: 'column',
                 gap: 10,
-                transition: 'all 300ms cubic-bezier(0.16, 1, 0.3, 1)',
-                borderColor: hasPlacedLiveBet ? 'rgba(255, 255, 255, 0.45)' : 'rgba(255, 255, 255, 0.05)',
+                transition: 'all var(--duration-normal) var(--ease-out)',
+                borderColor: hasPlacedLiveBet ? 'var(--border-4)' : 'var(--border-2)',
                 boxShadow: hasPlacedLiveBet ? '0 0 25px rgba(255, 255, 255, 0.1)' : 'none',
                 animation: hasPlacedLiveBet ? 'cardPulseGlow 2s infinite ease-in-out' : 'none',
                 position: 'relative',
@@ -801,9 +762,9 @@ export function BettingPanel({ currentBtcPrice: _unusedProps }: { currentBtcPric
               {/* Header */}
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-                  <span style={{ fontSize: 12, fontWeight: 700, letterSpacing: '0.06em', color: '#ffffff' }}>LIVE MARKET</span>
+                  <span style={{ fontSize: 12, fontWeight: 700, letterSpacing: '0.06em', color: 'var(--text-1)' }}>LIVE MARKET</span>
                   {hasPlacedLiveBet && isLiveRoundSettling && (
-                    <span style={{ fontSize: 8, fontWeight: 500, letterSpacing: '0.04em', color: 'rgba(255,255,255,0.5)' }}>YOUR PREDICTION IS LIVE</span>
+                    <span style={{ fontSize: 8, fontWeight: 500, letterSpacing: '0.04em', color: 'var(--text-2)' }}>YOUR PREDICTION IS LIVE</span>
                   )}
                 </div>
                 {hasPlacedLiveBet && isLiveRoundSettling ? (
@@ -811,7 +772,7 @@ export function BettingPanel({ currentBtcPrice: _unusedProps }: { currentBtcPric
                     display: 'inline-flex',
                     alignItems: 'center',
                     padding: '2px 8px',
-                    borderRadius: 20,
+                    borderRadius: 'var(--radius-full)',
                     border: '1px solid #ffffff',
                     color: '#ffffff',
                     fontSize: 8,
@@ -840,9 +801,9 @@ export function BettingPanel({ currentBtcPrice: _unusedProps }: { currentBtcPric
                   alignItems: 'center',
                   gap: 8,
                   padding: '14px 12px',
-                  borderRadius: 14,
+                  borderRadius: 'var(--radius-md)',
                   background: 'rgba(255, 255, 255, 0.01)',
-                  border: '1px dashed rgba(255, 255, 255, 0.06)',
+                  border: '1px dashed var(--border-2)',
                   overflow: 'hidden'
                 }}>
                   <div style={{
@@ -862,7 +823,7 @@ export function BettingPanel({ currentBtcPrice: _unusedProps }: { currentBtcPric
                   }} />
                   <span style={{
                     fontSize: 9, fontWeight: 700,
-                    color: 'rgba(255, 255, 255, 0.35)',
+                    color: 'var(--text-3)',
                     fontFamily: 'var(--font-sans)',
                     letterSpacing: '0.08em',
                     textTransform: 'uppercase'
@@ -888,29 +849,29 @@ export function BettingPanel({ currentBtcPrice: _unusedProps }: { currentBtcPric
                         <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                           <div style={{
                             display: 'flex', flexDirection: 'column', gap: 5,
-                            background: 'rgba(255,255,255,0.015)',
-                            border: '1px solid rgba(255,255,255,0.05)',
-                            borderRadius: 12, padding: '10px 12px'
+                            background: 'rgba(255, 255, 255, 0.015)',
+                            border: '1px solid var(--border-2)',
+                            borderRadius: 'var(--radius-md)', padding: '10px 12px'
                           }}>
-                            <div style={{ fontSize: 9, fontWeight: 700, color: 'rgba(255,255,255,0.4)', letterSpacing: '0.06em' }}>
+                            <div style={{ fontSize: 9, fontWeight: 700, color: 'var(--text-3)', letterSpacing: '0.06em' }}>
                               POTENTIAL RETURN
                             </div>
                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                              <span style={{ fontSize: 11, fontWeight: 700, color: '#ffffff' }}>▲ UP</span>
-                              <strong style={{ fontSize: 13, color: '#ffffff', fontFamily: 'var(--font-mono)' }}>
+                              <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-1)' }}>▲ UP</span>
+                              <strong style={{ fontSize: 13, color: 'var(--text-1)', fontFamily: 'var(--font-mono)' }}>
                                 <RollingNumber value={liveUpMultiplier > 0 ? liveUpMultiplier : 1.92} decimals={2} suffix="×" />
                               </strong>
                             </div>
                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                              <span style={{ fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.6)' }}>▼ DOWN</span>
-                              <strong style={{ fontSize: 13, color: 'rgba(255,255,255,0.6)', fontFamily: 'var(--font-mono)' }}>
+                              <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-2)' }}>▼ DOWN</span>
+                              <strong style={{ fontSize: 13, color: 'var(--text-2)', fontFamily: 'var(--font-mono)' }}>
                                 <RollingNumber value={liveDownMultiplier > 0 ? liveDownMultiplier : 2.08} decimals={2} suffix="×" />
                               </strong>
                             </div>
                           </div>
                           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0 2px' }}>
-                            <span style={{ fontSize: 9, color: 'var(--text-secondary)', fontFamily: 'var(--font-mono)', letterSpacing: '0.06em' }}>POOL SIZE</span>
-                            <span style={{ fontSize: 10, fontFamily: 'var(--font-mono)', color: 'rgba(255,255,255,0.55)' }}>
+                            <span style={{ fontSize: 9, color: 'var(--text-2)', fontFamily: 'var(--font-mono)', letterSpacing: '0.06em' }}>POOL SIZE</span>
+                            <span style={{ fontSize: 10, fontFamily: 'var(--font-mono)', color: 'var(--text-2)' }}>
                               {liveTotalPool > 0n ? `${(Number(liveTotalPool) / 1e18).toFixed(4)} ${balanceSymbol}` : `0.0000 ${balanceSymbol}`}
                             </span>
                           </div>
@@ -919,38 +880,38 @@ export function BettingPanel({ currentBtcPrice: _unusedProps }: { currentBtcPric
                     }
 
                     return (
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: 6, background: 'rgba(255,255,255,0.015)', border: '1px solid rgba(255,255,255,0.05)', borderRadius: 12, padding: '10px 12px' }}>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 6, background: 'rgba(255, 255, 255, 0.015)', border: '1px solid var(--border-2)', borderRadius: 'var(--radius-md)', padding: '10px 12px' }}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                          <span style={{ fontSize: 11, color: 'var(--text-secondary)' }}>Entry Price</span>
-                          <span style={{ fontSize: 13, fontFamily: 'var(--font-mono)', color: '#ffffff', fontWeight: 700 }}>
+                          <span style={{ fontSize: 11, color: 'var(--text-2)' }}>Entry Price</span>
+                          <span style={{ fontSize: 13, fontFamily: 'var(--font-mono)', color: 'var(--text-1)', fontWeight: 700 }}>
                             ${entryPx.toLocaleString(undefined, { minimumFractionDigits: 2 })}
                           </span>
                         </div>
                         <div style={{
                           display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-                          border: '1px solid rgba(255,255,255,0.08)', borderRadius: 8, padding: '6px 8px',
-                          background: 'rgba(255,255,255,0.01)'
+                          border: '1px solid var(--border-2)', borderRadius: 'var(--radius-sm)', padding: '6px 8px',
+                          background: 'rgba(255, 255, 255, 0.01)'
                         }}>
-                          <span style={{ fontSize: 11, color: 'var(--text-secondary)' }}>Current</span>
+                          <span style={{ fontSize: 11, color: 'var(--text-2)' }}>Current</span>
                           <PriceTicker price={btcPrice} />
                         </div>
 
                         {liveUserBet && (
                           <>
-                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px dashed rgba(255,255,255,0.06)', paddingTop: 5 }}>
-                              <span style={{ fontSize: 11, color: 'var(--text-secondary)' }}>Position</span>
-                              <span style={{ fontSize: 13, fontWeight: 700, color: '#ffffff', fontFamily: 'var(--font-mono)' }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px dashed var(--border-1)', paddingTop: 5 }}>
+                              <span style={{ fontSize: 11, color: 'var(--text-2)' }}>Position</span>
+                              <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-1)', fontFamily: 'var(--font-mono)' }}>
                                 {liveUserBet.position === 0 ? '▲ UP' : '▼ DOWN'} · {(Number(liveUserBet.amount) / 1e18).toFixed(4)} {balanceSymbol}
                               </span>
                             </div>
                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                              <span style={{ fontSize: 11, color: 'var(--text-secondary)' }}>Status</span>
-                              <strong style={{ fontSize: 13, color: '#ffffff' }}>
+                              <span style={{ fontSize: 11, color: 'var(--text-2)' }}>Status</span>
+                              <strong style={{ fontSize: 13, color: 'var(--text-1)' }}>
                                 <LiveStatusTransition status={activeStatus} />
                               </strong>
                             </div>
                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                              <span style={{ fontSize: 11, color: 'var(--text-secondary)' }}>Est. Profit</span>
+                              <span style={{ fontSize: 11, color: 'var(--text-2)' }}>Est. Profit</span>
                               {(() => {
                                 const won = (btcPrice > entryPx && liveUserBet.position === 0) || (btcPrice < entryPx && liveUserBet.position === 1);
                                 const mult = liveUserBet.position === 0 ? liveUpMultiplier : liveDownMultiplier;
@@ -959,8 +920,8 @@ export function BettingPanel({ currentBtcPrice: _unusedProps }: { currentBtcPric
                                 return (
                                   <strong style={{
                                     fontSize: 13, fontFamily: 'var(--font-mono)',
-                                    color: pnl >= 0 ? '#ffffff' : 'rgba(255,255,255,0.4)',
-                                    transition: 'color 200ms ease'
+                                    color: pnl >= 0 ? 'var(--text-1)' : 'var(--text-3)',
+                                    transition: 'color var(--duration-fast) var(--ease-out)'
                                   }}>
                                     {pnl >= 0 ? '+' : ''}{pnl.toFixed(4)} {balanceSymbol} ({mult.toFixed(2)}×)
                                   </strong>
@@ -980,51 +941,51 @@ export function BettingPanel({ currentBtcPrice: _unusedProps }: { currentBtcPric
                     {hasPlacedPrevBet && prevUserBet ? (
                       <div style={{
                         display: 'flex', flexDirection: 'column', gap: 5,
-                        background: 'rgba(255,255,255,0.015)',
-                        border: '1px solid rgba(255,255,255,0.05)',
-                        borderRadius: 12, padding: '10px 12px',
+                        background: 'rgba(255, 255, 255, 0.015)',
+                        border: '1px solid var(--border-2)',
+                        borderRadius: 'var(--radius-md)', padding: '10px 12px',
                       }}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                          <span style={{ fontSize: 11, color: 'var(--text-secondary)' }}>Position</span>
-                          <span style={{ fontSize: 13, fontWeight: 700, color: '#ffffff', fontFamily: 'var(--font-mono)' }}>
+                          <span style={{ fontSize: 11, color: 'var(--text-2)' }}>Position</span>
+                          <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-1)', fontFamily: 'var(--font-mono)' }}>
                             {prevUserBet.position === 0 ? '▲ UP' : '▼ DOWN'} · {(Number(prevUserBet.amount) / 1e18).toFixed(4)} {balanceSymbol}
                           </span>
                         </div>
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                          <span style={{ fontSize: 11, color: 'var(--text-secondary)' }}>Outcome</span>
+                          <span style={{ fontSize: 11, color: 'var(--text-2)' }}>Outcome</span>
                           {(() => {
                             const upWins = prevRound.closePrice > prevRound.startPrice;
                             const downWins = prevRound.closePrice < prevRound.startPrice;
                             const won = !prevRound.canceled && ((upWins && prevUserBet.position === 0) || (downWins && prevUserBet.position === 1));
-                            if (prevRound.canceled) return <strong style={{ fontSize: 13, color: '#ffffff' }}>REFUNDED</strong>;
+                            if (prevRound.canceled) return <strong style={{ fontSize: 13, color: 'var(--text-1)' }}>REFUNDED</strong>;
                             if (won) {
                               const mult = prevUserBet.position === 0 ? prevUpMultiplier : prevDownMultiplier;
                               const payout = (Number(prevUserBet.amount) / 1e18) * mult;
-                              return <strong style={{ fontSize: 13, color: '#ffffff' }}>WON (+{payout.toFixed(4)} {balanceSymbol})</strong>;
+                              return <strong style={{ fontSize: 13, color: 'var(--text-1)' }}>WON (+{payout.toFixed(4)} {balanceSymbol})</strong>;
                             }
-                            return <strong style={{ fontSize: 13, color: 'rgba(255,255,255,0.4)' }}>LOST (-{(Number(prevUserBet.amount) / 1e18).toFixed(4)} {balanceSymbol})</strong>;
+                            return <strong style={{ fontSize: 13, color: 'var(--text-3)' }}>LOST (-{(Number(prevUserBet.amount) / 1e18).toFixed(4)} {balanceSymbol})</strong>;
                           })()}
                         </div>
                       </div>
                     ) : (
-                      <div style={{ display: 'flex', justifyContent: 'space-between', background: 'rgba(255,255,255,0.015)', border: '1px solid rgba(255,255,255,0.05)', borderRadius: 10, padding: '6px 10px' }}>
-                        <span style={{ fontSize: 9, color: 'var(--text-secondary)', fontWeight: 600 }}>WINNING SIDE</span>
-                        <strong style={{ fontSize: 10, fontFamily: 'var(--font-mono)', color: '#ffffff' }}>{outcome.text}</strong>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', background: 'rgba(255, 255, 255, 0.015)', border: '1px solid var(--border-2)', borderRadius: 'var(--radius-sm)', padding: '6px 10px' }}>
+                        <span style={{ fontSize: 9, color: 'var(--text-2)', fontWeight: 600 }}>WINNING SIDE</span>
+                        <strong style={{ fontSize: 10, fontFamily: 'var(--font-mono)', color: 'var(--text-1)' }}>{outcome.text}</strong>
                       </div>
                     )}
 
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
                       <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 9, fontFamily: 'var(--font-mono)' }}>
-                        <span style={{ color: 'var(--text-secondary)' }}>ENTRY PRICE</span>
-                        <span style={{ color: '#ffffff' }}>${(Number(prevRound.startPrice) / 1e8).toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
+                        <span style={{ color: 'var(--text-2)' }}>ENTRY PRICE</span>
+                        <span style={{ color: 'var(--text-1)' }}>${(Number(prevRound.startPrice) / 1e8).toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
                       </div>
                       <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 9, fontFamily: 'var(--font-mono)' }}>
-                        <span style={{ color: 'var(--text-secondary)' }}>CLOSE PRICE</span>
-                        <span style={{ color: '#ffffff' }}>${(Number(prevRound.closePrice) / 1e8).toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
+                        <span style={{ color: 'var(--text-2)' }}>CLOSE PRICE</span>
+                        <span style={{ color: 'var(--text-1)' }}>${(Number(prevRound.closePrice) / 1e8).toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
                       </div>
                       <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 9, fontFamily: 'var(--font-mono)' }}>
-                        <span style={{ color: 'var(--text-secondary)' }}>POOL SIZE</span>
-                        <span style={{ color: '#ffffff' }}>{(Number(prevRound.totalUpAmount + prevRound.totalDownAmount) / 1e18).toFixed(4)} {balanceSymbol}</span>
+                        <span style={{ color: 'var(--text-2)' }}>POOL SIZE</span>
+                        <span style={{ color: 'var(--text-1)' }}>{(Number(prevRound.totalUpAmount + prevRound.totalDownAmount) / 1e18).toFixed(4)} {balanceSymbol}</span>
                       </div>
                     </div>
                   </div>
@@ -1033,7 +994,7 @@ export function BettingPanel({ currentBtcPrice: _unusedProps }: { currentBtcPric
 
               {/* Claim actions — only show when prevRound is resolved/canceled, not live */}
               {!isLiveRoundSettling && hasPlacedPrevBet && prevUserBet && (
-                <div style={{ borderTop: '1px solid rgba(255,255,255,0.06)', paddingTop: 10, display: 'flex', flexDirection: 'column', gap: 6 }}>
+                <div style={{ borderTop: '1px solid var(--border-1)', paddingTop: 10, display: 'flex', flexDirection: 'column', gap: 6 }}>
                   {isClaimable && !prevUserBet.claimed && (
                     <button
                       onClick={handleClaim}
@@ -1044,7 +1005,7 @@ export function BettingPanel({ currentBtcPrice: _unusedProps }: { currentBtcPric
                         color: '#000000',
                         fontWeight: 700,
                         fontSize: 11,
-                        borderRadius: 10,
+                        borderRadius: 'var(--radius-md)',
                         height: 36,
                         border: 'none',
                         cursor: 'pointer',
@@ -1058,11 +1019,11 @@ export function BettingPanel({ currentBtcPrice: _unusedProps }: { currentBtcPric
                   {prevUserBet.claimed && (
                     <div style={{
                       textAlign: 'center', fontSize: 9,
-                      color: 'var(--text-secondary)', fontFamily: 'var(--font-mono)',
+                      color: 'var(--text-2)', fontFamily: 'var(--font-mono)',
                       padding: '4px',
-                      background: 'rgba(255,255,255,0.01)',
-                      border: '1px solid rgba(255,255,255,0.04)',
-                      borderRadius: 8,
+                      background: 'rgba(255, 255, 255, 0.01)',
+                      border: '1px solid var(--border-2)',
+                      borderRadius: 'var(--radius-sm)',
                     }}>
                       ✓ PAYOUT CLAIMED
                     </div>
@@ -1083,23 +1044,23 @@ export function BettingPanel({ currentBtcPrice: _unusedProps }: { currentBtcPric
                     style={{
                       position: 'absolute', top: 14, right: 14,
                       background: 'transparent', border: 'none',
-                      color: 'rgba(255, 255, 255, 0.4)',
+                      color: 'var(--text-3)',
                       fontSize: 14, cursor: 'pointer', padding: 4,
                     }}
-                    onMouseEnter={(e) => e.currentTarget.style.color = '#ffffff'}
-                    onMouseLeave={(e) => e.currentTarget.style.color = 'rgba(255, 255, 255, 0.4)'}
+                    onMouseEnter={(e) => e.currentTarget.style.color = 'var(--text-1)'}
+                    onMouseLeave={(e) => e.currentTarget.style.color = 'var(--text-3)'}
                   >
                     ✕
                   </button>
 
-                  <div style={{ fontSize: 13, fontWeight: 700, letterSpacing: '0.15em', color: '#ffffff' }}>
+                  <div style={{ fontSize: 13, fontWeight: 700, letterSpacing: '0.15em', color: 'var(--text-1)' }}>
                     {outcomeDetails.title}
                   </div>
                   <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
-                    <span style={{ fontSize: 18, fontWeight: 800, fontFamily: 'var(--font-mono)', color: '#ffffff' }}>
+                    <span style={{ fontSize: 18, fontWeight: 800, fontFamily: 'var(--font-mono)', color: 'var(--text-1)' }}>
                       {outcomeDetails.amountStr}
                     </span>
-                    <div style={{ fontSize: 10, fontFamily: 'var(--font-mono)', color: 'rgba(255,255,255,0.4)', marginTop: 4 }}>
+                    <div style={{ fontSize: 10, fontFamily: 'var(--font-mono)', color: 'var(--text-3)', marginTop: 4 }}>
                       {outcomeDetails.details}
                     </div>
                   </div>
@@ -1109,7 +1070,7 @@ export function BettingPanel({ currentBtcPrice: _unusedProps }: { currentBtcPric
                       onClick={() => { handleClaim(); setOutcomeDetails(null); }}
                       disabled={isWorking}
                       style={{
-                        marginTop: 12, padding: '6px 20px', borderRadius: 10,
+                        marginTop: 12, padding: '6px 20px', borderRadius: 'var(--radius-md)',
                         background: '#ffffff', color: '#000000', fontWeight: 700,
                         fontSize: 11, border: 'none',
                         cursor: isWorking ? 'wait' : 'pointer',

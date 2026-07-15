@@ -19,12 +19,12 @@ export function Tabs({ items, activeTab, onChange, style }: TabsProps) {
     <div
       style={{
         display: 'inline-flex',
-        background: 'rgba(255, 255, 255, 0.02)',
-        border: '1px solid rgba(255, 255, 255, 0.06)',
-        borderRadius: '24px',
-        padding: '4px',
+        background: 'rgba(255, 255, 255, 0.025)',
+        border: '1px solid var(--border-2)',
+        borderRadius: 'var(--radius-full)',
+        padding: '3px',
         alignItems: 'center',
-        gap: '4px',
+        gap: '3px',
         ...style
       }}
     >
@@ -35,16 +35,16 @@ export function Tabs({ items, activeTab, onChange, style }: TabsProps) {
             key={item.id}
             onClick={() => onChange(item.id)}
             style={{
-              padding: '6px 18px',
-              borderRadius: '20px',
+              padding: '6px 16px',
+              borderRadius: 'var(--radius-full)',
               fontSize: '12px',
               fontWeight: isActive ? 600 : 500,
-              color: isActive ? '#000000' : 'var(--text-secondary)',
+              color: isActive ? '#000000' : 'var(--text-2)',
               background: isActive ? '#ffffff' : 'transparent',
               border: 'none',
               cursor: 'pointer',
               boxShadow: isActive ? '0 2px 8px rgba(255,255,255,0.1)' : 'none',
-              transition: 'all 200ms cubic-bezier(0.16, 1, 0.3, 1)',
+              transition: 'all var(--duration-fast) var(--ease-out)',
             }}
           >
             {item.label}

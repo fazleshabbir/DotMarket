@@ -10,33 +10,33 @@ export const Badge = memo(function Badge({ children, variant = 'default', style,
       case 'default':
         return {
           background: 'rgba(255, 255, 255, 0.05)',
-          color: '#ffffff',
-          border: '1px solid rgba(255, 255, 255, 0.08)',
+          color: 'var(--text-1)',
+          border: '1px solid var(--border-2)',
         };
       case 'success':
         return {
-          background: 'rgba(255, 255, 255, 0.05)',
-          color: '#ffffff',
-          border: '1px solid rgba(255, 255, 255, 0.2)',
-          boxShadow: '0 0 10px rgba(255, 255, 255, 0.1)',
+          background: 'rgba(255, 255, 255, 0.06)',
+          color: 'var(--text-1)',
+          border: '1px solid var(--border-3)',
+          boxShadow: '0 0 8px rgba(255, 255, 255, 0.08)',
         };
       case 'warning':
         return {
-          background: 'rgba(245, 158, 11, 0.05)',
-          color: '#f59e0b',
-          border: '1px solid rgba(245, 158, 11, 0.2)',
+          background: 'rgba(255, 255, 255, 0.03)',
+          color: 'var(--text-2)',
+          border: '1px solid var(--border-2)',
         };
       case 'error':
         return {
-          background: 'rgba(239, 68, 68, 0.05)',
-          color: '#ef4444',
-          border: '1px solid rgba(239, 68, 68, 0.2)',
+          background: 'rgba(255, 255, 255, 0.02)',
+          color: 'var(--text-2)',
+          border: '1px solid var(--border-2)',
         };
       case 'outline':
         return {
           background: 'transparent',
-          color: 'var(--text-secondary)',
-          border: '1px solid rgba(255, 255, 255, 0.1)',
+          color: 'var(--text-2)',
+          border: '1px solid var(--border-2)',
         };
       default:
         return {};
@@ -50,12 +50,12 @@ export const Badge = memo(function Badge({ children, variant = 'default', style,
         alignItems: 'center',
         justifyContent: 'center',
         padding: '3px 8px',
-        borderRadius: '6px',
-        fontSize: '11px',
+        borderRadius: 'var(--radius-sm)',
+        fontSize: '10px',
         fontWeight: 600,
-        fontFamily: 'var(--font-mono)',
+        fontFamily: 'var(--font-sans)',
         textTransform: 'uppercase',
-        letterSpacing: '0.5px',
+        letterSpacing: '0.07em',
         ...getStyles(),
         ...style
       }}

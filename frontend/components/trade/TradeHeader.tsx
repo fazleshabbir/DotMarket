@@ -1,114 +1,95 @@
 'use client';
 
-import React, { memo, useState } from 'react';
-import Link from 'next/link';
+import React, { memo } from 'react';
 import { ConnectButton } from '../ConnectButton';
+import { Logo } from '../ui/Logo';
 
 interface TradeHeaderProps {
   activeTab: string;
   setActiveTab: (tab: string) => void;
 }
 
+const TABS = ['Live Market', 'Portfolio', 'Leaderboard'] as const;
+
 export const TradeHeader = memo(function TradeHeader({ activeTab, setActiveTab }: TradeHeaderProps) {
   return (
     <header
       style={{
         position: 'sticky',
-        top: 24,
+        top: 16,
         zIndex: 100,
-        margin: '24px 24px 0',
-        padding: '12px 24px',
+        margin: '16px 20px 0',
+        padding: '0 20px',
+        height: 52,
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'space-between',
-        borderRadius: 16,
-        background: 'rgba(5, 5, 5, 0.4)',
-        backdropFilter: 'blur(16px)',
-        WebkitBackdropFilter: 'blur(16px)',
-        border: '1px solid rgba(255, 255, 255, 0.05)',
+        borderRadius: 'var(--radius-xl)',
+        background: 'rgba(4, 4, 4, 0.72)',
+        backdropFilter: 'blur(20px)',
+        WebkitBackdropFilter: 'blur(20px)',
+        border: '1px solid var(--border-2)',
+        boxShadow: '0 4px 24px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.04)',
+        flexShrink: 0,
       }}
     >
-      <div style={{ display: 'flex', alignItems: 'center', gap: 32 }}>
-        {/* Logo */}
-        <Link href="/" style={{ textDecoration: 'none', display: 'flex', alignItems: 'center' }}>
-          <svg viewBox="0 0 200 60" width="140" height="42" xmlns="http://www.w3.org/2000/svg">
-            <defs>
-              <mask id="tradeHeaderLogoMask">
-                <rect x="0" y="0" width="200" height="60" fill="white" />
-                <circle cx="20.5" cy="34.5" r="2.8" fill="black" />
-              </mask>
-            </defs>
-            <circle cx="16" cy="30" r="10" fill="#ffffff" mask="url(#tradeHeaderLogoMask)" />
-            <line x1="32" y1="42" x2="44" y2="18" stroke="#525252" strokeWidth="2" strokeLinecap="round" />
-            <text x="54" y="38" fontFamily="system-ui, sans-serif" fontSize="26" fontWeight="800" fill="#ffffff" letterSpacing="-1">dot</text>
-            <text x="95" y="38" fontFamily="system-ui, sans-serif" fontSize="26" fontWeight="300" fill="#737373" letterSpacing="-1">Market</text>
-          </svg>
-        </Link>
+      {/* LEFT: Logo + Tabs */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 28 }}>
 
-        {/* Navigation capsule */}
-        <nav
-          style={{
-            display: 'flex',
-            gap: 20,
-            background: 'rgba(255, 255, 255, 0.02)',
-            border: '1px solid rgba(255, 255, 255, 0.05)',
-            borderRadius: 24,
-            padding: '6px 20px',
-            alignItems: 'center',
-          }}
-        >
-          {['Live Market', 'Portfolio', 'Leaderboard'].map((tab) => {
+        {/* Logo */}
+        <Logo size="md" />
+
+        {/* Vertical divider */}
+        <div style={{ width: 1, height: 18, background: 'var(--border-2)', flexShrink: 0 }} />
+
+        {/* Tab Navigation — Hyperliquid-style underline tabs */}
+        <nav style={{ display: 'flex', gap: 0, alignItems: 'center' }}>
+          {TABS.map((tab) => {
             const isActive = activeTab === tab;
             return (
-              <a
+              <button
                 key={tab}
-                href="#"
-                onClick={(e) => {
-                  e.preventDefault();
-                  setActiveTab(tab);
-                }}
+                onClick={() => setActiveTab(tab)}
                 style={{
                   fontSize: 13,
-                  color: isActive ? '#ffffff' : 'var(--text-secondary)',
-                  textDecoration: 'none',
-                  fontWeight: isActive ? 700 : 550,
-                  transition: 'color 250ms ease',
+                  color: isActive ? '#f0f0f0' : 'var(--text-3)',
+                  fontWeight: isActive ? 500 : 400,
+                  background: 'none',
+                  border: 'none',
+                  borderBottom: isActive
+                    ? '1.5px solid rgba(255,255,255,0.8)'
+                    : '1.5px solid transparent',
+                  cursor: 'pointer',
+                  padding: '4px 14px',
+                  margin: '0 2px',
+                  height: 52,
                   position: 'relative',
-                  padding: '4px 0',
+                  transition: 'color var(--duration-fast) var(--ease-out)',
+                  letterSpacing: '0',
+                  fontFamily: 'var(--font-sans)',
                 }}
+                aria-current={isActive ? 'page' : undefined}
               >
                 {tab}
-                {isActive && (
-                  <span
-                    style={{
-                      position: 'absolute',
-                      bottom: -2,
-                      left: 0,
-                      right: 0,
-                      height: 1.5,
-                      background: '#ffffff',
-                      borderRadius: 1,
-                    }}
-                  />
-                )}
-              </a>
+              </button>
             );
           })}
         </nav>
       </div>
 
-      {/* Wallet Actions */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
-        {/* Monochrome Testnet Badge Chip */}
+      {/* RIGHT: Chain badge + Wallet */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexShrink: 0 }}>
+
+        {/* ARC Testnet chip */}
         <div
           style={{
             display: 'flex',
             alignItems: 'center',
-            gap: 8,
-            background: 'rgba(255, 255, 255, 0.03)',
-            border: '1px solid rgba(255, 255, 255, 0.08)',
-            padding: '6px 12px',
-            borderRadius: 20,
+            gap: 6,
+            background: 'rgba(255, 255, 255, 0.04)',
+            border: '1px solid var(--border-2)',
+            padding: '5px 10px',
+            borderRadius: 'var(--radius-full)',
           }}
         >
           <div
@@ -118,21 +99,23 @@ export const TradeHeader = memo(function TradeHeader({ activeTab, setActiveTab }
               height: 5,
               borderRadius: '50%',
               background: '#ffffff',
-              boxShadow: '0 0 6px #ffffff',
+              flexShrink: 0,
             }}
           />
           <span
             style={{
               fontSize: 10,
-              fontWeight: 700,
-              color: '#ffffff',
-              letterSpacing: '0.8px',
+              fontWeight: 600,
+              color: 'var(--text-2)',
+              letterSpacing: '0.06em',
               fontFamily: 'var(--font-mono)',
+              textTransform: 'uppercase',
             }}
           >
-            ARC TESTNET
+            ARC Testnet
           </span>
         </div>
+
         <ConnectButton />
       </div>
     </header>
