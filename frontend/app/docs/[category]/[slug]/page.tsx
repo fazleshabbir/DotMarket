@@ -13,6 +13,8 @@ interface PageProps {
   }>;
 }
 
+export const dynamicParams = false;
+
 export default async function DocsPage({ params }: PageProps) {
   // Await the params object before accessing properties
   const { category, slug } = await params;
