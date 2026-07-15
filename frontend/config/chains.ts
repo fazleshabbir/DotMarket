@@ -27,7 +27,7 @@ export const arcTestnetChain: Chain = {
     decimals: 18,
   },
   rpcUrls: {
-    default: { http: [process.env.NEXT_PUBLIC_ARC_RPC_URL || 'https://5042002.rpc.thirdweb.com'] },
+    default: { http: [process.env.NEXT_PUBLIC_ARC_RPC_URL || 'https://rpc.testnet.arc.network'] },
   },
   blockExplorers: {
     default: { name: 'ArcScan', url: 'https://testnet.arcscan.app' },

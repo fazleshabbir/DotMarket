@@ -89,7 +89,7 @@ const POLL_INTERVAL_MS = 15000;
 // ─── RPC Endpoints (priority order, no rate-limited Arc RPC) ────────────────
 // Thirdweb & drpc are reliable public RPCs for ARC testnet without strict limits.
 const RPC_ENDPOINTS = [
-    "https://5042002.rpc.thirdweb.com", // Primary: Thirdweb (no rate limit)
+    "https://rpc.testnet.arc.network", // Official RPC
     "https://arc-testnet.drpc.org", // Fallback 1: dRPC
 ];
 // ─── ARC Testnet Chain Definition ───────────────────────────────────────────
