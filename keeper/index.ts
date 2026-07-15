@@ -320,17 +320,16 @@ async function main() {
   }
 
   // ── Read contract params once at startup ──
-  const [pair, roundDuration, lockBuffer] = await Promise.all([
-    withRetry("Read pair", () => publicClient.readContract({
-      address: config.marketAddress, abi: ROUND_MARKET_ABI, functionName: "pair",
-    })),
-    withRetry("Read roundDuration", () => publicClient.readContract({
-      address: config.marketAddress, abi: ROUND_MARKET_ABI, functionName: "roundDuration",
-    })),
-    withRetry("Read lockBuffer", () => publicClient.readContract({
-      address: config.marketAddress, abi: ROUND_MARKET_ABI, functionName: "lockBuffer",
-    })),
-  ]);
+  // ── Read contract params once at startup ──
+  const pair = await withRetry("Read pair", () => publicClient.readContract({
+    address: config.marketAddress, abi: ROUND_MARKET_ABI, functionName: "pair",
+  }));
+  const roundDuration = await withRetry("Read roundDuration", () => publicClient.readContract({
+    address: config.marketAddress, abi: ROUND_MARKET_ABI, functionName: "roundDuration",
+  }));
+  const lockBuffer = await withRetry("Read lockBuffer", () => publicClient.readContract({
+    address: config.marketAddress, abi: ROUND_MARKET_ABI, functionName: "lockBuffer",
+  }));
 
   log("💱", `Pair: ${pair} | Round: ${roundDuration}s | LockBuffer: ${lockBuffer}s`);
   log("✅", `Keeper initialized. Polling every ${POLL_INTERVAL_MS / 1000}s.\n`);
