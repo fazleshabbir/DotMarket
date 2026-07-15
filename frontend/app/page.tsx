@@ -808,6 +808,7 @@ export default function LandingPage() {
               <Link href="/docs/community/faq" className="premium-text-link">FAQ</Link>
               <Link href="/docs/protocol/security" className="premium-text-link">Security</Link>
               <Link href="/docs/community/changelog-roadmap" className="premium-text-link">Changelog</Link>
+              <Link href="/privacy" className="premium-text-link">Privacy Policy</Link>
             </div>
 
             {/* Community Column */}

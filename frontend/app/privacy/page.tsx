@@ -16,19 +16,19 @@ interface PolicySection {
 }
 
 const SECTIONS: PolicySection[] = [
-  { id: 'introduction', title: '1. Introduction', icon: <Info size={14} /> },
-  { id: 'collect', title: '2. Information We Collect', icon: <FileText size={14} /> },
-  { id: 'wallet', title: '3. Wallet Information', icon: <Key size={14} /> },
-  { id: 'use', title: '4. How We Use Information', icon: <CheckCircle2 size={14} /> },
-  { id: 'cookies', title: '5. Cookies & Analytics', icon: <EyeOff size={14} /> },
-  { id: 'blockchain', title: '6. Blockchain Data', icon: <Globe size={14} /> },
-  { id: 'thirdparty', title: '7. Third-Party Services', icon: <ExternalLink size={14} /> },
-  { id: 'security', title: '8. Data Security', icon: <Shield size={14} /> },
-  { id: 'rights', title: '9. Your Rights', icon: <FileText size={14} /> },
-  { id: 'children', title: '10. Children\'s Privacy', icon: <AlertTriangle size={14} /> },
-  { id: 'international', title: '11. International Users', icon: <Globe size={14} /> },
-  { id: 'updates', title: '12. Policy Updates', icon: <Info size={14} /> },
-  { id: 'contact', title: '13. Contact', icon: <Mail size={14} /> },
+  { id: 'introduction', title: '1. Protocol & Interface Nature', icon: <Info size={14} /> },
+  { id: 'nokyc', title: '2. Zero KYC & Personal Data Policy', icon: <EyeOff size={14} /> },
+  { id: 'geoblock', title: '3. Geo-Location & Compliance', icon: <Globe size={14} /> },
+  { id: 'wallet', title: '4. Non-Custodial Interactions', icon: <Key size={14} /> },
+  { id: 'blockchain', title: '5. Blockchain Immutability & GDPR', icon: <Globe size={14} /> },
+  { id: 'collect', title: '6. Technical Telemetry We Collect', icon: <FileText size={14} /> },
+  { id: 'cookies', title: '7. Cookies & Local Storage', icon: <EyeOff size={14} /> },
+  { id: 'thirdparty', title: '8. Third-Party Web3 Integrations', icon: <ExternalLink size={14} /> },
+  { id: 'security', title: '9. Infrastructure Security', icon: <Shield size={14} /> },
+  { id: 'rights', title: '10. Your Rights', icon: <FileText size={14} /> },
+  { id: 'children', title: '11. Age Restrictions', icon: <AlertTriangle size={14} /> },
+  { id: 'updates', title: '12. Policy Revisions', icon: <Info size={14} /> },
+  { id: 'contact', title: '13. Contact & Support', icon: <Mail size={14} /> },
 ];
 
 export default function PrivacyPolicyPage() {
@@ -36,9 +36,6 @@ export default function PrivacyPolicyPage() {
   const [scrollProgress, setScrollProgress] = useState(0);
   const [showScrollTop, setShowScrollTop] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  
-  // Accordion state for FAQs / sections on mobile
-  const [expandedSection, setExpandedSection] = useState<string | null>(null);
 
   const observerRef = useRef<IntersectionObserver | null>(null);
 
@@ -109,7 +106,7 @@ export default function PrivacyPolicyPage() {
   return (
     <div style={{ minHeight: '100vh', background: '#000000', color: '#ffffff', fontFamily: 'system-ui, sans-serif' }}>
       
-      {/* ── 1. Reading Progress Bar ───────────────────────────────── */}
+      {/* ── Reading Progress Bar ───────────────────────────────── */}
       <div style={{
         position: 'fixed',
         top: 0,
@@ -200,7 +197,7 @@ export default function PrivacyPolicyPage() {
         }
       `}</style>
 
-      {/* ── 2. Sticky Navbar ───────────────────────────────────────── */}
+      {/* Sticky Navbar */}
       <header style={{
         height: '64px',
         borderBottom: '1px solid rgba(255,255,255,0.06)',
@@ -240,7 +237,7 @@ export default function PrivacyPolicyPage() {
         </Link>
       </header>
 
-      {/* ── 3. Outer Container ────────────────────────────────────── */}
+      {/* Main Container Layout */}
       <div style={{ display: 'flex', flex: 1, maxWidth: '1400px', margin: '0 auto', width: '100%', paddingTop: '100px' }}>
         
         {/* Sticky Sidebar Navigation (Desktop) */}
@@ -294,19 +291,19 @@ export default function PrivacyPolicyPage() {
             <span>Back to Docs</span>
           </Link>
 
-          {/* ── 4. Hero Section ──────────────────────────────────────── */}
+          {/* Hero Section */}
           <div style={{ marginBottom: '48px' }}>
             <div style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '12px', padding: '6px 12px', marginBottom: '24px' }}>
               <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#ffffff' }} />
               <span style={{ fontSize: '11px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'rgba(255,255,255,0.6)' }}>
-                Last Updated: July 16, 2026
+                Web3 Privacy Policy
               </span>
             </div>
             <h1 style={{ fontSize: '48px', fontWeight: 300, fontFamily: "'Cormorant Garamond', serif", letterSpacing: '-0.02em', marginBottom: '16px' }}>
               Privacy Policy
             </h1>
             <p style={{ fontSize: '18px', color: 'rgba(255,255,255,0.6)', lineHeight: 1.6, maxWidth: '680px', marginBottom: '32px' }}>
-              Learn how DotMarket collects, uses, protects, and processes your information while using our decentralized prediction market.
+              This policy explains how DotMarket processes public blockchain states, geo-routing metadata, and network logs while maintaining a decentralized prediction system.
             </p>
 
             {/* Quick Metadata Grid */}
@@ -317,16 +314,16 @@ export default function PrivacyPolicyPage() {
               </div>
               <div>
                 <span style={{ fontSize: '11px', color: 'rgba(255,255,255,0.4)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Estimated Reading Time</span>
-                <div style={{ fontSize: '14px', fontWeight: 500, marginTop: '4px' }}>6 Minutes</div>
+                <div style={{ fontSize: '14px', fontWeight: 500, marginTop: '4px' }}>5 Minutes</div>
               </div>
               <div>
-                <span style={{ fontSize: '11px', color: 'rgba(255,255,255,0.4)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Applicability</span>
-                <div style={{ fontSize: '14px', fontWeight: 500, marginTop: '4px' }}>Global (Decentralized)</div>
+                <span style={{ fontSize: '11px', color: 'rgba(255,255,255,0.4)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Platform Status</span>
+                <div style={{ fontSize: '14px', fontWeight: 500, marginTop: '4px' }}>Fully Non-Custodial</div>
               </div>
             </div>
           </div>
 
-          {/* ── 5. Mobile Accordion Navigation ───────────────────────── */}
+          {/* Mobile Accordion Navigation */}
           <div className="mobile-accordion-nav" style={{ display: 'none', marginBottom: '32px' }}>
             <button
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
@@ -386,166 +383,176 @@ export default function PrivacyPolicyPage() {
             </AnimatePresence>
           </div>
 
-          {/* ── 6. Privacy Policy Content ────────────────────────────── */}
+          {/* ── Privacy Policy Content ────────────────────────────── */}
 
-          {/* 1. Introduction */}
+          {/* 1. Protocol & Interface Nature */}
           <section id="introduction" className="privacy-card">
-            <h2 style={{ fontSize: '20px', fontWeight: 500, margin: '0 0 16px' }}>1. Introduction</h2>
+            <h2 style={{ fontSize: '20px', fontWeight: 500, margin: '0 0 16px' }}>1. Protocol & Interface Nature</h2>
             <p style={{ color: 'rgba(255,255,255,0.7)', lineHeight: 1.7, fontSize: '14px', margin: '0 0 16px' }}>
-              Welcome to DotMarket. We are committed to protecting the privacy and security of our users. DotMarket operates as a non-custodial, decentralized prediction protocol built on the Arc Testnet. 
+              Unlike centralized prediction books, DotMarket consists of two distinct components:
             </p>
+            <ul className="list-items" style={{ margin: '0 0 16px' }}>
+              <li><strong>The Protocol:</strong> An open-source, autonomous smart contract system deployed directly to public blockchain networks (the Arc Testnet).</li>
+              <li><strong>The Interface:</strong> A client-side, web-based portal (accessible via this website) that translates blockchain data into a readable layout.</li>
+            </ul>
             <p style={{ color: 'rgba(255,255,255,0.7)', lineHeight: 1.7, fontSize: '14px', margin: 0 }}>
-              Before using our platform, it is essential to understand that by interacting with smart contracts, your transaction details are permanently recorded on public ledger systems. We do not have the power to alter, erase, or censor this information.
+              Your interactions with the DotMarket Protocol are direct, cryptographic, and trustless. We do not host prediction pools, set payouts, or manage ledger balances inside private databases.
             </p>
-            <div className="callout-box callout-info">
+          </section>
+
+          {/* 2. Zero KYC & Personal Data Policy */}
+          <section id="nokyc" className="privacy-card">
+            <h2 style={{ fontSize: '20px', fontWeight: 500, margin: '0 0 16px' }}>2. Zero KYC & Personal Data Policy</h2>
+            <p style={{ color: 'rgba(255,255,255,0.7)', lineHeight: 1.7, fontSize: '14px', margin: '0 0 16px' }}>
+              DotMarket is built upon Web3 principles of cryptographic identity. We do not require, collect, or store any of the following traditional personal identifiable information (PII):
+            </p>
+            <ul className="list-items" style={{ margin: '0 0 16px' }}>
+              <li>Names, physical addresses, or geographical billing details.</li>
+              <li>Email addresses (unless you voluntarily submit one for technical support).</li>
+              <li>Phone numbers or mobile identifiers.</li>
+              <li>Government-issued IDs (passport, driver's license) or Know-Your-Customer (KYC) documentation.</li>
+              <li>Credit card details or banking credentials.</li>
+            </ul>
+            <div className="callout-box callout-info" style={{ margin: 0 }}>
               <Info size={20} style={{ flexShrink: 0, marginTop: '2px' }} />
               <div>
-                <strong>On-Chain Data Public Nature:</strong> Ledger records are transparently readable by anyone. Any interaction with DotMarket contracts, including placing predictions or claiming payouts, links your wallet address to those transactions publicly.
+                <strong>Identity Scope:</strong> Your identity on DotMarket is entirely defined by your public cryptographic wallet address. No account registration or password setup is supported or required.
               </div>
             </div>
           </section>
 
-          {/* 2. Information We Collect */}
-          <section id="collect" className="privacy-card">
-            <h2 style={{ fontSize: '20px', fontWeight: 500, margin: '0 0 16px' }}>2. Information We Collect</h2>
+          {/* 3. Geo-Location & Compliance */}
+          <section id="geoblock" className="privacy-card">
+            <h2 style={{ fontSize: '20px', fontWeight: 500, margin: '0 0 16px' }}>3. Geo-Location & Compliance</h2>
             <p style={{ color: 'rgba(255,255,255,0.7)', lineHeight: 1.7, fontSize: '14px', margin: '0 0 16px' }}>
-              We collect minimal data necessary to maintain security, optimize platform responsiveness, and compile statistical telemetry.
+              Consistent with regulatory structures enforced across prediction markets (like Polymarket), DotMarket restricts interface access for users in prohibited jurisdictions.
             </p>
-            <h4 style={{ fontSize: '13px', fontWeight: 600, color: 'rgba(255,255,255,0.5)', textTransform: 'uppercase', letterSpacing: '0.05em', margin: '24px 0 12px' }}>Categories of Collected Data:</h4>
-            <ul className="list-items">
-              <li><strong>Public Cryptographic Wallet Address:</strong> Collected upon connecting your Web3 provider (e.g. MetaMask, Coinbase Wallet).</li>
-              <li><strong>On-Chain Transaction Details:</strong> Prediction entries, claims, contract logs.</li>
-              <li><strong>Device & Telemetry Information:</strong> Browser type, operating system version, anonymous platform performance parameters.</li>
-              <li><strong>Optional Contact Details:</strong> Email addresses or social identities, only if provided voluntarily during support requests.</li>
-            </ul>
-
-            <div className="callout-box callout-warning">
+            <p style={{ color: 'rgba(255,255,255,0.7)', lineHeight: 1.7, fontSize: '14px', margin: '0 0 16px' }}>
+              We process IP addresses for the sole purpose of determining geographical location and enforcing block filters (geo-blocking). If we detect that your IP address originates from a restricted jurisdiction, including but not limited to the **United States**, you will be blocked from accessing the trade interface.
+            </p>
+            <div className="callout-box callout-warning" style={{ margin: 0 }}>
               <AlertTriangle size={20} style={{ flexShrink: 0, marginTop: '2px' }} />
               <div>
-                <strong>What We DO NOT Collect:</strong> We never collect, store, or request your private keys, seed phrases, physical addresses, government IDs, or credit card details. DotMarket remains fully non-custodial.
+                <strong>Geo-IP Storage:</strong> IP addresses processed for geographic checks are analyzed on-the-fly at the edge (CDN node). They are not written to long-term database tables, combined with wallet addresses, or used to build user profiles.
               </div>
             </div>
           </section>
 
-          {/* 3. Wallet Information */}
+          {/* 4. Non-Custodial Interactions */}
           <section id="wallet" className="privacy-card">
-            <h2 style={{ fontSize: '20px', fontWeight: 500, margin: '0 0 16px' }}>3. Wallet Information</h2>
+            <h2 style={{ fontSize: '20px', fontWeight: 500, margin: '0 0 16px' }}>4. Non-Custodial Interactions</h2>
             <p style={{ color: 'rgba(255,255,255,0.7)', lineHeight: 1.7, fontSize: '14px', margin: '0 0 16px' }}>
-              To participate in predictions, users must connect a cryptographic Web3 wallet. Connecting a wallet does not grant DotMarket custody, access to private keys, or control over your digital assets.
+              Connecting your Web3 wallet extension (such as MetaMask or Coinbase Wallet) to the Interface only makes your public wallet address visible to the client application.
             </p>
             <p style={{ color: 'rgba(255,255,255,0.7)', lineHeight: 1.7, fontSize: '14px', margin: 0 }}>
-              All transactions, including predictions and reward claims, require manual approval and signature within your wallet provider's interface. You remain in absolute control of your keys and funds at all times.
+              This connection is read-only. DotMarket has no custody of your digital assets, no access to your private key or seed phrase, and cannot initiate or authorize transactions on your behalf. Every prediction entry or reward claim must be manually reviewed and cryptographically signed inside your wallet extension.
             </p>
           </section>
 
-          {/* 4. How We Use Information */}
-          <section id="use" className="privacy-card">
-            <h2 style={{ fontSize: '20px', fontWeight: 500, margin: '0 0 16px' }}>4. How We Use Information</h2>
-            <p style={{ color: 'rgba(255,255,255,0.7)', lineHeight: 1.7, fontSize: '14px', margin: '0 0 20px' }}>
-              We use the compiled metrics to optimize user experience, secure server endpoints, and analyze pool activity:
+          {/* 5. Blockchain Immutability & GDPR */}
+          <section id="blockchain" className="privacy-card">
+            <h2 style={{ fontSize: '20px', fontWeight: 500, margin: '0 0 16px' }}>5. Blockchain Immutability & GDPR</h2>
+            <p style={{ color: 'rgba(255,255,255,0.7)', lineHeight: 1.7, fontSize: '14px', margin: '0 0 16px' }}>
+              By participating in prediction markets, you interact with public smart contracts. All transactions (predictions, pools adjustments, resolutions, and withdrawals) are permanent and cryptographically verified.
             </p>
-            <ul className="list-items">
-              <li><strong>Platform Optimization:</strong> Speeding up loading times of active prediction panels and charts.</li>
-              <li><strong>Security Monitoring:</strong> Defending RPC gateways and analytics endpoints against DDoS attacks.</li>
-              <li><strong>Debugging & Crash Analysis:</strong> Identifying client side lag or state provider synchronization issues.</li>
-              <li><strong>Community Analytics:</strong> Evaluating dynamic multiplier ranges and historical volumes.</li>
-            </ul>
-            <div className="callout-box callout-info">
-              <CheckCircle2 size={20} style={{ flexShrink: 0, marginTop: '2px', color: '#22c55e' }} />
+            <p style={{ color: 'rgba(255,255,255,0.7)', lineHeight: 1.7, fontSize: '14px', margin: '0 0 16px' }}>
+              Because public blockchains are decentralized and globally replicated, their records are immutable. Traditional data privacy rights (like the GDPR "Right to be Forgotten" or "Right to Deletion") cannot be applied to details written to on-chain blocks.
+            </p>
+            <div className="callout-box callout-info" style={{ margin: 0 }}>
+              <Info size={20} style={{ flexShrink: 0, marginTop: '2px' }} />
               <div>
-                <strong>Zero Selling Policy:</strong> DotMarket does not sell, rent, or distribute your public address, browser metadata, or any other collected analytics to third-party data brokers or marketing networks.
+                <strong>Immutable Data:</strong> Once you submit a transaction, your public wallet address and the associated prediction logs are permanently recorded. If you require absolute anonymity, do not interact with the DotMarket protocol.
               </div>
             </div>
           </section>
 
-          {/* 5. Cookies & Analytics */}
+          {/* 6. Technical Telemetry We Collect */}
+          <section id="collect" className="privacy-card">
+            <h2 style={{ fontSize: '20px', fontWeight: 500, margin: '0 0 16px' }}>6. Technical Telemetry We Collect</h2>
+            <p style={{ color: 'rgba(255,255,255,0.7)', lineHeight: 1.7, fontSize: '14px', margin: '0 0 20px' }}>
+              To ensure platform security and optimize RPC query speeds, we compile technical log parameters:
+            </p>
+            <ul className="list-items" style={{ margin: 0 }}>
+              <li><strong>Network Telemetry:</strong> Request latency, query errors, and server response times.</li>
+              <li><strong>Browser Details:</strong> User-agent strings, system language, screen resolution, and browser engines.</li>
+              <li><strong>Usage Metrics:</strong> Click paths, viewport scroll ranges, and feature interactions (excluding any association with real-world PII).</li>
+            </ul>
+          </section>
+
+          {/* 7. Cookies & Local Storage */}
           <section id="cookies" className="privacy-card">
-            <h2 style={{ fontSize: '20px', fontWeight: 500, margin: '0 0 16px' }}>5. Cookies & Analytics</h2>
+            <h2 style={{ fontSize: '20px', fontWeight: 500, margin: '0 0 16px' }}>7. Cookies & Local Storage</h2>
             <p style={{ color: 'rgba(255,255,255,0.7)', lineHeight: 1.7, fontSize: '14px', margin: '0 0 16px' }}>
-              We utilize local storage and session storage within your browser to store system preferences (such as your chosen chart scale or layout states) and keep track of active connection parameters.
+              We do not use tracking cookies for ad networks or behavioral retargeting. We utilize local storage on your device to remember user preferences:
             </p>
+            <ul className="list-items" style={{ margin: '0 0 16px' }}>
+              <li>Your wallet connection state (to automatically prompt connection).</li>
+              <li>Chart settings, scale bounds, and selected indicator configurations.</li>
+              <li>Display themes (dark mode preferences).</li>
+            </ul>
             <p style={{ color: 'rgba(255,255,255,0.7)', lineHeight: 1.7, fontSize: '14px', margin: 0 }}>
-              You can configure your browser to reject all local storage components or cookies. However, doing so may reset your display configurations (like dark mode styling or terminal chart lines) on every page refresh.
+              You can wipe your browser's local storage and cache at any time using your browser settings.
             </p>
           </section>
 
-          {/* 6. Blockchain Data */}
-          <section id="blockchain" className="privacy-card">
-            <h2 style={{ fontSize: '20px', fontWeight: 500, margin: '0 0 16px' }}>6. Blockchain Data</h2>
-            <p style={{ color: 'rgba(255,255,255,0.7)', lineHeight: 1.7, fontSize: '14px', margin: '0 0 16px' }}>
-              The Arc Testnet blockchain is a public decentralized ledger. All contract invocations, deposit transactions, and payout settlements are stored forever in block history.
-            </p>
-            <p style={{ color: 'rgba(255,255,255,0.7)', lineHeight: 1.7, fontSize: '14px', margin: 0 }}>
-              Because blockchain records are immutable, traditional "Right to Erasure" (or "Right to be Forgotten") legal claims cannot be enforced on-chain. DotMarket cannot edit, delete, or hide smart contract data or transactions.
-            </p>
-          </section>
-
-          {/* 7. Third-Party Services */}
+          {/* 8. Third-Party Web3 Integrations */}
           <section id="thirdparty" className="privacy-card">
-            <h2 style={{ fontSize: '20px', fontWeight: 500, margin: '0 0 16px' }}>7. Third-Party Services</h2>
+            <h2 style={{ fontSize: '20px', fontWeight: 500, margin: '0 0 16px' }}>8. Third-Party Web3 Integrations</h2>
             <p style={{ color: 'rgba(255,255,255,0.7)', lineHeight: 1.7, fontSize: '14px', margin: '0 0 20px' }}>
-              Our frontend interface relies on third-party node providers, database networks, and web hosting platforms to function:
+              The Interface interacts with third-party decentralized applications and service layers:
             </p>
-            <ul className="list-items">
-              <li><strong>Hosting & Serverless Functions:</strong> Provided by Vercel. Their platform registers request header details for caching.</li>
-              <li><strong>Node/RPC Providers:</strong> Providers used to query block data from the Arc Testnet. They analyze query volume to secure RPC endpoints.</li>
-              <li><strong>Oracle Infrastructure:</strong> Pyth Network streams price updates to the Keeper system and smart contracts.</li>
+            <ul className="list-items" style={{ margin: 0 }}>
+              <li><strong>Node/RPC Providers:</strong> Public RPC node gateways receive your IP address and wallet details when querying smart contract states.</li>
+              <li><strong>Pyth Network:</strong> Streams oracle price updates. Price verification feeds are processed directly on-chain.</li>
+              <li><strong>Content Delivery Networks:</strong> We use Vercel CDNs to cache page content globally. Vercel registers technical header parameters during assets delivery.</li>
             </ul>
           </section>
 
-          {/* 8. Data Security */}
+          {/* 9. Infrastructure Security */}
           <section id="security" className="privacy-card">
-            <h2 style={{ fontSize: '20px', fontWeight: 500, margin: '0 0 16px' }}>8. Data Security</h2>
+            <h2 style={{ fontSize: '20px', fontWeight: 500, margin: '0 0 16px' }}>9. Infrastructure Security</h2>
             <p style={{ color: 'rgba(255,255,255,0.7)', lineHeight: 1.7, fontSize: '14px', margin: '0 0 16px' }}>
-              We implement industry-standard encryption protocols (SSL/HTTPS) across all network calls to ensure third parties cannot intercept data transfers.
+              We employ SSL/TLS encryption across all network transfers to secure API pathways. However, because DotMarket is non-custodial, the ultimate security barrier relies on smart contract integrity.
             </p>
             <p style={{ color: 'rgba(255,255,255,0.7)', lineHeight: 1.7, fontSize: '14px', margin: 0 }}>
-              Furthermore, because all transaction data flows directly into audited open-source smart contracts, security is cryptographically guaranteed rather than relying on private storage infrastructure.
+              Our smart contracts are open-source and verified on-chain, meaning all execution parameters and fund distribution logic are completely public, inspectable, and auditable by anyone.
             </p>
           </section>
 
-          {/* 9. Your Rights */}
+          {/* 10. Your Rights */}
           <section id="rights" className="privacy-card">
-            <h2 style={{ fontSize: '20px', fontWeight: 500, margin: '0 0 16px' }}>9. Your Rights</h2>
+            <h2 style={{ fontSize: '20px', fontWeight: 500, margin: '0 0 16px' }}>10. Your Rights</h2>
             <p style={{ color: 'rgba(255,255,255,0.7)', lineHeight: 1.7, fontSize: '14px', margin: '0 0 20px' }}>
-              Depending on your local jurisdiction (e.g. GDPR in Europe, CCPA in California), you may possess specific privacy rights regarding your data:
+              Since we do not store PII, traditional CCPA/GDPR access and edit rights are managed differently:
             </p>
-            <ul className="list-items">
-              <li><strong>Access:</strong> You can review all transaction data linked to your public address using open block explorers.</li>
-              <li><strong>Opt-Out:</strong> You can disable analytics or tracking scripts by configuring your browser's "Do Not Track" settings.</li>
-              <li><strong>Browser Cleanup:</strong> You can wipe all local storage objects directly from your browser options at any time.</li>
+            <ul className="list-items" style={{ margin: 0 }}>
+              <li><strong>On-Chain Portability:</strong> You can export your entire transaction history using standard block explorers.</li>
+              <li><strong>Opt-Out:</strong> You can use privacy extensions (like ad blockers or VPNs) to restrict the collection of anonymous telemetry.</li>
+              <li><strong>Local Cleanup:</strong> You can erase your local cache and storage parameters within browser settings to reset cryptographic sessions.</li>
             </ul>
           </section>
 
-          {/* 10. Children's Privacy */}
+          {/* 11. Age Restrictions */}
           <section id="children" className="privacy-card">
-            <h2 style={{ fontSize: '20px', fontWeight: 500, margin: '0 0 16px' }}>10. Children's Privacy</h2>
+            <h2 style={{ fontSize: '20px', fontWeight: 500, margin: '0 0 16px' }}>11. Age Restrictions</h2>
             <p style={{ color: 'rgba(255,255,255,0.7)', lineHeight: 1.7, fontSize: '14px', margin: 0 }}>
-              DotMarket is strictly intended for individuals who have attained the age of legal majority in their local jurisdiction. We do not knowingly compile metadata or allow usage by minors. If we learn that we have stored any personal information of a minor, it will be immediately removed.
+              DotMarket is strictly intended for individuals who have attained the age of legal majority in their local jurisdiction (e.g. 18 years or older). We do not knowingly allow or collect data from minors. If you are under the legal age, do not connect your Web3 wallet or use the Interface.
             </p>
           </section>
 
-          {/* 11. International Users */}
-          <section id="international" className="privacy-card">
-            <h2 style={{ fontSize: '20px', fontWeight: 500, margin: '0 0 16px' }}>11. International Users</h2>
-            <p style={{ color: 'rgba(255,255,255,0.7)', lineHeight: 1.7, fontSize: '14px', margin: 0 }}>
-              DotMarket is hosted on global serverless content delivery networks (CDNs). By accessing the website, your encrypted request data may be stored in nodes outside your country of origin. Blockchain ledgers replicated across international server networks process all smart contract calls.
-            </p>
-          </section>
-
-          {/* 12. Policy Updates */}
+          {/* 12. Policy Revisions */}
           <section id="updates" className="privacy-card">
-            <h2 style={{ fontSize: '20px', fontWeight: 500, margin: '0 0 16px' }}>12. Policy Updates</h2>
+            <h2 style={{ fontSize: '20px', fontWeight: 500, margin: '0 0 16px' }}>12. Policy Revisions</h2>
             <p style={{ color: 'rgba(255,255,255,0.7)', lineHeight: 1.7, fontSize: '14px', margin: 0 }}>
-              We update this policy periodically to reflect changes in compliance legislation, smart contract adjustments, or backend telemetry updates. The updated revision date will always be displayed at the top of this page. We encourage you to review it regularly to remain informed.
+              This policy is subject to changes as decentralized compliance frameworks adapt, or as new smart contract iterations are deployed. We will indicate revisions by updating the "Last Updated" timestamp at the top of this document. Revisions are effective immediately upon posting.
             </p>
           </section>
 
-          {/* 13. Contact */}
+          {/* 13. Contact & Support */}
           <section id="contact" className="privacy-card" style={{ marginBottom: 0 }}>
-            <h2 style={{ fontSize: '20px', fontWeight: 500, margin: '0 0 16px' }}>13. Contact Support</h2>
+            <h2 style={{ fontSize: '20px', fontWeight: 500, margin: '0 0 16px' }}>13. Contact & Support</h2>
             <p style={{ color: 'rgba(255,255,255,0.7)', lineHeight: 1.7, fontSize: '14px', margin: '0 0 32px' }}>
-              If you have any questions regarding on-chain privacy, cookies, or node integrations, contact our compliance team:
+              If you have queries regarding RPC logs, geo-location filters, or smart contract interactions, contact our Web3 legal operations desk:
             </p>
             
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '20px' }}>
@@ -554,9 +561,9 @@ export default function PrivacyPolicyPage() {
                 <span style={{ fontSize: '14px', fontWeight: 600 }}>legal@dotmarket.space</span>
               </div>
               <div className="brand-card" style={{ padding: '24px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                <span style={{ fontSize: '11px', color: 'rgba(255,255,255,0.4)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Community & GitHub</span>
+                <span style={{ fontSize: '11px', color: 'rgba(255,255,255,0.4)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Developer Repository</span>
                 <a href="https://github.com/fazleshabbir/DotMarket" target="_blank" rel="noopener noreferrer" style={{ fontSize: '13px', color: '#ffffff', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                  <span>GitHub Repository</span>
+                  <span>GitHub Source Code</span>
                   <ExternalLink size={12} />
                 </a>
               </div>
@@ -566,7 +573,7 @@ export default function PrivacyPolicyPage() {
         </main>
       </div>
 
-      {/* ── 7. Back to Top Button ────────────────────────────────── */}
+      {/* Back to Top Button */}
       <AnimatePresence>
         {showScrollTop && (
           <motion.button
@@ -598,7 +605,7 @@ export default function PrivacyPolicyPage() {
         )}
       </AnimatePresence>
 
-      {/* ── 8. Footer ────────────────────────────────────────────── */}
+      {/* Footer */}
       <footer style={{
         borderTop: '1px solid rgba(255, 255, 255, 0.06)',
         padding: '48px 24px 32px',
