@@ -1,0 +1,20 @@
+services:
+  # ─── DotMarket Keeper Bot ────────────────────────────────────────────────────
+  # This is a "Background Worker" (not a web service) — it never sleeps.
+  # Render's free Background Worker tier keeps the process running 24/7.
+  - type: worker
+    name: dotmarket-keeper
+    runtime: node
+    rootDir: keeper
+    buildCommand: npm install --production=false && npm run build
+    startCommand: node dist/index.js
+    envVars:
+      - key: ARC_TESTNET_RPC
+        value: https://5042002.rpc.thirdweb.com
+      - key: MARKET_ADDRESS
+        value: "0xA801878f362D7c0093Fd96B6616b33812c28ce8E"
+      - key: PRICE_FEED_ID
+        value: "0xe62df6c8b4a85fe1a67db44dc12de5db330f7ac66b72dc658afedf0f4a415b43"
+      # KEEPER_PRIVATE_KEY must be set manually in Render dashboard (secret)
+      - key: KEEPER_PRIVATE_KEY
+        sync: false

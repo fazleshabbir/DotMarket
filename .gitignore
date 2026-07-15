@@ -11,7 +11,7 @@ frontend/.env
 frontend/.env.local
 frontend/.env.production
 keeper/node_modules/
-keeper/dist/
+# keeper/dist/ - intentionally included for Render deploy
 keeper/.env
 .DS_Store
 *.log
