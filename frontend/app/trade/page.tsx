@@ -165,10 +165,10 @@ function TerminalClient() {
   const poolSize = round ? (Number(activeTotalPool) / 1e18).toFixed(4) : '0.0000';
 
   return (
-    <div style={{ position: 'relative', height: '100vh', display: 'flex', flexDirection: 'column', background: '#000000', color: '#ffffff', overflow: 'hidden', width: '100%', maxWidth: '100%' }}>
+    <div style={{ position: 'relative', height: '100vh', display: 'flex', flexDirection: 'column', background: '#000000', color: '#ffffff', overflow: 'hidden', width: '100%', maxWidth: '100%', boxSizing: 'border-box' }}>
       <TradeHeader activeTab={activeTab} setActiveTab={setActiveTab} />
 
-      <div style={{ display: 'flex', alignItems: 'center', gap: 32, padding: '12px 24px', borderBottom: '1px solid rgba(255, 255, 255, 0.05)', background: 'rgba(255, 255, 255, 0.01)', fontSize: 12, overflowX: 'auto', whiteSpace: 'nowrap', margin: '16px 24px 0 24px', borderRadius: '12px', border: '1px solid rgba(255, 255, 255, 0.05)' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 32, padding: '10px 20px', background: 'rgba(255,255,255,0.01)', fontSize: 12, overflowX: 'auto', whiteSpace: 'nowrap', margin: '12px 24px 0 24px', borderRadius: '10px', border: '1px solid rgba(255,255,255,0.05)', flexShrink: 0 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           <strong style={{ color: '#ffffff', letterSpacing: '0.08em' }}>★ BTC-USD</strong>
         </div>
@@ -194,9 +194,9 @@ function TerminalClient() {
       </div>
 
       {/* Live Market View (kept alive with display none) */}
-      <div style={{ display: activeTab === 'Live Market' ? 'flex' : 'none', flex: 1, padding: '16px 24px 24px 24px', gap: 16, minHeight: 0, boxSizing: 'border-box' }}>
+      <div style={{ display: activeTab === 'Live Market' ? 'flex' : 'none', flex: 1, padding: '12px 24px 20px 24px', gap: 16, minHeight: 0, boxSizing: 'border-box', overflow: 'hidden' }}>
         {/* Left Section: Chart (Top) + Positions (Bottom) */}
-        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 16, minHeight: 0, overflow: 'hidden' }}>
+        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 12, minHeight: 0, overflow: 'hidden' }}>
           <div style={{ flex: '6 1 0', minHeight: 0 }}>
             <TradingPanel />
           </div>
@@ -206,18 +206,24 @@ function TerminalClient() {
         </div>
 
         {/* Right Section: Betting Panel */}
-        <div style={{ width: '380px', flexShrink: 0, display: 'flex', flexDirection: 'column', minHeight: 0 }}>
+        <div style={{ width: '380px', flexShrink: 0, display: 'flex', flexDirection: 'column', minHeight: 0, overflowY: 'auto' }}>
           <BettingPanel currentBtcPrice={btcPrice} />
         </div>
       </div>
 
       {/* Other Views (Portfolio, Leaderboard) */}
-      <div style={{ display: activeTab !== 'Live Market' ? 'block' : 'none', flex: 1, padding: '16px 24px 24px 24px', overflowY: 'auto', minHeight: 0, boxSizing: 'border-box' }}>
+      <div style={{ display: activeTab !== 'Live Market' ? 'flex' : 'none', flex: 1, flexDirection: 'column', minHeight: 0, boxSizing: 'border-box', overflow: 'hidden' }}>
+        {/* Portfolio — scrollable */}
         {activeTab === 'Portfolio' && (
-          <PortfolioView onClaim={handleClaim} claimPending={isConfirming} />
+          <div style={{ flex: 1, overflowY: 'auto', padding: '16px 24px 28px 24px' }}>
+            <PortfolioView onClaim={handleClaim} claimPending={isConfirming} />
+          </div>
         )}
+        {/* Leaderboard — fills viewport, no scroll needed */}
         {activeTab === 'Leaderboard' && (
-          <LeaderboardView />
+          <div style={{ flex: 1, overflow: 'hidden', padding: '0 24px 24px 24px' }}>
+            <LeaderboardView />
+          </div>
         )}
       </div>
     </div>
