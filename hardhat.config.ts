@@ -25,6 +25,21 @@ const config: HardhatUserConfig = {
       accounts: [DEPLOYER_PRIVATE_KEY],
     },
   },
+  etherscan: {
+    apiKey: {
+      arcTestnet: "any_key_works_for_blockscout",
+    },
+    customChains: [
+      {
+        network: "arcTestnet",
+        chainId: 5042002,
+        urls: {
+          apiURL: "https://testnet.arcscan.app/api",
+          browserURL: "https://testnet.arcscan.app",
+        },
+      },
+    ],
+  },
   paths: {
     sources: "./contracts",
     tests: "./test",

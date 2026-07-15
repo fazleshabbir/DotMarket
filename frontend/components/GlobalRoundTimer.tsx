@@ -3,7 +3,11 @@
 import React from 'react';
 import { useMarket } from '@/lib/marketStore';
 
-export function GlobalRoundTimer({ target = 'active' }: { target?: 'active' | 'prev' }) {
+// target:
+//   'active' — shows countdown for the active (betting) round
+//   'prev'   — shows countdown for the previous round (legacy, still supported)
+//   'live'   — shows the settlement countdown for the LOCKED active round
+export function GlobalRoundTimer({ target = 'active' }: { target?: 'active' | 'prev' | 'live' }) {
   const {
     marketStatus,
     timeLeftToLock,
@@ -16,7 +20,59 @@ export function GlobalRoundTimer({ target = 'active' }: { target?: 'active' | 'p
     phase,
   } = useMarket();
 
-  // Pick variables depending on the target round, with fallback when active round closes/locks
+  // ── 'live' target: always show the locked/settling active round countdown ──
+  // This is used by the Live Market panel during the 'live' phase.
+  // The active round is locked; we count down to endTimestamp.
+  if (target === 'live') {
+    const timeLeft = timeLeftToEnd;
+    const lock = activeRound ? Number(activeRound.lockTimestamp) : 0;
+    const end = activeRound ? Number(activeRound.endTimestamp) : 0;
+    const totalDuration = end > lock ? (end - lock) : 60;
+    const progress = totalDuration > 0 ? Math.max(0, Math.min(1, timeLeft / totalDuration)) : 0;
+    const minutes = Math.floor(timeLeft / 60);
+    const seconds = timeLeft % 60;
+
+    const size = 60;
+    const strokeWidth = 2.5;
+    const radius = (size - strokeWidth) / 2;
+    const circumference = 2 * Math.PI * radius;
+    const offset = circumference * (1 - progress);
+
+    return (
+      <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+        <div style={{ position: 'relative', width: size, height: size, flexShrink: 0 }}>
+          <svg width={size} height={size} style={{ transform: 'rotate(-90deg)' }}>
+            <circle cx={size / 2} cy={size / 2} r={radius} fill="none" stroke="rgba(255,255,255,0.06)" strokeWidth={strokeWidth} />
+            <circle
+              cx={size / 2} cy={size / 2} r={radius}
+              fill="none"
+              stroke="rgba(255,255,255,0.6)"
+              strokeWidth={strokeWidth}
+              strokeDasharray={circumference}
+              strokeDashoffset={offset}
+              strokeLinecap="round"
+              style={{ transition: 'stroke-dashoffset 1s linear, stroke 0.3s ease' }}
+            />
+          </svg>
+          <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <span style={{ fontSize: 12, fontWeight: 700, color: '#ffffff', fontFamily: 'var(--font-mono)', lineHeight: 1 }}>
+              {timeLeft > 0 ? `${minutes}:${seconds.toString().padStart(2, '0')}` : <span className="animate-pulse-live">0:00</span>}
+            </span>
+          </div>
+        </div>
+        <div>
+          <div style={{ fontSize: 9, fontWeight: 700, color: 'rgba(255,255,255,0.6)', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 3 }}>
+            LOCKED
+          </div>
+          <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>
+            {timeLeft > 0 ? 'Awaiting settlement' : 'Settling now…'}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // ── 'active' / 'prev' targets (original logic, unchanged) ──────────────────
   const isCurrentRoundClosed = marketStatus === 'LOCKED' || marketStatus === 'SETTLING';
   const effectiveTarget = (target === 'prev' && isCurrentRoundClosed) ? 'active' : target;
 

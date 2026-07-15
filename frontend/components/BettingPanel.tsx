@@ -181,25 +181,41 @@ export function BettingPanel({ currentBtcPrice: _unusedProps }: { currentBtcPric
     prevMarketStatus,
     triggerToast,
     timeLeftToLock,
+    timeLeftToEnd,
     lockedEntryPrice,
     phase,
     isBettingOpen,
   } = useMarket();
 
+  // ── Phase is the authoritative source of truth (committed, never flickers) ──
+  // During 'betting': show Place Bet tab (active round is open for bets)
+  // During 'live':    show Live Market tab (active round is locked & settling)
+  const isBettingPhase = phase === 'betting';
+
+  // ── Derive bet/live round correctly from phase ───────────────────────────
+  // Betting phase: user bets on activeRound
+  // Live phase:    activeRound is now the LOCKED round being settled
+  //                prevRound is the one just before (already resolved or resolving)
   const hasPlacedActiveBet = !!(activeUserBet && activeUserBet.amount > 0n);
+  const hasPlacedPrevBet = !!(prevUserBet && prevUserBet.amount > 0n);
 
-  // Swap Card 2 target round dynamically when the active round locks/settles locally
-  const isCurrentRoundClosed = marketStatus === 'LOCKED' || marketStatus === 'SETTLING';
+  // Live Market card always tracks the locked/settling round.
+  // During 'live' phase, activeRound is the one locked — show it.
+  // During 'betting' phase, prevRound is settling (if it exists) — show that.
+  const liveRound = isBettingPhase ? prevRound : activeRound;
+  const liveUserBet = isBettingPhase ? prevUserBet : activeUserBet;
+  const liveTotalPool = isBettingPhase ? prevTotalPool : activeTotalPool;
+  const liveUpMultiplier = isBettingPhase ? prevUpMultiplier : activeUpMultiplier;
+  const liveDownMultiplier = isBettingPhase ? prevDownMultiplier : activeDownMultiplier;
+  const liveUpPercent = isBettingPhase ? prevUpPercent : activeUpPercent;
+  const liveDownPercent = isBettingPhase ? prevDownPercent : activeDownPercent;
+  const hasPlacedLiveBet = isBettingPhase ? hasPlacedPrevBet : hasPlacedActiveBet;
 
-  const liveRound = isCurrentRoundClosed ? activeRound : prevRound;
-  const liveUserBet = isCurrentRoundClosed ? activeUserBet : prevUserBet;
-  const liveTotalPool = isCurrentRoundClosed ? activeTotalPool : prevTotalPool;
-  const liveUpMultiplier = isCurrentRoundClosed ? activeUpMultiplier : prevUpMultiplier;
-  const liveDownMultiplier = isCurrentRoundClosed ? activeDownMultiplier : prevDownMultiplier;
-  const liveMarketStatusStr = isCurrentRoundClosed ? marketStatus : prevMarketStatus;
-  const liveUpPercent = isCurrentRoundClosed ? activeUpPercent : prevUpPercent;
-  const liveDownPercent = isCurrentRoundClosed ? activeDownPercent : prevDownPercent;
-  const hasPlacedPrevBet = isCurrentRoundClosed ? hasPlacedActiveBet : !!(prevUserBet && prevUserBet.amount > 0n);
+  // Live phase status: during 'live', the active round is LOCKED (timer shows timeLeftToEnd)
+  // During 'betting', prevRound may still be settling
+  const isLiveRoundSettling = isBettingPhase
+    ? (prevMarketStatus === 'LOCKED' || prevMarketStatus === 'SETTLING')
+    : true; // always settling/live during live phase
 
   // Write contract actions - Zero Latency Pipeline
   const { sendTransaction, data: txHash, isPending } = useSendTransaction();
@@ -272,13 +288,15 @@ export function BettingPanel({ currentBtcPrice: _unusedProps }: { currentBtcPric
     }
   };
 
+  // Claim from the previous round (always prevRound = currentRoundId - 1)
   const handleClaim = () => {
-    const prevRoundId = currentRoundId > 1n ? currentRoundId - 1n : 0n;
+    const claimRoundId = currentRoundId > 1n ? currentRoundId - 1n : 0n;
+    if (claimRoundId === 0n) return;
     try {
       const data = encodeFunctionData({
         abi: ROUND_MARKET_ABI,
         functionName: 'claim',
-        args: [prevRoundId],
+        args: [claimRoundId],
       });
       
       sendTransaction({
@@ -300,7 +318,7 @@ export function BettingPanel({ currentBtcPrice: _unusedProps }: { currentBtcPric
   const potentialUpReturn = stakeAmount > 0 && activeUpMultiplier > 0 ? stakeAmount * activeUpMultiplier : 0;
   const potentialDownReturn = stakeAmount > 0 && activeDownMultiplier > 0 ? stakeAmount * activeDownMultiplier : 0;
 
-  // Previous Round Outcome calculations
+  // Previous Round Outcome calculations (for resolved prevRound display)
   const getPrevOutcome = (): { text: string; color: string } => {
     if (!prevRound) return { text: '—', color: 'var(--text-muted)' };
     if (!prevRound.resolved && !prevRound.canceled) return { text: 'LIVE', color: '#ffffff' };
@@ -312,11 +330,6 @@ export function BettingPanel({ currentBtcPrice: _unusedProps }: { currentBtcPric
   const outcome = getPrevOutcome();
 
   if (!mounted) return null;
-
-  const isPrevRoundLive = !!(liveRound && (liveMarketStatusStr === 'LOCKED' || liveMarketStatusStr === 'SETTLING'));
-
-  // ── USE THE STABLE PHASE (never flickers) ──────────────────────────────
-  const isBettingPhase = phase === 'betting';
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%', boxSizing: 'border-box', position: 'relative' }}>
@@ -360,7 +373,7 @@ export function BettingPanel({ currentBtcPrice: _unusedProps }: { currentBtcPric
         }
       `}</style>
 
-      {/* ─── TAB HEADER (always visible) ───────────────────────────────────────── */}
+      {/* ─── TAB HEADER — driven by committed phase (NEVER flickers) ─────────── */}
       <div style={{
         display: 'flex',
         gap: 0,
@@ -515,7 +528,7 @@ export function BettingPanel({ currentBtcPrice: _unusedProps }: { currentBtcPric
                 <StatusBadge status={marketStatus === 'OPEN' ? 'ready' : 'locked'} label={marketStatus === 'OPEN' ? 'OPEN' : marketStatus} />
               </div>
 
-              {/* Timer */}
+              {/* Timer — always target active round during betting phase */}
               <GlobalRoundTimer target="active" />
 
               {/* Balance */}
@@ -759,12 +772,14 @@ export function BettingPanel({ currentBtcPrice: _unusedProps }: { currentBtcPric
 
         {/* ══════════════════════════════════════════════════════════════════════ */}
         {/* ▌ LIVE MARKET PHASE                                                  */}
+        {/* Shows the LOCKED/SETTLING round. During 'live' phase this is the    */}
+        {/* active round (just locked). During 'betting' phase this is prevRound */}
         {/* ══════════════════════════════════════════════════════════════════════ */}
         {!isBettingPhase && (
           <div key="live" style={{ animation: 'slideInRight 300ms cubic-bezier(0.16, 1, 0.3, 1)' }}>
             <div
               style={{
-                background: hasPlacedPrevBet
+                background: hasPlacedLiveBet
                   ? 'radial-gradient(circle at 50% 0%, rgba(255, 255, 255, 0.075) 0%, rgba(255, 255, 255, 0.015) 100%)'
                   : 'linear-gradient(180deg, rgba(255, 255, 255, 0.035) 0%, rgba(255, 255, 255, 0.01) 100%)',
                 borderStyle: 'solid',
@@ -776,9 +791,9 @@ export function BettingPanel({ currentBtcPrice: _unusedProps }: { currentBtcPric
                 flexDirection: 'column',
                 gap: 10,
                 transition: 'all 300ms cubic-bezier(0.16, 1, 0.3, 1)',
-                borderColor: hasPlacedPrevBet ? 'rgba(255, 255, 255, 0.45)' : 'rgba(255, 255, 255, 0.05)',
-                boxShadow: hasPlacedPrevBet ? '0 0 25px rgba(255, 255, 255, 0.1)' : 'none',
-                animation: hasPlacedPrevBet ? 'cardPulseGlow 2s infinite ease-in-out' : 'none',
+                borderColor: hasPlacedLiveBet ? 'rgba(255, 255, 255, 0.45)' : 'rgba(255, 255, 255, 0.05)',
+                boxShadow: hasPlacedLiveBet ? '0 0 25px rgba(255, 255, 255, 0.1)' : 'none',
+                animation: hasPlacedLiveBet ? 'cardPulseGlow 2s infinite ease-in-out' : 'none',
                 position: 'relative',
                 overflow: 'hidden',
                 backdropFilter: 'blur(20px)',
@@ -789,11 +804,11 @@ export function BettingPanel({ currentBtcPrice: _unusedProps }: { currentBtcPric
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
                   <span style={{ fontSize: 12, fontWeight: 700, letterSpacing: '0.06em', color: '#ffffff' }}>LIVE MARKET</span>
-                  {hasPlacedPrevBet && isPrevRoundLive && (
+                  {hasPlacedLiveBet && isLiveRoundSettling && (
                     <span style={{ fontSize: 8, fontWeight: 500, letterSpacing: '0.04em', color: 'rgba(255,255,255,0.5)' }}>YOUR BET IS LIVE</span>
                   )}
                 </div>
-                {hasPlacedPrevBet && isPrevRoundLive ? (
+                {hasPlacedLiveBet && isLiveRoundSettling ? (
                   <span style={{
                     display: 'inline-flex',
                     alignItems: 'center',
@@ -809,15 +824,15 @@ export function BettingPanel({ currentBtcPrice: _unusedProps }: { currentBtcPric
                   </span>
                 ) : (
                   <StatusBadge
-                    status={isPrevRoundLive ? 'live' : 'settled'}
-                    label={isPrevRoundLive ? 'LIVE' : 'SETTLED'}
+                    status={isLiveRoundSettling ? 'live' : 'settled'}
+                    label={isLiveRoundSettling ? 'LIVE' : 'SETTLED'}
                   />
                 )}
               </div>
 
-              {/* Timer */}
-              {hasPlacedPrevBet && isPrevRoundLive ? (
-                <GlobalRoundTimer target="prev" />
+              {/* Timer — during live phase, show active round countdown to end */}
+              {isLiveRoundSettling ? (
+                <GlobalRoundTimer target="live" />
               ) : (
                 <div style={{
                   position: 'relative',
@@ -854,22 +869,56 @@ export function BettingPanel({ currentBtcPrice: _unusedProps }: { currentBtcPric
                     letterSpacing: '0.08em',
                     textTransform: 'uppercase'
                   }}>
-                    Market in progress…
+                    Market settled
                   </span>
                 </div>
               )}
 
-              {/* Live Round Stats */}
-              {liveRound && (liveMarketStatusStr === 'OPEN' || liveMarketStatusStr === 'LOCKED' || liveMarketStatusStr === 'SETTLING') ? (
+              {/* Live Round Stats — shown when liveRound exists and is still live */}
+              {liveRound && isLiveRoundSettling ? (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                   {(() => {
                     const rawStartPrice = liveRound ? Number(liveRound.startPrice) : 0;
                     const entryPx = rawStartPrice > 0
                       ? rawStartPrice / 1e8
                       : (lockedEntryPrice > 0 ? lockedEntryPrice : btcPrice);
-                    const activeStatus = liveMarketStatusStr === 'SETTLING' ? 'SETTLING' : (btcPrice > entryPx ? 'BULLISH ▲' : btcPrice < entryPx ? 'BEARISH ▼' : 'FLAT');
+                    const activeStatus = btcPrice > entryPx ? 'BULLISH ▲' : btcPrice < entryPx ? 'BEARISH ▼' : 'FLAT';
 
-                    if (!hasPlacedPrevBet) return null;
+                    if (!hasPlacedLiveBet) {
+                      // No active bet — show pool/multiplier info
+                      return (
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                          <div style={{
+                            display: 'flex', flexDirection: 'column', gap: 5,
+                            background: 'rgba(255,255,255,0.015)',
+                            border: '1px solid rgba(255,255,255,0.05)',
+                            borderRadius: 12, padding: '10px 12px'
+                          }}>
+                            <div style={{ fontSize: 9, fontWeight: 700, color: 'rgba(255,255,255,0.4)', letterSpacing: '0.06em' }}>
+                              POTENTIAL RETURN
+                            </div>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                              <span style={{ fontSize: 11, fontWeight: 700, color: '#ffffff' }}>▲ UP</span>
+                              <strong style={{ fontSize: 13, color: '#ffffff', fontFamily: 'var(--font-mono)' }}>
+                                <RollingNumber value={liveUpMultiplier > 0 ? liveUpMultiplier : 1.92} decimals={2} suffix="×" />
+                              </strong>
+                            </div>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                              <span style={{ fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.6)' }}>▼ DOWN</span>
+                              <strong style={{ fontSize: 13, color: 'rgba(255,255,255,0.6)', fontFamily: 'var(--font-mono)' }}>
+                                <RollingNumber value={liveDownMultiplier > 0 ? liveDownMultiplier : 2.08} decimals={2} suffix="×" />
+                              </strong>
+                            </div>
+                          </div>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0 2px' }}>
+                            <span style={{ fontSize: 9, color: 'var(--text-secondary)', fontFamily: 'var(--font-mono)', letterSpacing: '0.06em' }}>POOL SIZE</span>
+                            <span style={{ fontSize: 10, fontFamily: 'var(--font-mono)', color: 'rgba(255,255,255,0.55)' }}>
+                              {liveTotalPool > 0n ? `${(Number(liveTotalPool) / 1e18).toFixed(4)} ${balanceSymbol}` : `0.0000 ${balanceSymbol}`}
+                            </span>
+                          </div>
+                        </div>
+                      );
+                    }
 
                     return (
                       <div style={{ display: 'flex', flexDirection: 'column', gap: 6, background: 'rgba(255,255,255,0.015)', border: '1px solid rgba(255,255,255,0.05)', borderRadius: 12, padding: '10px 12px' }}>
@@ -888,7 +937,7 @@ export function BettingPanel({ currentBtcPrice: _unusedProps }: { currentBtcPric
                           <PriceTicker price={btcPrice} />
                         </div>
 
-                        {hasPlacedPrevBet && liveUserBet && (
+                        {liveUserBet && (
                           <>
                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px dashed rgba(255,255,255,0.06)', paddingTop: 5 }}>
                               <span style={{ fontSize: 11, color: 'var(--text-secondary)' }}>Position</span>
@@ -925,42 +974,9 @@ export function BettingPanel({ currentBtcPrice: _unusedProps }: { currentBtcPric
                       </div>
                     );
                   })()}
-
-                  {/* Global stats when no active bet */}
-                  {!hasPlacedPrevBet && (
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                      <div style={{
-                        display: 'flex', flexDirection: 'column', gap: 5,
-                        background: 'rgba(255,255,255,0.015)',
-                        border: '1px solid rgba(255,255,255,0.05)',
-                        borderRadius: 12, padding: '10px 12px'
-                      }}>
-                        <div style={{ fontSize: 9, fontWeight: 700, color: 'rgba(255,255,255,0.4)', letterSpacing: '0.06em' }}>
-                          POTENTIAL RETURN
-                        </div>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                          <span style={{ fontSize: 11, fontWeight: 700, color: '#ffffff' }}>▲ UP</span>
-                          <strong style={{ fontSize: 13, color: '#ffffff', fontFamily: 'var(--font-mono)' }}>
-                            <RollingNumber value={liveUpMultiplier > 0 ? liveUpMultiplier : 1.92} decimals={2} suffix="×" />
-                          </strong>
-                        </div>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                          <span style={{ fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.6)' }}>▼ DOWN</span>
-                          <strong style={{ fontSize: 13, color: 'rgba(255,255,255,0.6)', fontFamily: 'var(--font-mono)' }}>
-                            <RollingNumber value={liveDownMultiplier > 0 ? liveDownMultiplier : 2.08} decimals={2} suffix="×" />
-                          </strong>
-                        </div>
-                      </div>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0 2px' }}>
-                        <span style={{ fontSize: 9, color: 'var(--text-secondary)', fontFamily: 'var(--font-mono)', letterSpacing: '0.06em' }}>POOL SIZE</span>
-                        <span style={{ fontSize: 10, fontFamily: 'var(--font-mono)', color: 'rgba(255,255,255,0.55)' }}>
-                          {liveTotalPool > 0n ? `${(Number(liveTotalPool) / 1e18).toFixed(4)} ${balanceSymbol}` : `0.0000 ${balanceSymbol}`}
-                        </span>
-                      </div>
-                    </div>
-                  )}
                 </div>
               ) : (
+                // Settled round — show outcome summary
                 prevRound && (
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                     {hasPlacedPrevBet && prevUserBet ? (
@@ -1017,8 +1033,8 @@ export function BettingPanel({ currentBtcPrice: _unusedProps }: { currentBtcPric
                 )
               )}
 
-              {/* Claim actions */}
-              {!(prevMarketStatus === 'OPEN' || prevMarketStatus === 'LOCKED' || prevMarketStatus === 'SETTLING') && hasPlacedPrevBet && prevUserBet && (
+              {/* Claim actions — only show when prevRound is resolved/canceled, not live */}
+              {!isLiveRoundSettling && hasPlacedPrevBet && prevUserBet && (
                 <div style={{ borderTop: '1px solid rgba(255,255,255,0.06)', paddingTop: 10, display: 'flex', flexDirection: 'column', gap: 6 }}>
                   {isClaimable && !prevUserBet.claimed && (
                     <button
