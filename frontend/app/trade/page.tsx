@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import dynamic from 'next/dynamic';
-import { useAccount } from 'wagmi';
+import { useAccount, useWriteContract, useWaitForTransactionReceipt } from 'wagmi';
 import { BettingPanel } from '@/components/BettingPanel';
 import { ScrollFade } from '@/components/ScrollFade';
 import { Button } from '@/components/ui/Button';
@@ -12,6 +12,11 @@ import { TradingPanel } from '@/components/trade/TradingPanel';
 import { PriceTicker } from '@/components/trade/PriceTicker';
 import { PositionsTable } from '@/components/PositionsTable';
 import { MarketProvider, useMarket } from '@/lib/marketStore';
+import { ROUND_MARKET_ABI } from '@/lib/abi';
+import { useContracts } from '@/hooks/useNetworkConfig';
+import { PortfolioView } from '@/components/trade/PortfolioView';
+import { LeaderboardView } from '@/components/trade/LeaderboardView';
+import { HistoryView } from '@/components/trade/HistoryView';
 
 function CountdownText() {
   const { timeLeftToLock, timeLeftToEnd, marketStatus } = useMarket();
@@ -130,6 +135,21 @@ function DesktopTradingOnly() {
 
 function TerminalClient() {
   const [windowWidth, setWindowWidth] = useState(window.innerWidth);
+  const [activeTab, setActiveTab] = useState('Live Market');
+  const contracts = useContracts();
+  const MARKET_ADDRESS = contracts.predictionMarket;
+
+  const { writeContract, data: txHash } = useWriteContract();
+  const { isLoading: isConfirming } = useWaitForTransactionReceipt({ hash: txHash });
+
+  const handleClaim = (roundId: bigint) => {
+    writeContract({
+      address: MARKET_ADDRESS,
+      abi: ROUND_MARKET_ABI,
+      functionName: 'claim',
+      args: [roundId],
+    });
+  };
 
   useEffect(() => {
     const handleResize = () => setWindowWidth(window.innerWidth);
@@ -147,7 +167,7 @@ function TerminalClient() {
 
   return (
     <div style={{ position: 'relative', height: '100vh', display: 'flex', flexDirection: 'column', background: '#000000', color: '#ffffff', overflow: 'hidden', width: '100%', maxWidth: '100%' }}>
-      <TradeHeader />
+      <TradeHeader activeTab={activeTab} setActiveTab={setActiveTab} />
 
       <div style={{ display: 'flex', alignItems: 'center', gap: 32, padding: '12px 24px', borderBottom: '1px solid rgba(255, 255, 255, 0.05)', background: 'rgba(255, 255, 255, 0.01)', fontSize: 12, overflowX: 'auto', whiteSpace: 'nowrap', margin: '16px 24px 0 24px', borderRadius: '12px', border: '1px solid rgba(255, 255, 255, 0.05)' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -174,7 +194,8 @@ function TerminalClient() {
         <div style={{ flexGrow: 1 }} />
       </div>
 
-      <div style={{ flex: 1, display: 'flex', padding: '16px 24px 24px 24px', gap: 16, minHeight: 0, boxSizing: 'border-box' }}>
+      {/* Live Market View (kept alive with display none) */}
+      <div style={{ display: activeTab === 'Live Market' ? 'flex' : 'none', flex: 1, padding: '16px 24px 24px 24px', gap: 16, minHeight: 0, boxSizing: 'border-box' }}>
         {/* Left Section: Chart (Top) + Positions (Bottom) */}
         <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 16, minHeight: 0, overflow: 'hidden' }}>
           <div style={{ flex: '6 1 0', minHeight: 0 }}>
@@ -189,6 +210,19 @@ function TerminalClient() {
         <div style={{ width: '380px', flexShrink: 0, display: 'flex', flexDirection: 'column', minHeight: 0 }}>
           <BettingPanel currentBtcPrice={btcPrice} />
         </div>
+      </div>
+
+      {/* Other Views (Portfolio, Leaderboard, History) */}
+      <div style={{ display: activeTab !== 'Live Market' ? 'block' : 'none', flex: 1, padding: '16px 24px 24px 24px', overflowY: 'auto', minHeight: 0, boxSizing: 'border-box' }}>
+        {activeTab === 'Portfolio' && (
+          <PortfolioView onClaim={handleClaim} claimPending={isConfirming} />
+        )}
+        {activeTab === 'Leaderboard' && (
+          <LeaderboardView />
+        )}
+        {activeTab === 'History' && (
+          <HistoryView />
+        )}
       </div>
     </div>
   );

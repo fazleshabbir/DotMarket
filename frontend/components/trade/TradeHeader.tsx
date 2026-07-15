@@ -4,9 +4,12 @@ import React, { memo, useState } from 'react';
 import Link from 'next/link';
 import { ConnectButton } from '../ConnectButton';
 
-export const TradeHeader = memo(function TradeHeader() {
-  const [activeTab, setActiveTab] = useState('Trade');
+interface TradeHeaderProps {
+  activeTab: string;
+  setActiveTab: (tab: string) => void;
+}
 
+export const TradeHeader = memo(function TradeHeader({ activeTab, setActiveTab }: TradeHeaderProps) {
   return (
     <header
       style={{
@@ -54,7 +57,7 @@ export const TradeHeader = memo(function TradeHeader() {
             alignItems: 'center',
           }}
         >
-          {['Trade', 'Leaderboard', 'Portfolio'].map((tab) => {
+          {['Live Market', 'Portfolio', 'Leaderboard', 'History'].map((tab) => {
             const isActive = activeTab === tab;
             return (
               <a
