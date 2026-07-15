@@ -318,11 +318,6 @@ function TradeTerminal() {
     </div>
   );
 }
-
-export default function TradePage() {
-  return (
-    <MarketProvider>
-      <TradeTerminal />
-    </MarketProvider>
-  );
+export default function TradeTerminalPage() {
+  return <TradeTerminal />;
 }

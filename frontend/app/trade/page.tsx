@@ -205,9 +205,5 @@ const DynamicTerminalClient = dynamic(() => Promise.resolve(TerminalClient), {
 });
 
 export default function TradePage() {
-  return (
-    <MarketProvider>
-      <DynamicTerminalClient />
-    </MarketProvider>
-  );
+  return <DynamicTerminalClient />;
 }
