@@ -16,7 +16,6 @@ import { ROUND_MARKET_ABI } from '@/lib/abi';
 import { useContracts } from '@/hooks/useNetworkConfig';
 import { PortfolioView } from '@/components/trade/PortfolioView';
 import { LeaderboardView } from '@/components/trade/LeaderboardView';
-import { HistoryView } from '@/components/trade/HistoryView';
 
 function CountdownText() {
   const { timeLeftToLock, timeLeftToEnd, marketStatus } = useMarket();
@@ -212,16 +211,13 @@ function TerminalClient() {
         </div>
       </div>
 
-      {/* Other Views (Portfolio, Leaderboard, History) */}
+      {/* Other Views (Portfolio, Leaderboard) */}
       <div style={{ display: activeTab !== 'Live Market' ? 'block' : 'none', flex: 1, padding: '16px 24px 24px 24px', overflowY: 'auto', minHeight: 0, boxSizing: 'border-box' }}>
         {activeTab === 'Portfolio' && (
           <PortfolioView onClaim={handleClaim} claimPending={isConfirming} />
         )}
         {activeTab === 'Leaderboard' && (
           <LeaderboardView />
-        )}
-        {activeTab === 'History' && (
-          <HistoryView />
         )}
       </div>
     </div>

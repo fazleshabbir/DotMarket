@@ -1,333 +1,299 @@
 'use client';
 
-import React, { useState, useMemo } from 'react';
-import { useAccount } from 'wagmi';
-import { Card } from '../ui/Card';
-import { Button } from '../ui/Button';
-import { Table, TableRow, TableCell } from '../ui/Table';
+import React, { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
-import { Trophy, TrendingUp, BarChart2, Flame, Award, ChevronLeft, ChevronRight, Zap } from 'lucide-react';
+import { Trophy, Lock, Zap, Users, BarChart2, ArrowUpRight } from 'lucide-react';
 
-interface LeaderboardUser {
-  rank: number;
-  wallet: string;
-  winRate: string;
-  pnl: string;
-  roi: string;
-  volume: string;
-  markets: number;
-  streak: number;
-  avgBet: string;
-  lastActive: string;
+const FEATURES = [
+  {
+    icon: <Trophy size={18} />,
+    title: 'Global Rankings',
+    desc: 'Compete with traders worldwide ranked by win rate, PnL, and total volume.',
+  },
+  {
+    icon: <BarChart2 size={18} />,
+    title: 'Performance Analytics',
+    desc: 'Drill into prediction accuracy, streak data, and profit metrics per trader.',
+  },
+  {
+    icon: <Users size={18} />,
+    title: 'Social Profiles',
+    desc: 'Follow top predictors, study their strategies, and track their live positions.',
+  },
+  {
+    icon: <Zap size={18} />,
+    title: 'Reward Seasons',
+    desc: 'Earn protocol rewards and exclusive NFTs based on your seasonal ranking.',
+  },
+];
+
+// Animated orbital dots around the trophy
+function OrbitalRing({ radius, duration, dotCount = 3, opacity = 0.15 }: {
+  radius: number; duration: number; dotCount?: number; opacity?: number;
+}) {
+  return (
+    <div style={{ position: 'absolute', inset: 0, pointerEvents: 'none' }}>
+      {Array.from({ length: dotCount }).map((_, i) => {
+        const angle  = (i / dotCount) * 360;
+        const delay  = (i / dotCount) * -duration;
+        const size   = i === 0 ? 5 : 3;
+        return (
+          <div key={i} style={{
+            position: 'absolute',
+            top: '50%', left: '50%',
+            width: size, height: size,
+            marginTop: -size / 2, marginLeft: -size / 2,
+            borderRadius: '50%',
+            background: '#fff',
+            opacity,
+            animation: `orbit${radius} ${duration}s linear infinite`,
+            animationDelay: `${delay}s`,
+            transformOrigin: `0 0`,
+            transform: `rotate(${angle}deg) translateX(${radius}px)`,
+          }} />
+        );
+      })}
+    </div>
+  );
+}
+
+// Animated scan-line grid
+function GridBackground() {
+  return (
+    <div style={{ position: 'absolute', inset: 0, pointerEvents: 'none', overflow: 'hidden' }}>
+      {/* Vertical lines */}
+      {Array.from({ length: 12 }).map((_, i) => (
+        <div key={`v${i}`} style={{
+          position: 'absolute',
+          top: 0, bottom: 0,
+          left: `${(i / 12) * 100}%`,
+          width: 1,
+          background: 'rgba(255,255,255,0.03)',
+        }} />
+      ))}
+      {/* Horizontal lines */}
+      {Array.from({ length: 8 }).map((_, i) => (
+        <div key={`h${i}`} style={{
+          position: 'absolute',
+          left: 0, right: 0,
+          top: `${(i / 8) * 100}%`,
+          height: 1,
+          background: 'rgba(255,255,255,0.03)',
+        }} />
+      ))}
+      {/* Radial fade overlay */}
+      <div style={{
+        position: 'absolute', inset: 0,
+        background: 'radial-gradient(ellipse 70% 70% at 50% 40%, transparent 0%, #000 80%)',
+      }} />
+    </div>
+  );
+}
+
+// Fake leaderboard skeleton rows for depth
+function SkeletonRow({ rank, delay }: { rank: number; delay: number }) {
+  const widths = [40, 55, 48, 35, 50, 38];
+  return (
+    <motion.div
+      initial={{ opacity: 0, x: -8 }}
+      animate={{ opacity: 1, x: 0 }}
+      transition={{ delay, duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
+      style={{
+        display: 'grid',
+        gridTemplateColumns: '32px 1fr 80px 80px 80px 60px',
+        gap: 12,
+        padding: '14px 20px',
+        borderBottom: '1px solid rgba(255,255,255,0.04)',
+        alignItems: 'center',
+        filter: 'blur(3px)',
+        opacity: 0.35 - rank * 0.04,
+      }}
+    >
+      <div style={{ fontSize: 12, fontFamily: 'var(--font-mono)', color: 'rgba(255,255,255,0.3)', textAlign: 'center' }}>
+        {rank}
+      </div>
+      {widths.map((w, i) => (
+        <div key={i} style={{
+          height: 10, borderRadius: 4,
+          background: 'rgba(255,255,255,0.08)',
+          width: `${w}%`,
+          animation: `shimmer 2s ease-in-out infinite`,
+          animationDelay: `${i * 0.15}s`,
+        }} />
+      ))}
+    </motion.div>
+  );
 }
 
 export function LeaderboardView() {
-  const { address, isConnected } = useAccount();
-  
-  const [activeRange, setActiveRange] = useState<'today' | 'weekly' | 'monthly' | 'alltime'>('weekly');
-  const [sortBy, setSortBy] = useState<'roi' | 'volume' | 'winrate'>('roi');
-  const [currentPage, setCurrentPage] = useState(1);
+  const [glowPhase, setGlowPhase] = useState(false);
 
-  // Generate realistic leaderboard ranking data
-  const tradersList: LeaderboardUser[] = useMemo(() => {
-    const list: LeaderboardUser[] = [
-      { rank: 1, wallet: '0x7a8d...f302', winRate: '78.4%', pnl: '+4,820.00 USD', roi: '+24.5%', volume: '19,670 USD', markets: 112, streak: 8, avgBet: '175.60', lastActive: '2s ago' },
-      { rank: 2, wallet: '0x32cf...998a', winRate: '74.1%', pnl: '+3,950.40 USD', roi: '+19.8%', volume: '19,950 USD', markets: 98, streak: 5, avgBet: '203.50', lastActive: '1m ago' },
-      { rank: 3, wallet: '0x9d20...112e', winRate: '72.8%', pnl: '+3,120.00 USD', roi: '+18.2%', volume: '17,140 USD', markets: 142, streak: 3, avgBet: '120.70', lastActive: '4s ago' },
-      { rank: 4, wallet: '0x0d3c...2f0d', winRate: '68.5%', pnl: '+2,450.00 USD', roi: '+15.4%', volume: '15,900 USD', markets: 76, streak: 4, avgBet: '209.20', lastActive: '14m ago' },
-      { rank: 5, wallet: '0x88bb...001c', winRate: '65.2%', pnl: '+1,980.50 USD', roi: '+14.2%', volume: '13,940 USD', markets: 88, streak: 2, avgBet: '158.40', lastActive: '22m ago' },
-      { rank: 6, wallet: '0xef02...771c', winRate: '63.9%', pnl: '+1,820.30 USD', roi: '+12.9%', volume: '14,100 USD', markets: 95, streak: 0, avgBet: '148.40', lastActive: '1h ago' },
-      { rank: 7, wallet: '0x10d3...82ab', winRate: '61.4%', pnl: '+1,540.20 USD', roi: '+11.8%', volume: '12,500 USD', markets: 72, streak: 1, avgBet: '173.60', lastActive: '2h ago' },
-      { rank: 8, wallet: '0x3a4b...e010', winRate: '59.7%', pnl: '+1,120.00 USD', roi: '+10.4%', volume: '10,750 USD', markets: 60, streak: 3, avgBet: '179.10', lastActive: '4h ago' },
-      { rank: 9, wallet: '0x9cf2...ee02', winRate: '58.2%', pnl: '+980.40 USD', roi: '+9.2%', volume: '10,650 USD', markets: 85, streak: 0, avgBet: '125.30', lastActive: '5h ago' },
-      { rank: 10, wallet: '0x712a...0b9c', winRate: '57.8%', pnl: '+890.00 USD', roi: '+8.7%', volume: '10,250 USD', markets: 54, streak: 2, avgBet: '164.80', lastActive: '6h ago' },
-    ];
-
-    // If wallet is connected, dynamically inject the user as Rank 12 on the board to showcase personalized rankings!
-    if (isConnected && address) {
-      const userRank: LeaderboardUser = {
-        rank: 12,
-        wallet: address.slice(0, 6) + '...' + address.slice(-4) + ' (You)',
-        winRate: '68.2%',
-        pnl: '+382.40 USD',
-        roi: '+18.4%',
-        volume: '2,080 USD',
-        markets: 38,
-        streak: 2,
-        avgBet: '45.00',
-        lastActive: 'Just now'
-      };
-      // Keep it in sorted position or place at rank 12
-      list.push(userRank);
-    }
-    
-    return list;
-  }, [isConnected, address]);
-
-  // Extract Podium (Top 3)
-  const podiumTraders = useMemo(() => {
-    // Top 3 always taken from base rankings
-    return tradersList.slice(0, 3);
-  }, [tradersList]);
-
-  // Extract rest of table ranking list
-  const remainingTraders = useMemo(() => {
-    return tradersList.slice(3);
-  }, [tradersList]);
+  useEffect(() => {
+    const id = setInterval(() => setGlowPhase(p => !p), 2400);
+    return () => clearInterval(id);
+  }, []);
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '24px', width: '100%', boxSizing: 'border-box' }}>
-      
-      {/* ── 1. Header ─────────────────────────────────────────────── */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '16px' }}>
-        <div>
-          <h2 style={{ fontSize: '24px', fontWeight: 300, fontFamily: "'Cormorant Garamond', serif", color: '#ffffff', margin: 0 }}>
-            Platform Leaderboard
-          </h2>
-          <span style={{ fontSize: '11px', color: 'var(--text-secondary)', fontFamily: 'var(--font-mono)' }}>
-            Season 1 Active • Dynamic prize pool calculations live
-          </span>
-        </div>
+    <div style={{ minHeight: '75vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', position: 'relative', overflow: 'hidden' }}>
+      <GridBackground />
 
-        {/* Global Time Filter */}
-        <div style={{ display: 'flex', background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.05)', borderRadius: '20px', padding: '3px 6px', gap: '4px' }}>
-          {[
-            { id: 'today', label: 'Today' },
-            { id: 'weekly', label: 'Weekly' },
-            { id: 'monthly', label: 'Monthly' },
-            { id: 'alltime', label: 'All Time' }
-          ].map((range) => (
-            <button
-              key={range.id}
-              onClick={() => setActiveRange(range.id as any)}
-              style={{
-                background: activeRange === range.id ? '#ffffff' : 'transparent',
-                color: activeRange === range.id ? '#000000' : 'rgba(255,255,255,0.6)',
-                border: 'none',
-                borderRadius: '16px',
-                padding: '6px 12px',
-                fontSize: '11px',
-                fontWeight: 600,
-                cursor: 'pointer',
-                transition: 'all 200ms ease'
-              }}
-            >
-              {range.label}
-            </button>
+      <style>{`
+        @keyframes orbit120 {
+          from { transform: rotate(var(--start-angle)) translateX(120px) rotate(calc(-1 * var(--start-angle))); }
+          to   { transform: rotate(calc(var(--start-angle) + 360deg)) translateX(120px) rotate(calc(-1 * (var(--start-angle) + 360deg))); }
+        }
+        @keyframes shimmer {
+          0%, 100% { opacity: 0.4; }
+          50%        { opacity: 0.8; }
+        }
+        @keyframes floatTrophy {
+          0%, 100% { transform: translateY(0px); }
+          50%       { transform: translateY(-8px); }
+        }
+        @keyframes ringRotate {
+          from { transform: rotate(0deg); }
+          to   { transform: rotate(360deg); }
+        }
+        @keyframes ringRotateRev {
+          from { transform: rotate(0deg); }
+          to   { transform: rotate(-360deg); }
+        }
+        @keyframes spinSlow {
+          from { transform: rotate(0deg); }
+          to   { transform: rotate(360deg); }
+        }
+      `}</style>
+
+      {/* ── Blurred skeleton leaderboard behind ── */}
+      <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', justifyContent: 'center', padding: '0 10%', pointerEvents: 'none' }}>
+        <div style={{
+          border: '1px solid rgba(255,255,255,0.05)',
+          borderRadius: 16,
+          overflow: 'hidden',
+          background: 'rgba(255,255,255,0.01)',
+          maxWidth: 700, margin: '0 auto', width: '100%',
+        }}>
+          {/* Fake header */}
+          <div style={{ padding: '12px 20px', background: 'rgba(255,255,255,0.02)', borderBottom: '1px solid rgba(255,255,255,0.05)', display: 'grid', gridTemplateColumns: '32px 1fr 80px 80px 80px 60px', gap: 12 }}>
+            {['#', 'TRADER', 'WIN RATE', 'TOTAL PNL', 'VOLUME', 'BETS'].map((h, i) => (
+              <div key={i} style={{ height: 8, borderRadius: 4, background: 'rgba(255,255,255,0.06)', width: i === 1 ? '50%' : '70%' }} />
+            ))}
+          </div>
+          {Array.from({ length: 7 }).map((_, i) => (
+            <SkeletonRow key={i} rank={i + 1} delay={i * 0.06} />
           ))}
         </div>
       </div>
 
-      {/* ── 2. Top Three Podium Cards ────────────────────────────── */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '20px', alignItems: 'end', marginTop: '12px' }}>
-        {/* Render 2nd place on left, 1st place in middle (taller), 3rd place on right */}
-        {[podiumTraders[1], podiumTraders[0], podiumTraders[2]].map((trader, idx) => {
-          if (!trader) return null;
-          const isFirst = trader.rank === 1;
-          return (
+      {/* ── Main "Coming Soon" card ── */}
+      <motion.div
+        initial={{ opacity: 0, y: 20, scale: 0.96 }}
+        animate={{ opacity: 1, y: 0, scale: 1 }}
+        transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
+        style={{
+          position: 'relative',
+          zIndex: 10,
+          maxWidth: 520,
+          width: '100%',
+          background: 'rgba(6, 6, 6, 0.85)',
+          backdropFilter: 'blur(32px)',
+          WebkitBackdropFilter: 'blur(32px)',
+          border: '1px solid rgba(255,255,255,0.1)',
+          borderRadius: 24,
+          padding: '44px 40px',
+          boxShadow: '0 32px 80px rgba(0,0,0,0.8), inset 0 1px 0 rgba(255,255,255,0.07)',
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          gap: 28,
+          textAlign: 'center',
+        }}
+      >
+        {/* Trophy icon with orbital rings */}
+        <div style={{ position: 'relative', width: 100, height: 100, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          {/* Outer orbital ring SVG */}
+          <svg width={100} height={100} style={{ position: 'absolute', animation: 'ringRotate 12s linear infinite' }}>
+            <circle cx={50} cy={50} r={46} fill="none" stroke="rgba(255,255,255,0.06)" strokeWidth={1} strokeDasharray="4 8" />
+          </svg>
+          <svg width={80} height={80} style={{ position: 'absolute', animation: 'ringRotateRev 8s linear infinite' }}>
+            <circle cx={40} cy={40} r={36} fill="none" stroke="rgba(255,255,255,0.04)" strokeWidth={1} strokeDasharray="2 6" />
+          </svg>
+
+          {/* Trophy center */}
+          <div style={{
+            width: 64, height: 64, borderRadius: '50%',
+            background: 'rgba(255,255,255,0.05)',
+            border: '1px solid rgba(255,255,255,0.12)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            boxShadow: glowPhase
+              ? '0 0 30px rgba(255,255,255,0.12), inset 0 1px 0 rgba(255,255,255,0.1)'
+              : '0 0 10px rgba(255,255,255,0.04), inset 0 1px 0 rgba(255,255,255,0.06)',
+            transition: 'box-shadow 1.2s ease',
+            animation: 'floatTrophy 4s ease-in-out infinite',
+          }}>
+            <Trophy size={26} style={{ color: '#ffffff' }} />
+          </div>
+        </div>
+
+        {/* Lock badge */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 20, padding: '5px 14px' }}>
+          <Lock size={10} style={{ color: 'rgba(255,255,255,0.5)' }} />
+          <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.1em', color: 'rgba(255,255,255,0.5)' }}>COMING SOON</span>
+        </div>
+
+        {/* Heading */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+          <h2 style={{ margin: 0, fontSize: 32, fontWeight: 300, fontFamily: "'Cormorant Garamond', serif", color: '#ffffff', lineHeight: 1.1 }}>
+            Leaderboard
+          </h2>
+          <p style={{ margin: 0, fontSize: 14, color: 'rgba(255,255,255,0.45)', lineHeight: 1.6, maxWidth: 380 }}>
+            On-chain rankings are being indexed from the contract. The leaderboard will go live once enough round data is collected.
+          </p>
+        </div>
+
+        {/* Feature grid */}
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, width: '100%' }}>
+          {FEATURES.map((f, i) => (
             <motion.div
-              key={trader.rank}
-              initial={{ opacity: 0, y: 24 }}
+              key={i}
+              initial={{ opacity: 0, y: 8 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: idx * 0.1, type: 'spring', stiffness: 100 }}
+              transition={{ delay: 0.2 + i * 0.08, duration: 0.35 }}
               style={{
-                background: 'rgba(5, 5, 5, 0.4)',
-                border: isFirst ? '1.5px solid #ffffff' : '1px solid rgba(255, 255, 255, 0.05)',
-                borderRadius: '16px',
-                padding: '24px',
+                background: 'rgba(255,255,255,0.02)',
+                border: '1px solid rgba(255,255,255,0.06)',
+                borderRadius: 12,
+                padding: '14px 16px',
                 display: 'flex',
                 flexDirection: 'column',
-                alignItems: 'center',
-                textAlign: 'center',
-                position: 'relative',
-                boxShadow: isFirst ? '0 10px 40px rgba(255,255,255,0.03)' : 'none',
-                height: isFirst ? '260px' : '220px',
-                justifyContent: 'center',
-                gap: '8px'
+                gap: 6,
+                textAlign: 'left',
               }}
             >
-              {/* Rank Medal Indicator */}
-              <div style={{
-                position: 'absolute',
-                top: '-16px',
-                width: '32px',
-                height: '32px',
-                borderRadius: '50%',
-                background: isFirst ? '#ffffff' : 'rgba(10, 10, 10, 0.9)',
-                color: isFirst ? '#000000' : '#ffffff',
-                border: '1px solid rgba(255, 255, 255, 0.1)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                fontSize: '13px',
-                fontWeight: 800,
-                fontFamily: 'var(--font-mono)'
-              }}>
-                {trader.rank}
-              </div>
-
-              <span style={{ fontSize: '11px', color: 'rgba(255,255,255,0.4)', fontFamily: 'var(--font-mono)' }}>
-                {trader.wallet}
-              </span>
-              
-              <div style={{ fontSize: '24px', fontWeight: 300, fontFamily: 'var(--font-mono)', margin: '8px 0', color: isFirst ? '#ffffff' : 'rgba(255,255,255,0.85)' }}>
-                {trader.pnl}
-              </div>
-
-              {/* Stats Grid */}
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', width: '100%', borderTop: '1px solid rgba(255,255,255,0.04)', paddingTop: '12px', fontSize: '11px' }}>
-                <div>
-                  <div style={{ color: 'var(--text-secondary)' }}>WIN RATE</div>
-                  <strong style={{ color: '#ffffff', fontFamily: 'var(--font-mono)' }}>{trader.winRate}</strong>
-                </div>
-                <div>
-                  <div style={{ color: 'var(--text-secondary)' }}>ROI</div>
-                  <strong style={{ color: '#ffffff', fontFamily: 'var(--font-mono)' }}>{trader.roi}</strong>
-                </div>
-              </div>
+              <div style={{ color: 'rgba(255,255,255,0.4)' }}>{f.icon}</div>
+              <div style={{ fontSize: 12, fontWeight: 700, color: '#fff' }}>{f.title}</div>
+              <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.35)', lineHeight: 1.5 }}>{f.desc}</div>
             </motion.div>
-          );
-        })}
-      </div>
-
-      {/* ── 3. User Personal Ranking Summary ──────────────────────── */}
-      {isConnected && (
-        <div style={{
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          flexWrap: 'wrap',
-          background: 'rgba(255, 255, 255, 0.02)',
-          border: '1px solid rgba(255,255,255,0.06)',
-          borderRadius: '12px',
-          padding: '16px 24px',
-          gap: '20px',
-          marginTop: '12px'
-        }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-            <Trophy size={20} style={{ color: '#ffffff' }} />
-            <div>
-              <div style={{ fontSize: '11px', color: 'var(--text-secondary)', textTransform: 'uppercase' }}>Your Current Rank</div>
-              <strong style={{ fontSize: '16px', color: '#ffffff', fontFamily: 'var(--font-mono)' }}>#12 of 1,280</strong>
-            </div>
-          </div>
-
-          <div style={{ display: 'flex', gap: '40px', flexWrap: 'wrap' }}>
-            <div>
-              <span style={{ fontSize: '10px', color: 'var(--text-secondary)' }}>YOUR PNL</span>
-              <div style={{ fontSize: '13px', fontWeight: 700, fontFamily: 'var(--font-mono)', color: '#ffffff' }}>+382.40 USD</div>
-            </div>
-            <div>
-              <span style={{ fontSize: '10px', color: 'var(--text-secondary)' }}>YOUR ROI</span>
-              <div style={{ fontSize: '13px', fontWeight: 700, fontFamily: 'var(--font-mono)', color: '#ffffff' }}>+18.4%</div>
-            </div>
-            <div>
-              <span style={{ fontSize: '10px', color: 'var(--text-secondary)' }}>YOUR WIN RATE</span>
-              <div style={{ fontSize: '13px', fontWeight: 700, fontFamily: 'var(--font-mono)', color: '#ffffff' }}>68.2%</div>
-            </div>
-          </div>
-
-          {/* Progress bar to next rank */}
-          <div style={{ flexGrow: 1, maxWidth: '280px', display: 'flex', flexDirection: 'column', gap: '6px' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '10px', color: 'var(--text-secondary)' }}>
-              <span>PROGRESS TO RANK #10</span>
-              <strong style={{ color: '#ffffff' }}>74%</strong>
-            </div>
-            <div style={{ width: '100%', height: '4px', background: 'rgba(255,255,255,0.05)', borderRadius: '2px', overflow: 'hidden' }}>
-              <div style={{ width: '74%', height: '100%', background: '#ffffff', borderRadius: '2px' }} />
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* ── 4. Full Leaderboard Table ──────────────────────────────── */}
-      <div className="premium-card" style={{ padding: 0, border: '1px solid rgba(255, 255, 255, 0.05)', borderRadius: '12px', background: 'rgba(5, 5, 5, 0.2)' }}>
-        
-        {/* Table Filters header */}
-        <div style={{ padding: '16px 20px', borderBottom: '1px solid rgba(255, 255, 255, 0.05)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px' }}>
-          <span style={{ fontSize: '12px', fontWeight: 700, letterSpacing: '0.05em' }}>RANKINGS</span>
-          
-          <div style={{ display: 'flex', gap: '8px' }}>
-            {[
-              { id: 'roi', label: 'ROI' },
-              { id: 'volume', label: 'VOLUME' },
-              { id: 'winrate', label: 'WIN RATE' }
-            ].map((filter) => (
-              <button
-                key={filter.id}
-                onClick={() => setSortBy(filter.id as any)}
-                style={{
-                  background: sortBy === filter.id ? '#ffffff' : 'rgba(255,255,255,0.02)',
-                  color: sortBy === filter.id ? '#000000' : 'rgba(255,255,255,0.6)',
-                  border: '1px solid rgba(255,255,255,0.06)',
-                  borderRadius: '12px',
-                  padding: '4px 12px',
-                  fontSize: '9px',
-                  fontWeight: 600,
-                  cursor: 'pointer'
-                }}
-              >
-                {filter.label}
-              </button>
-            ))}
-          </div>
+          ))}
         </div>
 
-        {/* Table Data */}
-        <div style={{ overflowX: 'auto' }}>
-          <Table headers={['RANK', 'WALLET', 'WIN RATE', 'PNL', 'ROI', 'VOLUME', 'ACTIVE PREDICTIONS', 'STREAK', 'AVG ENTRY', 'LAST ACTIVE']}>
-            {remainingTraders.map((trader) => {
-              const isCurrentUser = trader.wallet.includes('(You)');
-              return (
-                <TableRow
-                  key={trader.rank}
-                  style={{
-                    background: isCurrentUser ? 'rgba(255, 255, 255, 0.02)' : 'transparent',
-                    borderLeft: isCurrentUser ? '2px solid #ffffff' : '2px solid transparent'
-                  }}
-                >
-                  <TableCell style={{ fontFamily: 'var(--font-mono)', fontWeight: 700 }}>#{trader.rank}</TableCell>
-                  <TableCell style={{ fontFamily: 'var(--font-mono)', color: isCurrentUser ? '#ffffff' : 'var(--text-secondary)' }}>
-                    {trader.wallet}
-                  </TableCell>
-                  <TableCell style={{ fontFamily: 'var(--font-mono)' }}>{trader.winRate}</TableCell>
-                  <TableCell style={{ fontFamily: 'var(--font-mono)', color: '#ffffff' }}>{trader.pnl}</TableCell>
-                  <TableCell style={{ fontFamily: 'var(--font-mono)' }}>{trader.roi}</TableCell>
-                  <TableCell style={{ fontFamily: 'var(--font-mono)' }}>{trader.volume}</TableCell>
-                  <TableCell style={{ fontFamily: 'var(--font-mono)' }}>{trader.markets}</TableCell>
-                  <TableCell>
-                    {trader.streak > 0 ? (
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '4px', color: '#ffffff' }}>
-                        <Flame size={12} fill="#ffffff" />
-                        <span style={{ fontSize: '11px', fontFamily: 'var(--font-mono)', fontWeight: 700 }}>{trader.streak}</span>
-                      </div>
-                    ) : (
-                      <span style={{ color: 'rgba(255,255,255,0.2)' }}>—</span>
-                    )}
-                  </TableCell>
-                  <TableCell style={{ fontFamily: 'var(--font-mono)' }}>{trader.avgBet} USD</TableCell>
-                  <TableCell style={{ fontSize: '10px', color: 'var(--text-secondary)' }}>{trader.lastActive}</TableCell>
-                </TableRow>
-              );
-            })}
-          </Table>
+        {/* Divider */}
+        <div style={{ width: '100%', height: 1, background: 'rgba(255,255,255,0.06)' }} />
+
+        {/* Footer */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 6, alignItems: 'center' }}>
+          <p style={{ margin: 0, fontSize: 12, color: 'rgba(255,255,255,0.3)' }}>
+            Continue trading to contribute to the rankings data.
+          </p>
+          <a
+            href="#"
+            onClick={e => { e.preventDefault(); }}
+            style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 12, color: 'rgba(255,255,255,0.55)', textDecoration: 'none', fontWeight: 600, transition: 'color 150ms' }}
+          >
+            Go to Live Market <ArrowUpRight size={13} />
+          </a>
         </div>
-
-        {/* Sticky Table Pagination Footer */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '16px 20px', borderTop: '1px solid rgba(255, 255, 255, 0.05)', fontSize: '11px', color: 'var(--text-secondary)' }}>
-          <span>Showing 7 rankings (page 1 of 1)</span>
-          <div style={{ display: 'flex', gap: '8px' }}>
-            <Button variant="secondary" size="sm" disabled style={{ padding: '6px 10px', display: 'flex', alignItems: 'center', borderRadius: '8px' }}>
-              <ChevronLeft size={14} />
-            </Button>
-            <Button variant="secondary" size="sm" disabled style={{ padding: '6px 10px', display: 'flex', alignItems: 'center', borderRadius: '8px' }}>
-              <ChevronRight size={14} />
-            </Button>
-          </div>
-        </div>
-
-      </div>
-
+      </motion.div>
     </div>
   );
 }

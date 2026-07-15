@@ -57,7 +57,7 @@ export const TradeHeader = memo(function TradeHeader({ activeTab, setActiveTab }
             alignItems: 'center',
           }}
         >
-          {['Live Market', 'Portfolio', 'Leaderboard', 'History'].map((tab) => {
+          {['Live Market', 'Portfolio', 'Leaderboard'].map((tab) => {
             const isActive = activeTab === tab;
             return (
               <a
