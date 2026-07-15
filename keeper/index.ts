@@ -572,7 +572,7 @@ const server = httpModule.createServer((req, res) => {
   res.writeHead(200, { "Content-Type": "text/plain" });
   res.end("Keeper is healthy and running\n");
 });
-server.listen(PORT, () => {
+server.listen(Number(PORT), "0.0.0.0", () => {
   log("🌐", `Health-check server on port ${PORT}`);
 });
 
