@@ -6,6 +6,45 @@ import { formatEther } from 'viem';
 import { ROUND_MARKET_ABI } from '@/lib/abi';
 import { useContracts } from '@/hooks/useNetworkConfig';
 
+// ══════════════════════════════════════════════════════════════════════════════
+// DotMarket Engine v2 — Committed-Phase Deterministic Market State Machine
+//
+// ARCHITECTURE:
+//
+// 1. AUTHORITATIVE CLOCK
+//    Single requestAnimationFrame loop producing a second-precision `now`.
+//    Tab backgrounding handled via visibilitychange listener.
+//    No component creates its own timer. Everything derives from `now`.
+//
+// 2. ATOMIC MULTICALL
+//    All on-chain data (3 rounds × round data + multipliers + user bets +
+//    claimable status) is fetched in a single multicall. No split-state
+//    race conditions between round reads.
+//
+// 3. STICKY DATA REFS
+//    When RPC returns nothing (timeout, error), the previous good data is
+//    retained via useRef. RPC failures never erase cached state.
+//
+// 4. IMMUTABLE TIMESTAMP CACHE
+//    On-chain lockTimestamp and endTimestamp are immutable once a round is
+//    created. We cache them on first read. Even if the RPC drops the round
+//    data on subsequent polls, we always have the timestamps.
+//
+// 5. COMMITTED PHASE ENGINE (the core stability fix)
+//    Once we determine the phase ('betting' or 'live'), we COMMIT it with
+//    a deadline (the on-chain lockTimestamp or endTimestamp). The phase is
+//    then LOCKED until that deadline passes. No RPC jitter, no data race,
+//    no momentary undefined value can cause the phase to change.
+//
+//    Phase transitions happen exactly once per market cycle:
+//      betting → live    (when lockTimestamp passes)
+//      live → betting    (when endTimestamp passes and next round opens)
+//
+//    The committed deadline can be EXTENDED (if new data shows a later
+//    timestamp) but NEVER shortened. This eliminates all flickering.
+//
+// ══════════════════════════════════════════════════════════════════════════════
+
 // ── Types ──────────────────────────────────────────────────────────────────────
 interface RoundData {
   roundId: bigint;
@@ -37,7 +76,7 @@ interface Toast {
 
 type MarketStatus = 'OPEN' | 'LOCKED' | 'SETTLING' | 'NEXT ROUND' | 'AWAITING PLAYERS';
 
-// Phase determines which panel the user sees — betting or live
+// Phase determines which panel the user sees — betting or live/settlement
 type Phase = 'betting' | 'live';
 
 interface MarketState {
@@ -66,7 +105,7 @@ interface MarketState {
   pastUserBet: UserBet | undefined;
   isPastClaimable: boolean;
 
-  // Calculated Stats
+  // Calculated Pool Stats
   activeTotalPool: bigint;
   activeUpPercent: number;
   activeDownPercent: number;
@@ -79,18 +118,19 @@ interface MarketState {
   prevUpMultiplier: number;
   prevDownMultiplier: number;
 
-  // Global Time Status for Active Round (currentRoundId)
+  // Global Time Status for Active Round
   timeLeftToLock: number;
   timeLeftToEnd: number;
   marketStatus: MarketStatus;
 
-  // Global Time Status for Previous Round (prevRoundId)
+  // Global Time Status for Previous Round
   prevTimeLeftToLock: number;
   prevTimeLeftToEnd: number;
   prevMarketStatus: MarketStatus;
 
-  // Stable Phase (never flickers — debounced)
+  // Committed Phase (guaranteed stable — never flickers)
   phase: Phase;
+  isBettingOpen: boolean;
 
   // Toast API
   toast: Toast | null;
@@ -101,6 +141,9 @@ interface MarketState {
 const MarketContext = createContext<MarketState | undefined>(undefined);
 
 // ── Deterministic Status Derivation ────────────────────────────────────────────
+// Pure function: (roundId, round, timeLeftToLock, timeLeftToEnd) → MarketStatus
+// This produces the status string for display/labels. The PHASE (which panel to
+// show) is determined separately by the committed phase engine.
 function deriveMarketStatus(
   roundId: bigint,
   round: RoundData | undefined,
@@ -110,16 +153,12 @@ function deriveMarketStatus(
   // No round exists yet (genesis round has not been opened on contract)
   if (roundId === 0n) return 'AWAITING PLAYERS';
 
-  // If round data hasn't loaded yet OR is still returning a stale round during transition:
-  // Since roundId > 0n, we know the round is active/newly opened. Show OPEN so UI never flickers.
-  if (!round || round.roundId !== roundId) {
-    return 'OPEN';
-  }
+  // If round data hasn't loaded yet OR is still returning a stale round:
+  // Show OPEN optimistically (roundId > 0 means a round exists)
+  if (!round || round.roundId !== roundId) return 'OPEN';
 
-  // Canceled rounds always show as refunded / next round (check BEFORE resolved)
+  // Canceled or resolved rounds
   if (round.canceled) return 'NEXT ROUND';
-
-  // Resolved rounds with a clear winner
   if (round.resolved) return 'NEXT ROUND';
 
   // Active lifecycle: OPEN → LOCKED → SETTLING
@@ -129,22 +168,30 @@ function deriveMarketStatus(
   return 'SETTLING';
 }
 
+// ══════════════════════════════════════════════════════════════════════════════
+// MARKET PROVIDER
+// ══════════════════════════════════════════════════════════════════════════════
+
 export function MarketProvider({ children }: { children: React.ReactNode }) {
   const { address } = useAccount();
   const contracts = useContracts();
   const MARKET_ADDRESS = contracts.predictionMarket;
 
-  // ── 1. Authoritative Clock ───────────────────────────────────────────────
-  // Initialize to 0 to avoid SSR hydration mismatch (Date.now() differs server vs client)
+  // ┌──────────────────────────────────────────────────────────────────────────┐
+  // │ 1. AUTHORITATIVE CLOCK                                                  │
+  // │                                                                          │
+  // │ Single source of truth for "what time is it" across the entire app.     │
+  // │ Uses requestAnimationFrame for precise second-boundary detection.       │
+  // │ Recovers immediately when the tab becomes visible after backgrounding.  │
+  // │ Initialize to 0 to avoid SSR hydration mismatch.                        │
+  // └──────────────────────────────────────────────────────────────────────────┘
   const [now, setNow] = useState(0);
 
   useEffect(() => {
-    // Set initial time on client mount
     let lastSecond = Math.floor(Date.now() / 1000);
     setNow(lastSecond);
 
     let animationFrameId: number;
-
     const tick = () => {
       const currentSecond = Math.floor(Date.now() / 1000);
       if (currentSecond !== lastSecond) {
@@ -153,7 +200,6 @@ export function MarketProvider({ children }: { children: React.ReactNode }) {
       }
       animationFrameId = requestAnimationFrame(tick);
     };
-
     animationFrameId = requestAnimationFrame(tick);
 
     // Immediately sync when tab becomes visible (handles sleep, tab switch)
@@ -164,7 +210,6 @@ export function MarketProvider({ children }: { children: React.ReactNode }) {
         lastSecond = currentSecond;
       }
     };
-
     document.addEventListener('visibilitychange', handleVisibilityChange);
 
     return () => {
@@ -173,7 +218,9 @@ export function MarketProvider({ children }: { children: React.ReactNode }) {
     };
   }, []);
 
-  // ── 2. Live Pyth Hermes Price Feed (with Binance Fallback) ────────────────
+  // ┌──────────────────────────────────────────────────────────────────────────┐
+  // │ 2. LIVE PRICE FEED (Pyth Hermes with Binance fallback)                  │
+  // └──────────────────────────────────────────────────────────────────────────┘
   const [btcPrice, setBtcPrice] = useState(0);
   const [twap, setTwap] = useState(0);
   const priceBuffer = useRef<number[]>([]);
@@ -203,7 +250,7 @@ export function MarketProvider({ children }: { children: React.ReactNode }) {
           if (currentPrice > 0) {
             setBtcPrice(currentPrice);
 
-            // Update TWAP buffer
+            // Update TWAP buffer (5-sample moving average)
             priceBuffer.current.push(currentPrice);
             if (priceBuffer.current.length > 5) priceBuffer.current.shift();
             const sum = priceBuffer.current.reduce((a, b) => a + b, 0);
@@ -212,7 +259,7 @@ export function MarketProvider({ children }: { children: React.ReactNode }) {
           }
         }
       } catch (err: any) {
-        if (err?.name === 'AbortError') return; // Cancelled — don't fallback
+        if (err?.name === 'AbortError') return;
         console.warn('Pyth Hermes failed, trying Binance:', err);
       }
 
@@ -249,7 +296,9 @@ export function MarketProvider({ children }: { children: React.ReactNode }) {
     };
   }, []);
 
-  // ── 3. Wallet Balance ────────────────────────────────────────────────────
+  // ┌──────────────────────────────────────────────────────────────────────────┐
+  // │ 3. WALLET BALANCE                                                        │
+  // └──────────────────────────────────────────────────────────────────────────┘
   const { data: balanceData } = useBalance({
     address: address,
     query: { enabled: !!address, refetchInterval: 5000 },
@@ -257,8 +306,14 @@ export function MarketProvider({ children }: { children: React.ReactNode }) {
   const walletBalance = balanceData ? parseFloat(formatEther(balanceData.value)) : 0;
   const balanceSymbol = balanceData?.symbol || 'ETH';
 
-  // ── 4. Contract Polling ──────────────────────────────────────────────────
-  // Fetch currentRoundId
+  // ┌──────────────────────────────────────────────────────────────────────────┐
+  // │ 4. CONTRACT POLLING — ATOMIC MULTICALL                                   │
+  // │                                                                          │
+  // │ All round data is fetched in a SINGLE multicall to prevent split-state  │
+  // │ race conditions. Sticky refs ensure RPC failures don't erase data.      │
+  // └──────────────────────────────────────────────────────────────────────────┘
+
+  // 4a. Fetch currentRoundId
   const { data: roundIdBatch } = useReadContracts({
     contracts: [
       { address: MARKET_ADDRESS, abi: ROUND_MARKET_ABI, functionName: 'currentRoundId' },
@@ -266,8 +321,8 @@ export function MarketProvider({ children }: { children: React.ReactNode }) {
     query: { refetchInterval: 3000 },
   });
 
-  // ▶ STICKY roundId: once it goes above 0, it NEVER regresses back to 0
-  //   This prevents AWAITING PLAYERS flicker when RPC fails or is slow
+  // STICKY roundId: once it goes above 0, it NEVER regresses back to 0.
+  // This prevents 'AWAITING PLAYERS' flicker when RPC fails or is slow.
   const stickyRoundIdRef = useRef(0n);
   const rawRoundId = roundIdBatch?.[0]?.result
     ? BigInt(roundIdBatch[0].result.toString())
@@ -285,7 +340,7 @@ export function MarketProvider({ children }: { children: React.ReactNode }) {
   const userAddress = address || '0x0000000000000000000000000000000000000000' as `0x${string}`;
   const hasAddress = !!address;
 
-  // Batch all round data in a SINGLE multicall (atomic — no race condition between rounds)
+  // 4b. Batch all round data in a SINGLE multicall (atomic — no race conditions)
   const { data: batchData } = useReadContracts({
     contracts: [
       // Active round (indices 0-2)
@@ -309,7 +364,7 @@ export function MarketProvider({ children }: { children: React.ReactNode }) {
     },
   });
 
-  // ▶ STICKY batch data: keep the last good data when RPC returns nothing
+  // STICKY batch data: keep the last good data when RPC returns nothing
   const stickyBatchRef = useRef(batchData);
   if (batchData && batchData.length > 0) {
     stickyBatchRef.current = batchData;
@@ -329,14 +384,16 @@ export function MarketProvider({ children }: { children: React.ReactNode }) {
   const pastUserBet = (hasAddress ? safeBatch?.[9]?.result : undefined) as UserBet | undefined;
   const isPastClaimable = hasAddress ? !!safeBatch?.[10]?.result : false;
 
-  // ── 5. Derived Stats (pure calculations, no state) ───────────────────────
+  // ┌──────────────────────────────────────────────────────────────────────────┐
+  // │ 5. DERIVED POOL & MULTIPLIER STATS (pure calculations, no state)        │
+  // └──────────────────────────────────────────────────────────────────────────┘
+
   // Active Round Stats
   const activeTotalPool = activeRound ? activeRound.totalUpAmount + activeRound.totalDownAmount : 0n;
   const activeUpPercent = activeTotalPool > 0n && activeRound
     ? Number((activeRound.totalUpAmount * 10000n) / activeTotalPool) / 100
     : 50;
   const activeDownPercent = activeTotalPool > 0n ? 100 - activeUpPercent : 50;
-
   const activeUpMultiplier = activeMultipliers ? Number((activeMultipliers as any)[0] || 0n) / 10000 : 0;
   const activeDownMultiplier = activeMultipliers ? Number((activeMultipliers as any)[1] || 0n) / 10000 : 0;
 
@@ -346,112 +403,183 @@ export function MarketProvider({ children }: { children: React.ReactNode }) {
     ? Number((prevRound.totalUpAmount * 10000n) / prevTotalPool) / 100
     : 50;
   const prevDownPercent = prevTotalPool > 0n ? 100 - prevUpPercent : 50;
-
   const prevUpMultiplier = prevMultipliers ? Number((prevMultipliers as any)[0] || 0n) / 10000 : 0;
   const prevDownMultiplier = prevMultipliers ? Number((prevMultipliers as any)[1] || 0n) / 10000 : 0;
 
-  // ── 6. Timer Derivations (pure math from on-chain timestamps + now) ──────
-  // Use a stable ref for fallback timestamps to avoid recalculating every tick
-  const fallbackLockRef = useRef(0);
-  const fallbackEndRef = useRef(0);
+  // ┌──────────────────────────────────────────────────────────────────────────┐
+  // │ 6. IMMUTABLE TIMESTAMP CACHE                                             │
+  // │                                                                          │
+  // │ On-chain lockTimestamp and endTimestamp are set when a round is created  │
+  // │ and never change. We cache them so that even if a subsequent RPC poll    │
+  // │ returns nothing (timeout/error), we still have the timestamps.          │
+  // │ Cache entries are NEVER overwritten or deleted.                          │
+  // └──────────────────────────────────────────────────────────────────────────┘
+  const timestampCacheRef = useRef(new Map<string, { lock: number; end: number }>());
 
+  // Helper: cache a round's timestamps if valid and not already cached
+  const cacheTimestamps = (round: RoundData | undefined, expectedId: bigint) => {
+    if (!round || round.roundId !== expectedId || expectedId === 0n) return;
+    const key = expectedId.toString();
+    if (timestampCacheRef.current.has(key)) return; // Already cached
+    const lock = Number(round.lockTimestamp);
+    const end = Number(round.endTimestamp);
+    if (lock > 0 && end > 0) {
+      timestampCacheRef.current.set(key, { lock, end });
+    }
+  };
+
+  // Cache all rounds we've seen
+  cacheTimestamps(activeRound, activeRoundId);
+  cacheTimestamps(prevRound, prevRoundId);
+  cacheTimestamps(pastRound, pastRoundId);
+
+  // ┌──────────────────────────────────────────────────────────────────────────┐
+  // │ 7. TIMESTAMP RESOLUTION                                                  │
+  // │                                                                          │
+  // │ Resolve the lockTimestamp and endTimestamp for the active round using:   │
+  // │   1. Live round data (if loaded and matching)                            │
+  // │   2. Immutable cache (if live data is unavailable)                       │
+  // │   3. Estimation from previous round (last resort)                        │
+  // └──────────────────────────────────────────────────────────────────────────┘
   const isActiveLoaded = !!(activeRound && activeRound.roundId === activeRoundId && activeRoundId > 0n);
 
-  // When activeRound loads, clear fallbacks
-  useEffect(() => {
-    if (isActiveLoaded) {
-      fallbackLockRef.current = 0;
-      fallbackEndRef.current = 0;
-    }
-  }, [isActiveLoaded]);
-
-  let lockTimestamp: number;
-  let endTimestamp: number;
+  let lockTimestamp = 0;
+  let endTimestamp = 0;
 
   if (isActiveLoaded) {
-    lockTimestamp = Number(activeRound.lockTimestamp);
-    endTimestamp = Number(activeRound.endTimestamp);
+    // Best case: live data matches expected round
+    lockTimestamp = Number(activeRound!.lockTimestamp);
+    endTimestamp = Number(activeRound!.endTimestamp);
   } else if (activeRoundId > 0n) {
-    // During RPC transition: calculate fallback ONCE and freeze it via ref
-    if (fallbackLockRef.current === 0 && now > 0) {
-      if (prevRound && Number(prevRound.lockTimestamp) > 0) {
-        fallbackLockRef.current = Number(prevRound.lockTimestamp) + 60;
-        fallbackEndRef.current = Number(prevRound.endTimestamp) + 60;
-      } else {
-        fallbackLockRef.current = now + 60;
-        fallbackEndRef.current = now + 120;
+    // Fallback 1: immutable cache
+    const cached = timestampCacheRef.current.get(activeRoundId.toString());
+    if (cached) {
+      lockTimestamp = cached.lock;
+      endTimestamp = cached.end;
+    } else {
+      // Fallback 2: estimate from previous round's cached timestamps
+      const prevCached = timestampCacheRef.current.get(prevRoundId.toString());
+      if (prevCached) {
+        lockTimestamp = prevCached.end + 60;
+        endTimestamp = prevCached.end + 120;
       }
+      // If no prev cache either: timestamps stay 0, phase waits for data
     }
-    lockTimestamp = fallbackLockRef.current;
-    endTimestamp = fallbackEndRef.current;
-  } else {
-    lockTimestamp = 0;
-    endTimestamp = 0;
   }
 
+  // Previous round timestamps (for prev round timer/status display)
+  let prevLockTimestamp = 0;
+  let prevEndTimestamp = 0;
+
+  if (prevRound && prevRound.roundId === prevRoundId && prevRoundId > 0n) {
+    prevLockTimestamp = Number(prevRound.lockTimestamp);
+    prevEndTimestamp = Number(prevRound.endTimestamp);
+  } else if (prevRoundId > 0n) {
+    const cached = timestampCacheRef.current.get(prevRoundId.toString());
+    if (cached) {
+      prevLockTimestamp = cached.lock;
+      prevEndTimestamp = cached.end;
+    }
+  }
+
+  // ┌──────────────────────────────────────────────────────────────────────────┐
+  // │ 8. TIMER DERIVATIONS                                                     │
+  // │                                                                          │
+  // │ Pure math: countdown = max(0, deadline - now)                            │
+  // │ Since timestamps come from the cache/resolution layer, they are stable. │
+  // └──────────────────────────────────────────────────────────────────────────┘
   const timeLeftToLock = (lockTimestamp > 0 && now > 0) ? Math.max(0, lockTimestamp - now) : 0;
   const timeLeftToEnd = (endTimestamp > 0 && now > 0) ? Math.max(0, endTimestamp - now) : 0;
-
-  const prevLockTimestamp = prevRound ? Number(prevRound.lockTimestamp) : 0;
-  const prevEndTimestamp = prevRound ? Number(prevRound.endTimestamp) : 0;
   const prevTimeLeftToLock = (prevLockTimestamp > 0 && now > 0) ? Math.max(0, prevLockTimestamp - now) : 0;
   const prevTimeLeftToEnd = (prevEndTimestamp > 0 && now > 0) ? Math.max(0, prevEndTimestamp - now) : 0;
 
-  // ── 7. Deterministic State Machine ──────────────────────────────────────
-  const marketStatus = deriveMarketStatus(activeRoundId, activeRound, timeLeftToLock, timeLeftToEnd);
-  const prevMarketStatus = deriveMarketStatus(prevRoundId, prevRound, prevTimeLeftToLock, prevTimeLeftToEnd);
-
-  // ── 7b. Stable Phase (timestamp-based, locked with minimum duration) ─────
-  // Phase is derived DIRECTLY from on-chain lockTimestamp — not from marketStatus.
-  // betting: now < lockTimestamp (bets open for ~60s)
-  // live:    now >= lockTimestamp (bets closed, settlement running for ~60s)
-  //
-  // Once the phase switches, it is LOCKED for a minimum of 10 seconds.
-  // This makes it physically impossible for the tabs to oscillate.
+  // ┌──────────────────────────────────────────────────────────────────────────┐
+  // │ 9. COMMITTED PHASE ENGINE                                                │
+  // │                                                                          │
+  // │ THE CORE STABILITY FIX.                                                  │
+  // │                                                                          │
+  // │ Once a phase is determined, it is COMMITTED with a deadline timestamp.  │
+  // │ The phase is then LOCKED until that deadline passes.                     │
+  // │                                                                          │
+  // │ Rules:                                                                   │
+  // │ • Phase only changes when committedDeadline passes (now >= deadline)     │
+  // │ • committedDeadline can be EXTENDED (later timestamp) but NEVER          │
+  // │   shortened. This prevents flickering from RPC jitter.                   │
+  // │ • When deadline passes, we look at current data to determine next phase │
+  // │ • If no data is available after deadline, phase holds until data arrives │
+  // │                                                                          │
+  // │ This makes it PHYSICALLY IMPOSSIBLE for the tabs to oscillate.          │
+  // └──────────────────────────────────────────────────────────────────────────┘
   const [phase, setPhase] = useState<Phase>('betting');
-  const lastPhaseChangeTimeRef = useRef(0);
-  const hasEverBeenActiveRef = useRef(false);
-
-  if (currentRoundId > 0n) {
-    hasEverBeenActiveRef.current = true;
-  }
+  const committedDeadlineRef = useRef(0);     // Unix timestamp when current phase ends
+  const committedRoundRef = useRef(0n);        // Which roundId the commitment is for
 
   useEffect(() => {
     if (now === 0) return; // SSR guard
 
-    // Determine the desired phase from on-chain timestamps
-    let desiredPhase: Phase;
+    const deadline = committedDeadlineRef.current;
 
-    if (!hasEverBeenActiveRef.current) {
-      // Genesis — no rounds exist yet
-      desiredPhase = 'betting';
-    } else if (lockTimestamp > 0 && now < lockTimestamp) {
-      // Betting window: now is before lock time
-      desiredPhase = 'betting';
+    // ── LOCKED STATE: Phase committed and deadline not reached ──────────
+    if (deadline > 0 && now < deadline) {
+      // Phase is locked. Only allow EXTENDING the deadline (never shorten).
+      if (phase === 'betting' && lockTimestamp > deadline) {
+        committedDeadlineRef.current = lockTimestamp;
+      } else if (phase === 'live' && endTimestamp > deadline) {
+        committedDeadlineRef.current = endTimestamp;
+      }
+      return; // Phase stays locked. Count down only.
+    }
+
+    // ── TRANSITION: Deadline reached or not yet initialized ────────────
+    // We need valid timestamps to determine the correct phase.
+    if (currentRoundId === 0n) return; // No rounds exist yet
+    if (lockTimestamp === 0 || endTimestamp === 0) return; // Waiting for data
+
+    if (now < lockTimestamp) {
+      // BETTING PHASE: Bets are open until lockTimestamp
+      setPhase('betting');
+      committedDeadlineRef.current = lockTimestamp;
+      committedRoundRef.current = currentRoundId;
+    } else if (now < endTimestamp) {
+      // LIVE/SETTLEMENT PHASE: Bets closed, settlement running until endTimestamp
+      setPhase('live');
+      committedDeadlineRef.current = endTimestamp;
+      committedRoundRef.current = currentRoundId;
     } else {
-      // Lock time has passed: settlement / locked / settling / next round
-      desiredPhase = 'live';
+      // Round is completely over. Hold current phase until next round data arrives.
+      // When the next round opens and its timestamps become available,
+      // the condition `now < lockTimestamp` will match and commit to 'betting'.
     }
+  }, [now, lockTimestamp, endTimestamp, currentRoundId, phase]);
 
-    // Enforce minimum lock duration: don't switch if less than 10s since last switch
-    const timeSinceLastSwitch = now - lastPhaseChangeTimeRef.current;
-    if (desiredPhase !== phase && timeSinceLastSwitch >= 10) {
-      setPhase(desiredPhase);
-      lastPhaseChangeTimeRef.current = now;
-    }
-  }, [now, lockTimestamp, phase]);
+  // ┌──────────────────────────────────────────────────────────────────────────┐
+  // │ 10. MARKET STATUS & BUSINESS LOGIC                                       │
+  // └──────────────────────────────────────────────────────────────────────────┘
+  const marketStatus = deriveMarketStatus(activeRoundId, activeRound, timeLeftToLock, timeLeftToEnd);
+  const prevMarketStatus = deriveMarketStatus(prevRoundId, prevRound, prevTimeLeftToLock, prevTimeLeftToEnd);
 
-  // ── 8. Locked Entry Price (from on-chain, not off-chain approximation) ──
+  // Centralized betting-open flag: true only during committed betting phase
+  // with positive time remaining. Components use this instead of computing their own.
+  const isBettingOpen = phase === 'betting' && timeLeftToLock > 0;
+
+  // ┌──────────────────────────────────────────────────────────────────────────┐
+  // │ 11. LOCKED ENTRY PRICE                                                   │
+  // │                                                                          │
+  // │ Uses the committed phase (guaranteed stable) to determine when to show  │
+  // │ the locked entry price vs. the live price.                               │
+  // └──────────────────────────────────────────────────────────────────────────┘
   const lockedEntryPrice = useMemo(() => {
-    if (marketStatus === 'LOCKED' || marketStatus === 'SETTLING') {
+    if (phase === 'live') {
       const onChainPrice = activeRound ? Number(activeRound.startPrice) / 1e8 : 0;
       if (onChainPrice > 0) return onChainPrice;
       return btcPrice > 0 ? btcPrice : 0;
     }
     return 0;
-  }, [marketStatus, activeRound, btcPrice]);
+  }, [phase, activeRound, btcPrice]);
 
-  // ── 9. Toast System (with proper cleanup) ────────────────────────────────
+  // ┌──────────────────────────────────────────────────────────────────────────┐
+  // │ 12. TOAST SYSTEM                                                         │
+  // └──────────────────────────────────────────────────────────────────────────┘
   const [toast, setToast] = useState<Toast | null>(null);
   const toastTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -474,7 +602,9 @@ export function MarketProvider({ children }: { children: React.ReactNode }) {
     };
   }, []);
 
-  // ── 10. Result Auto-Check (notifications for resolved rounds) ───────────
+  // ┌──────────────────────────────────────────────────────────────────────────┐
+  // │ 13. RESULT AUTO-CHECK (notifications for resolved rounds)                │
+  // └──────────────────────────────────────────────────────────────────────────┘
   const lastNotifiedRoundId = useRef<bigint>(0n);
 
   useEffect(() => {
@@ -488,7 +618,6 @@ export function MarketProvider({ children }: { children: React.ReactNode }) {
 
     for (const { id, round, bet, upMult, downMult } of roundsToCheck) {
       if (!round || !bet || bet.amount === 0n) continue;
-      // Check canceled FIRST (tie = resolved+canceled, should show refund not loss)
       if (!round.resolved && !round.canceled) continue;
       if (id <= lastNotifiedRoundId.current) continue;
 
@@ -514,7 +643,9 @@ export function MarketProvider({ children }: { children: React.ReactNode }) {
     }
   }, [prevRoundId, pastRoundId, prevRound?.resolved, prevRound?.canceled, pastRound?.resolved, pastRound?.canceled, prevUserBet?.amount, pastUserBet?.amount, triggerToast, balanceSymbol]);
 
-  // ── 11. Memoized Context Value ──────────────────────────────────────────
+  // ┌──────────────────────────────────────────────────────────────────────────┐
+  // │ 14. MEMOIZED CONTEXT VALUE                                               │
+  // └──────────────────────────────────────────────────────────────────────────┘
   const value: MarketState = useMemo(() => ({
     btcPrice,
     twap,
@@ -552,6 +683,7 @@ export function MarketProvider({ children }: { children: React.ReactNode }) {
     prevTimeLeftToEnd,
     prevMarketStatus,
     phase,
+    isBettingOpen,
     toast,
     triggerToast,
     lockedEntryPrice,
@@ -565,7 +697,7 @@ export function MarketProvider({ children }: { children: React.ReactNode }) {
     prevTotalPool, prevUpPercent, prevDownPercent, prevUpMultiplier, prevDownMultiplier,
     timeLeftToLock, timeLeftToEnd, marketStatus,
     prevTimeLeftToLock, prevTimeLeftToEnd, prevMarketStatus,
-    phase, toast, triggerToast, lockedEntryPrice,
+    phase, isBettingOpen, toast, triggerToast, lockedEntryPrice,
   ]);
 
   return (

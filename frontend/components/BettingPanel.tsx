@@ -183,6 +183,7 @@ export function BettingPanel({ currentBtcPrice: _unusedProps }: { currentBtcPric
     timeLeftToLock,
     lockedEntryPrice,
     phase,
+    isBettingOpen,
   } = useMarket();
 
   const hasPlacedActiveBet = !!(activeUserBet && activeUserBet.amount > 0n);
@@ -290,8 +291,8 @@ export function BettingPanel({ currentBtcPrice: _unusedProps }: { currentBtcPric
     }
   };
 
-  // State indicators matching rules
-  const canBet = isConnected && phase === 'betting' && timeLeftToLock > 0 && !isPending && !isConfirming;
+  // State indicators — uses engine's centralized isBettingOpen flag
+  const canBet = isConnected && isBettingOpen && !isPending && !isConfirming;
   const isWorking = isPending || isConfirming;
 
   // Potential Return & Profit calculations while typing
