@@ -1,0 +1,176 @@
+---
+title: "Supported Networks"
+description: "A comprehensive guide to the blockchain networks supported by DotMarket, focusing on the Arc Testnet, RPC configurations, block explorers, and faucets."
+---
+
+DotMarket currently operates exclusively on the Arc Testnet. This environment provides developers and users with a highly scalable, low-latency testing ground to interact with our 1-minute prediction markets without risking real assets. The integrity of a high-frequency prediction market relies heavily on the underlying infrastructure, which is why understanding the network environment is essential for anyone building on or interacting with DotMarket.
+
+<SectionDivider />
+
+## Why Arc Testnet?
+
+The decision to deploy DotMarket on the Arc Testnet was driven by the strict requirements of a 1-minute prediction market. To ensure fair and accurate settlements, the underlying blockchain must support rapid block times, high throughput, and minimal transaction costs. 
+
+The Arc Testnet meets these criteria perfectly. It features block times of under 1 second, ensuring that user predictions are confirmed almost instantaneously. This speed is critical when the prediction phase lasts only 60 seconds. Furthermore, the high throughput capability of the Arc Testnet guarantees that even during periods of extreme market volatility, the network remains uncongested, and transactions are processed without delay.
+
+By choosing a network specifically designed for high-performance decentralized applications, DotMarket eliminates the friction commonly associated with slower blockchains. Users do not have to worry about their predictions being stuck in the mempool while the market clock ticks down. The fast finality of the Arc Testnet ensures that when you predict UP or DOWN, your transaction is securely recorded well before the lock phase begins.
+
+<Callout type="tip" title="Network Upgrades">
+  The Arc Testnet is frequently updated to reflect the latest consensus mechanisms and scalability improvements. We strongly recommend joining our developer Discord to stay informed about scheduled network maintenance windows.
+</Callout>
+
+<SectionDivider />
+
+## Network Configuration Details
+
+To interact with the DotMarket smart contracts, you must configure your web3 provider (such as MetaMask, ethers.js, or viem) to connect to the Arc Testnet. Below are the precise network parameters you will need to successfully route your transactions to our environment.
+
+### Connection Parameters
+
+- **Network Name:** Arc Testnet
+- **Chain ID:** 9001 (0x2329 in Hexadecimal)
+- **Currency Symbol:** ARC
+- **Block Time:** ~0.8 seconds
+- **Consensus:** Delegated Proof of Stake (DPoS)
+- **Max Contract Size:** 24 KB
+- **Average Gas Price:** 1 Gwei
+
+### Public RPC Endpoints
+
+We provide several robust public RPC endpoints. These endpoints are load-balanced and designed to handle significant traffic, making them suitable for most development and testing scenarios. They are maintained by the core Arc infrastructure team to ensure high uptime.
+
+- `https://rpc-testnet.arc.network` (Primary)
+- `https://rpc-testnet-backup.arc.network` (Secondary)
+
+<Callout type="warning" title="Rate Limits">
+  Public RPC endpoints are rate-limited to 50 requests per second per IP address. If you are building a data-intensive application or running a Keeper bot, we recommend utilizing a dedicated private RPC provider to avoid throttling.
+</Callout>
+
+### WebSocket Endpoints
+
+For applications requiring real-time updates, such as tracking the exact moment a 1-minute round transitions from the prediction phase to the live phase, WebSockets are vastly superior to traditional HTTP polling. 
+
+- `wss://ws-testnet.arc.network`
+
+WebSockets allow you to maintain a persistent connection to the blockchain node, receiving instantaneous event notifications without the overhead of repeated HTTP requests. When monitoring a prediction market where every second counts, a WebSocket connection is strongly recommended for your production-grade Keeper bots and high-performance frontends.
+
+<Callout type="tip" title="WebSocket Reconnections">
+  WebSocket connections can occasionally drop due to network instability. Always implement a robust reconnection strategy with exponential backoff in your application logic to ensure you do not miss critical events.
+</Callout>
+
+### Adding Arc Testnet Programmatically
+
+If you are building a decentralized application (dApp) frontend, you should prompt the user to add the Arc Testnet automatically rather than asking them to configure it manually. Here is how you can accomplish this using standard EIP-3033 provider methods:
+
+```javascript
+async function addArcTestnet() {
+  if (typeof window.ethereum !== 'undefined') {
+    try {
+      await window.ethereum.request({
+        method: 'wallet_addEthereumChain',
+        params: [
+          {
+            chainId: '0x2329',
+            chainName: 'Arc Testnet',
+            nativeCurrency: {
+              name: 'Arc',
+              symbol: 'ARC',
+              decimals: 18
+            },
+            rpcUrls: ['https://rpc-testnet.arc.network'],
+            blockExplorerUrls: ['https://explorer-testnet.arc.network']
+          }
+        ]
+      });
+      console.log("Arc Testnet added successfully!");
+    } catch (error) {
+      console.error("Failed to add Arc Testnet:", error);
+    }
+  } else {
+    console.error("No web3 provider detected. Please install a wallet.");
+  }
+}
+```
+
+<SectionDivider />
+
+## Block Explorer
+
+The Arc Testnet features a comprehensive block explorer that allows you to inspect transactions, monitor block production, and verify smart contract source code. This tool is invaluable for ensuring your interactions with the DotMarket protocol are functioning as expected.
+
+- **Explorer URL:** `https://explorer-testnet.arc.network`
+
+### Using the Explorer for Debugging
+
+When building on DotMarket, the block explorer is your most powerful debugging tool. Since our prediction market operates in fast 1-minute cycles, transactions occur rapidly and require precise timing. 
+
+If a user reports an issue where their prediction was not accepted, you can search for their wallet address or the specific transaction hash in the explorer. You should look for the following key indicators:
+
+1. **Transaction Status:** Was the transaction successfully mined, or did it revert? Reverted transactions usually indicate that the user tried to predict after the lock time or did not provide sufficient funds.
+2. **Gas Used:** Did the transaction run out of gas? Ensure you are providing a sufficient gas limit when interacting with the market contract, as complex operations like dynamic multiplier calculations can consume variable amounts of gas.
+3. **Timestamp:** This is crucial. Since the prediction phase closes exactly at the 60-second mark, you must verify the exact block timestamp to see if the transaction was included before the round locked.
+
+<Flowchart 
+  nodes={[
+    { id: "1", label: "User Submits Transaction", type: "default" },
+    { id: "2", label: "Transaction Pending in Mempool", type: "action" },
+    { id: "3", label: "Miner Includes Transaction in Block", type: "action" },
+    { id: "4", label: "Block Mined (Timestamp Recorded)", type: "decision" },
+    { id: "5", label: "Explorer Updates UI", type: "default" }
+  ]}
+/>
+
+<SectionDivider />
+
+## The Arc Faucet
+
+To place predictions on DotMarket, you need testnet tokens. Since the Arc Testnet uses a simulated economy, these tokens hold no real-world value but are strictly essential for paying gas fees and providing the principal amount for your predictions. You cannot participate in the market without them.
+
+### How to Obtain Testnet Tokens
+
+We have integrated a dedicated faucet service for developers and testers. Follow these simple steps to fund your test wallet:
+
+1. **Visit the Faucet:** Navigate to `https://faucet.arc.network` in your web browser.
+2. **Enter Address:** Paste your EVM-compatible wallet address into the input field.
+3. **Solve Captcha:** Complete the standard bot-prevention challenge to prove you are human.
+4. **Request Funds:** Click "Request ARC". The tokens should arrive in your wallet within 2-3 seconds, thanks to the fast block times.
+
+<InteractiveTimeline steps={[
+  { title: "Step 1: Wallet Setup", description: "Ensure your wallet is configured for the Arc Testnet using chain ID 9001." },
+  { title: "Step 2: Visit Faucet", description: "Navigate to the official testnet faucet." },
+  { title: "Step 3: Receive Funds", description: "Receive 10 ARC tokens for testing." },
+  { title: "Step 4: Start Predicting", description: "Use your newly acquired ARC to predict UP or DOWN on the DotMarket testnet." }
+]} />
+
+### Faucet Rules and Limitations
+
+To prevent abuse and ensure that all developers have fair access to testing resources, the faucet enforces several strict rules:
+
+- **Drip Limit:** You can request a maximum of 10 ARC tokens per 24-hour period. This limit applies to both your wallet address and your IP address.
+- **Queueing:** During periods of high demand, your request may be placed in a queue. You can check the status of your request using the transaction hash provided by the faucet interface.
+
+<Callout type="info" title="Need More Tokens?">
+  If you are running extensive automated tests or operating a Keeper bot that requires a larger balance to pay for continuous gas fees, please reach out to our team in the `#developer-support` channel on Discord. We can provide larger, one-time grants to verified developer addresses upon request.
+</Callout>
+
+<SectionDivider />
+
+## Best Practices for Network Interaction
+
+When building applications that interact with the Arc Testnet, particularly in the context of our 1-minute prediction markets, consider the following best practices:
+
+1. **Manage Nonces Carefully:** Because you may be submitting multiple predictions in a short timeframe, ensure your application accurately tracks transaction nonces. If you submit transactions with the same nonce, only one will succeed, and the others will be dropped.
+2. **Handle Reorganizations:** While rare on the Arc Testnet due to its consensus model, short-lived block reorganizations can occur. Wait for a sufficient number of block confirmations before treating a transaction as permanently finalized.
+3. **Optimize Gas Usage:** Even though testnet tokens are free, it is good practice to optimize your gas usage. Use efficient coding patterns and avoid unnecessary state changes to prepare your application for a potential mainnet launch where gas costs translate to real money.
+
+<FAQAccordion question="Can I deploy my own contracts on the Arc Testnet?">
+  Yes! The Arc Testnet is a fully permissionless environment. While you can interact directly with the deployed DotMarket contracts, you are also free and encouraged to deploy your own auxiliary smart contracts, such as vault managers, prediction aggregators, or analytic tools, to build on top of our ecosystem.
+</FAQAccordion>
+
+<SectionDivider />
+
+## Next Steps
+
+Now that you have successfully configured your environment for the Arc Testnet, obtained testing funds, and learned how to navigate the block explorer, you are fully ready to start interacting directly with the DotMarket protocol. 
+
+Proceed to the **Smart Contracts** documentation to dive deep into our contract architecture, learn the specific integration patterns, and understand how the 1-minute market lifecycle is enforced securely on-chain.

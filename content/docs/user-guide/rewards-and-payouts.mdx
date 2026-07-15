@@ -1,0 +1,106 @@
+---
+title: "Rewards and Payouts"
+description: "Understand how the prediction pool is calculated, how multipliers work, and the process for claiming your rewards on DotMarket."
+---
+
+The core appeal of DotMarket lies in its transparent, decentralized payout structure. Unlike traditional bookmakers that offer fixed odds and trade against their users, DotMarket utilizes a pari-mutuel system. In this model, all participants are predicting against each other, and the protocol simply facilitates the market and distributes the pools.
+
+This guide explains the mathematics behind your potential rewards, how multipliers fluctuate, and the mechanics of claiming your winnings.
+
+<SectionDivider />
+
+## The Pari-Mutuel Model Explained
+
+In a pari-mutuel system, all funds committed to a specific round are pooled together. When the round settles, the protocol takes a small administrative fee from the total pool, and the remainder is distributed entirely to the participants who predicted the correct direction.
+
+Because you are playing against the liquidity of the opposing side, your potential reward is directly proportional to how much the crowd disagrees with you.
+
+### Calculating the Multiplier
+
+The payout multiplier for a winning direction is determined by a simple formula:
+
+**Multiplier = (Total Pool - Protocol Fee) / Winning Pool**
+
+Let's look at a practical example to illustrate this dynamic:
+- **UP Pool:** 8,000 tokens
+- **DOWN Pool:** 2,000 tokens
+- **Total Pool:** 10,000 tokens
+- *(For simplicity in this example, we will ignore the protocol fee).*
+
+In this scenario, 80% of the capital believes the price will go UP. 
+- If the price goes **UP**, the 8,000 tokens in the UP pool will share the entire 10,000 token Total Pool. The UP multiplier will be **1.25x** (10,000 / 8,000). A 100-token prediction yields 125 tokens (25 tokens profit).
+- If the price goes **DOWN**, the 2,000 tokens in the DOWN pool will share the entire 10,000 token Total Pool. The DOWN multiplier will be **5.0x** (10,000 / 2,000). A 100-token prediction yields 500 tokens (400 tokens profit).
+
+<Callout type="tip" title="Contrarian Opportunities">
+  The pari-mutuel model heavily rewards contrarian views. If you correctly predict a market movement that the vast majority of capital bet against, your multiplier and subsequent payout can be exceptionally high.
+</Callout>
+
+### Dynamic vs. Locked Multipliers
+
+It is crucial to understand that the multipliers displayed on the UI during the "Open" phase are dynamic. They will fluctuate continuously as new predictions enter the smart contract. 
+
+You do not "lock in" the multiplier you see when you click submit. The final, official multiplier for the round is only determined at the exact moment the round transitions into the "Locked" phase. At that second, the pools are finalized, and the payout ratio is cryptographically sealed in the smart contract.
+
+<SectionDivider />
+
+## The Settlement and Claiming Process
+
+DotMarket is designed to be entirely non-custodial. When a round ends, the smart contract automatically calculates the winners and allocates the funds. However, to optimize network efficiency and minimize gas costs for the protocol, winnings are not automatically pushed to your wallet; they must be claimed.
+
+<InteractiveTimeline 
+  steps={[
+    { title: "Round Settles", description: "The Pyth oracle confirms the final price. The smart contract flags the winning direction." },
+    { title: "Funds Allocated", description: "Your share of the total pool is internally allocated to your address within the contract." },
+    { title: "User Claims", description: "You initiate a 'Claim' transaction to withdraw the accumulated rewards directly to your wallet." }
+  ]} 
+/>
+
+### How to Claim Your Rewards
+
+Claiming is a simple, one-click process within the DotMarket interface.
+
+1. Navigate to the **Portfolio** tab or look at the integrated Wallet dropdown in the navigation bar.
+2. You will see a balance labeled **"Claimable Rewards."**
+3. Click the **Claim** button.
+4. Your Web3 wallet will prompt you to sign a transaction.
+5. Once confirmed on the Arc Testnet, the tokens will be transferred from the DotMarket smart contract directly into your personal wallet.
+
+<Flowchart 
+  nodes={[
+    { id: '1', label: 'Win Prediction', type: 'input' },
+    { id: '2', label: 'Rewards Accrue in Contract', type: 'default' },
+    { id: '3', label: 'Click Claim', type: 'default' },
+    { id: '4', label: 'Tokens Arrive in Wallet', type: 'output' }
+  ]} 
+  edges={[
+    { source: '1', target: '2' },
+    { source: '2', target: '3' },
+    { source: '3', target: '4' }
+  ]} 
+/>
+
+### Batch Claiming for Efficiency
+
+You do not need to claim your rewards after every single round. If you are participating in high-frequency predictions, claiming after every minute would be tedious and generate unnecessary transactions. 
+
+Your claimable rewards accumulate safely within the smart contract indefinitely. You can choose to batch claim your winnings at the end of your session, at the end of the day, or once a week. The contract will send all accrued rewards in a single, gas-efficient transaction.
+
+<SectionDivider />
+
+## Handling Edge Cases
+
+Because blockchain networks and oracles operate in decentralized environments, DotMarket has built-in contingencies for rare edge cases to ensure user funds are always protected.
+
+<FAQAccordion question="What happens if the round results in a Tie?">
+  If the Settlement Price is exactly identical to the Entry Price (down to the exact decimal provided by the Pyth Oracle), neither UP nor DOWN is declared the winner. The round is settled as a Tie. In this scenario, the protocol fee is waived, and all participants can claim their exact initial prediction amount back from the contract.
+</FAQAccordion>
+
+<FAQAccordion question="What if the Pyth Oracle fails to update?">
+  The DotMarket smart contract requires fresh data. If the Pyth Oracle experiences an outage or fails to push a price update within an acceptable threshold during the settlement window, the round will be automatically marked as "Cancelled." Similar to a tie, all funds are fully refundable, and users can claim their initial tokens.
+</FAQAccordion>
+
+<FAQAccordion question="Is there a time limit to claim my rewards?">
+  No. Your claimable rewards are cryptographically tied to your wallet address within the DotMarket smart contract. They will remain there safely until you initiate a claim transaction, whether that is five minutes or five years later.
+</FAQAccordion>
+
+By fully understanding the payout mechanics and the security of the claiming process, you can participate in DotMarket with the assurance that your rewards are calculated fairly and held securely.

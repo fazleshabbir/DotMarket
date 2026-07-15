@@ -1,0 +1,104 @@
+---
+title: "Changelog & Roadmap"
+description: "Track the evolution of DotMarket. Review our completed milestones on the Arc Testnet, see what the team is currently building, and explore our long-term vision for 1-minute prediction markets."
+---
+
+DotMarket is built on a philosophy of rapid iteration and relentless optimization. Because our core product—a 1-minute BTC prediction market—relies on extreme speed and flawless execution, our development cycle reflects that same urgency. 
+
+This page serves as a living document of our progress. Here you will find our completed milestones, our current engineering priorities on the Arc Testnet, and the ambitious roadmap that leads us toward a fully decentralized mainnet launch.
+
+<SectionDivider />
+
+## How We Build
+
+Before diving into the roadmap, it is essential to understand the lifecycle of a DotMarket feature. From initial concept to smart contract deployment, every update undergoes rigorous testing to ensure it meets our premium, institutional-grade standards.
+
+<Flowchart 
+  nodes={[
+    { id: "1", label: "Community Feedback & Ideation", type: "input" },
+    { id: "2", label: "Smart Contract Prototyping", type: "default" },
+    { id: "3", label: "Local Testnet Auditing", type: "default" },
+    { id: "4", label: "UI/UX Integration", type: "default" },
+    { id: "5", label: "Arc Testnet Deployment", type: "output" }
+  ]} 
+  edges={[
+    { source: "1", target: "2" },
+    { source: "2", target: "3" },
+    { source: "3", target: "4" },
+    { source: "4", target: "5" }
+  ]} 
+/>
+
+<SectionDivider />
+
+## Phase 1: Foundation (Completed)
+
+Our initial phase was entirely focused on proving that a secure, non-custodial 1-minute market was technologically viable. We needed to ensure that smart contracts could handle high-frequency interactions without buckling under the pressure.
+
+<InteractiveTimeline 
+  steps={[
+    { title: "Core Architecture", description: "Developed the foundational pari-mutuel smart contracts capable of handling rolling 60-second epochs without execution lag." },
+    { title: "Oracle Integration", description: "Successfully integrated Pyth Network price feeds to ensure sub-second, highly accurate BTC pricing at the exact moment a round resolves." },
+    { title: "Premium Interface", description: "Designed and deployed the V1 frontend, prioritizing a dark-mode, glassmorphism aesthetic that feels responsive and professional." },
+    { title: "Arc Testnet Deployment", description: "Launched the alpha version of the protocol on the Arc Testnet, allowing early users to interact with valueless tokens and stress-test the system." }
+  ]} 
+/>
+
+The successful completion of Phase 1 validated our core thesis: users crave high-velocity, low-complexity DeFi products.
+
+<SectionDivider />
+
+## Phase 2: Engagement & Optimization (Current)
+
+We are currently operating in Phase 2. While the core prediction mechanics are solid, the platform requires extensive features to drive user engagement, retain liquidity, and ensure flawless performance under heavy load.
+
+The engineering team is actively deploying updates on a weekly basis to the Arc Testnet. 
+
+### Current Development Priorities
+
+- **Gas Optimization:** Rewriting specific state variables within the Solidity contracts to drastically reduce the gas required to execute a prediction. Even on a cheap network, efficiency is key for high-frequency actors.
+- **Dynamic Payout Display:** Overhauling the frontend logic to calculate and display the real-time payout multipliers much faster as the UP and DOWN pools fluctuate before the lock period.
+- **Global Leaderboard:** Implementing an on-chain tracking system that ranks users based on their prediction win rate, total volume predicted, and longest winning streaks.
+- **Automated Claiming:** Researching meta-transaction infrastructure that would allow the protocol to auto-distribute winnings back to wallets, removing the need for users to manually click "Claim" after every successful round.
+
+<Callout type="warning" title="Testnet Volatility">
+  During Phase 2, the Arc Testnet contracts may be periodically paused or upgraded without prior warning. This is a necessary step to ensure we can hot-fix bugs and implement gas optimizations rapidly.
+</Callout>
+
+<SectionDivider />
+
+## Phase 3: Mainnet & Ecosystem (Future Vision)
+
+Phase 3 represents the culmination of our testing. Once the protocol has operated flawlessly on the Arc Testnet with thousands of concurrent users, we will prepare for real economic value.
+
+This phase is not just about launching; it is about establishing DotMarket as the premier prediction platform in decentralized finance.
+
+### Upcoming Milestones
+
+#### 1. Security Audits & Mainnet Launch
+Before transitioning from the Arc Testnet, the entire codebase will be frozen and submitted to multiple tier-1 blockchain security firms. Only upon receiving pristine audit reports will DotMarket be deployed to a high-throughput Mainnet ecosystem. 
+
+#### 2. Multi-Asset Expansion
+While Bitcoin (BTC) is the perfect asset for proving our 1-minute model due to its massive liquidity and Oracle reliability, our community demands more. Following mainnet stabilization, we will implement governance votes to introduce new prediction pools for assets like Ethereum (ETH) and Solana (SOL).
+
+#### 3. Algorithmic Trading API
+To cater to our most sophisticated users, we will release a comprehensive SDK and WebSocket API. This will allow developers to run algorithmic bots that ingest Oracle data and automatically execute UP or DOWN predictions based on quantitative strategies.
+
+#### 4. Decentralized Governance (DAO)
+The ultimate goal of DotMarket is absolute decentralization. The core team will slowly step back, handing over parameter control, fee management, and asset curation directly to the community via an on-chain DAO structure. 
+
+<Callout type="tip" title="How to Contribute">
+  Want to influence this roadmap? Engage heavily with the current testnet build! The features we prioritize in Phase 2 are directly dictated by the feedback we receive in the Discord `#testnet-feedback` channel.
+</Callout>
+
+<SectionDivider />
+
+## Archival Changelog
+
+*This section will be populated with specific version numbers, smart contract commit hashes, and granular UI updates as we continue our weekly deployment cycles.*
+
+- **v1.0.0-beta (Current):** Initial Arc Testnet deployment. BTC 1-minute pools active. Manual claiming required.
+- **v0.9.5-alpha:** Internal testnet. Finalized Pyth Oracle adapter.
+- **v0.9.0-alpha:** Proof of concept contract deployment. Basic UI scaffolding.
+
+We remain hyper-focused on delivering the fastest, most reliable prediction market in Web3. Stay tuned.

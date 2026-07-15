@@ -1,0 +1,178 @@
+---
+title: "Frequently Asked Questions"
+description: "Everything you need to know about DotMarket, our 1-minute BTC prediction market on the Arc Testnet. Find answers to common questions about predicting, smart contracts, and more."
+---
+
+Welcome to the comprehensive FAQ for DotMarket. Whether you are a newcomer to decentralized finance or an experienced participant looking to master 1-minute prediction markets, this guide covers the most pressing questions regarding platform functionality, security, mechanics, and payouts. 
+
+<SectionDivider />
+
+## General Questions
+
+<FAQAccordion question="What exactly is DotMarket?">
+  DotMarket is a high-speed, fully decentralized prediction market deployed on the Arc Testnet. It empowers users to forecast short-term price movements of Bitcoin. Specifically, participants predict whether the price of BTC will go UP or DOWN over a rapid 1-minute timeframe.
+</FAQAccordion>
+
+<FAQAccordion question="Is DotMarket a cryptocurrency exchange?">
+  No, DotMarket is not an exchange. You are not buying, selling, or swapping actual cryptocurrencies like Bitcoin. Instead, you are interacting with smart contracts to make a prediction on the future price of an asset, purely trading on the direction of the market rather than holding the underlying asset.
+</FAQAccordion>
+
+<FAQAccordion question="What makes DotMarket different from other prediction platforms?">
+  DotMarket specializes in extreme high-frequency markets. Unlike traditional prediction markets that might take days or weeks to resolve (like election predictions or sports), DotMarket resolves entirely in 60 seconds. This creates a relentless, high-velocity experience paired with a premium, institutional-grade user interface.
+</FAQAccordion>
+
+<FAQAccordion question="Do I need to create an account?">
+  Absolutely not. DotMarket is non-custodial and operates on Web3 principles. There are no sign-ups, no email requirements, and no KYC (Know Your Customer) processes. You simply connect your compatible Web3 wallet and interact directly with the smart contracts.
+</FAQAccordion>
+
+<FAQAccordion question="What is the difference between Trading and Predicting?">
+  Trading involves purchasing an asset and managing the risk of its changing value, often involving stop-losses, leverage, and liquidation risks. Predicting on DotMarket simplifies this. You are forecasting an event (will the price be higher or lower in one minute?). You risk only your initial prediction amount with zero chance of forced liquidation beyond your initial entry.
+</FAQAccordion>
+
+<FAQAccordion question="Is this considered gambling?">
+  DotMarket is a decentralized finance (DeFi) prediction market protocol. Predicting short-term price movements involves significant market analysis, understanding of order flow, and risk management. However, regulatory classifications vary by jurisdiction. Users are strictly responsible for understanding the laws regarding prediction markets in their respective regions.
+</FAQAccordion>
+
+<Callout type="info" title="A Core Principle">
+  Our philosophy is to remove the complexity of traditional margin trading. No funding rates, no margin calls, just pure, unadulterated price action.
+</Callout>
+
+<SectionDivider />
+
+## Getting Started
+
+<FAQAccordion question="How do I start predicting?">
+  First, ensure you have a compatible Web3 wallet connected to the Arc Testnet. Once connected, navigate to the main dashboard. You will see the current round and the next upcoming round. Select the next round, choose your prediction amount, and click either "Predict UP" or "Predict DOWN".
+</FAQAccordion>
+
+<FAQAccordion question="Which wallets does DotMarket support?">
+  We support all major EVM-compatible wallets. This includes MetaMask, Rabby, Trust Wallet, and Coinbase Wallet, as well as various WalletConnect integrations.
+</FAQAccordion>
+
+<FAQAccordion question="How do I predict UP?">
+  Predicting UP means you believe the price of Bitcoin at the end of the 1-minute round will be strictly higher than the locked entry price. Click the prominent UP button, approve the transaction in your wallet, and your prediction is submitted to the smart contract.
+</FAQAccordion>
+
+<FAQAccordion question="How do I predict DOWN?">
+  Predicting DOWN means you believe the price of Bitcoin at the end of the 1-minute round will be strictly lower than the locked entry price. Click the DOWN button, finalize the transaction, and wait for the round to resolve.
+</FAQAccordion>
+
+<FAQAccordion question="Can I cancel a prediction once submitted?">
+  No. Once a transaction is confirmed on the blockchain, the smart contract registers your prediction. Due to the immutable nature of the blockchain and the rapid 1-minute timeframe, predictions cannot be altered or cancelled under any circumstances.
+</FAQAccordion>
+
+<FAQAccordion question="Is there a minimum prediction amount?">
+  Yes, to prevent network spam and ensure sufficient pool liquidity, there is a minimum prediction threshold. This minimum is dynamically set based on network conditions but is generally kept extremely low to ensure maximum accessibility for all users on the Arc Testnet.
+</FAQAccordion>
+
+<FAQAccordion question="Is there a maximum prediction amount?">
+  Currently, there is no hardcoded maximum prediction amount. However, your prediction size relative to the rest of the pool will impact your potential payout multiplier. Extremely large predictions will heavily skew the pool ratio.
+</FAQAccordion>
+
+<Callout type="tip" title="Testnet Strategy">
+  Because we are on the Arc Testnet, we encourage users to experiment with different prediction sizes to see how it affects the prize pool ratios and their potential payouts!
+</Callout>
+
+<SectionDivider />
+
+## Platform Mechanics
+
+<FAQAccordion question="How exactly does the 1-minute timer work?">
+  The system operates in continuous rolling phases. As soon as the "Current Round" locks its entry price, the 60-second countdown begins. Simultaneously, users can enter predictions for the "Next Round". When the 60 seconds are up, the Current Round resolves, the Next Round becomes the Current Round and locks its price, and a new Next Round opens.
+</FAQAccordion>
+
+<FAQAccordion question="How is the price of Bitcoin determined?">
+  DotMarket integrates with decentralized Oracle networks, primarily Pyth Network, to fetch highly accurate, sub-second price feeds. When a round locks or resolves, the smart contract queries the Oracle for the exact medianized price at that specific block timestamp.
+</FAQAccordion>
+
+<FAQAccordion question="What happens if the price doesn't change at all?">
+  In the rare event of a "Tie"—meaning the locked entry price and the final settlement price are identical down to the 8th decimal place—the market resolves neutrally. All participants from both the UP and DOWN pools receive a full refund of their initial prediction amount, minus standard network gas fees.
+</FAQAccordion>
+
+<FAQAccordion question="Why only Bitcoin (BTC)?">
+  Bitcoin provides the deepest liquidity and most robust, manipulation-resistant price feeds across the entire crypto ecosystem. For a 1-minute high-frequency market, Oracle reliability is paramount. As the platform matures, we will evaluate introducing other highly liquid assets.
+</FAQAccordion>
+
+<FAQAccordion question="Can I use leverage on my predictions?">
+  No, leverage is inherently not part of a prediction market structure. In margin trading, leverage multiplies your exposure. In DotMarket, your multiplier is determined purely by the ratio of the total UP pool versus the total DOWN pool. Your risk is strictly capped at your initial entry.
+</FAQAccordion>
+
+<FAQAccordion question="What happens if I lose my internet connection during a prediction?">
+  Your prediction is secured by the blockchain, not your browser. As long as your transaction was confirmed by the Arc Testnet before your connection dropped, your prediction is valid. You can refresh the page or return later to see the result and claim your payout.
+</FAQAccordion>
+
+<SectionDivider />
+
+## Payouts, Fees, and Claiming
+
+<FAQAccordion question="How are payouts calculated?">
+  Payouts are dynamic and based on pari-mutuel mechanics. The total pool (UP predictions + DOWN predictions) minus protocol fees is divided among the winning side proportional to their prediction size. If the UP pool has $100 and the DOWN pool has $300, UP predictors will receive a much higher multiplier if they win, because they are taking on the contrarian view.
+</FAQAccordion>
+
+<FAQAccordion question="What are the platform fees?">
+  To sustain the protocol, development, and Oracle costs, DotMarket takes a small percentage fee (typically around 3%) from the total combined pool before payouts are distributed to the winners. If the round ends in a Tie, no fee is taken from the refunded amounts.
+</FAQAccordion>
+
+<FAQAccordion question="When do I receive my payout?">
+  Payouts are calculated immediately at the conclusion of the 1-minute round. The smart contract updates the state within seconds of the Oracle pushing the final price.
+</FAQAccordion>
+
+<FAQAccordion question="Do I need to manually claim my winnings?">
+  Yes. Due to the nature of smart contract architecture and to optimize gas efficiency on the Arc Testnet, winnings accrue in your account's smart contract balance. You must initiate a "Claim" transaction to sweep your aggregated winnings back into your wallet. You can claim after every round, or let them accumulate and claim them all at once to save on gas.
+</FAQAccordion>
+
+<FAQAccordion question="Is there a time limit to claim my funds?">
+  No. Your funds are cryptographically secured by the smart contract. There is no expiration date on claiming your winnings.
+</FAQAccordion>
+
+<Callout type="warning" title="Claiming on Mainnet">
+  While gas fees on the Arc Testnet are negligible, remember that when DotMarket moves to Mainnet, claiming after every single round might incur higher cumulative gas costs. Batching your claims is highly recommended.
+</Callout>
+
+<SectionDivider />
+
+## Arc Testnet & Infrastructure
+
+<FAQAccordion question="What is the Arc Testnet?">
+  The Arc Testnet is a high-performance blockchain environment designed for developers to test decentralized applications before deploying them with real economic value. It mirrors the functionality of a high-speed mainnet but uses valueless test tokens.
+</FAQAccordion>
+
+<FAQAccordion question="Why did DotMarket choose to build on the Arc Testnet?">
+  A 1-minute prediction market requires immense throughput, low latency, and negligible transaction fees. The Arc Testnet provides the perfect sandbox to stress-test our high-frequency smart contracts without exposing users to high gas fees during the beta phase.
+</FAQAccordion>
+
+<FAQAccordion question="How do I get testnet tokens to play?">
+  You can acquire testnet tokens from the official Arc Network Faucet. We provide direct links to the faucet within our application dashboard so you can easily top up your wallet and start predicting immediately.
+</FAQAccordion>
+
+<SectionDivider />
+
+## Security and Trust
+
+<FAQAccordion question="Are my funds secure?">
+  DotMarket's smart contracts are entirely non-custodial. The protocol administrators cannot access your funds, halt your withdrawals, or manipulate the pool sizes. The code dictates the rules, and the rules are enforced by the blockchain.
+</FAQAccordion>
+
+<FAQAccordion question="Are the smart contracts audited?">
+  As we are currently on the Arc Testnet, the contracts are undergoing rigorous internal testing and optimization. Before any deployment to a mainnet environment with real economic value, all smart contracts will undergo multiple independent audits by top-tier Web3 security firms.
+</FAQAccordion>
+
+<FAQAccordion question="Where can I find the open-source code?">
+  Transparency is a core tenet of DotMarket. Once we move closer to our mainnet launch, our core smart contract repository and UI frontend will be open-sourced and available on GitHub for the community to review, fork, and verify.
+</FAQAccordion>
+
+<FAQAccordion question="Who controls the protocol?">
+  Currently, the core team maintains upgrade authority over the testnet contracts to rapidly deploy fixes and optimizations. Ultimately, our vision is to transition governance to a decentralized autonomous organization (DAO), allowing the community to vote on fee structures, new assets, and protocol upgrades.
+</FAQAccordion>
+
+<FAQAccordion question="How do I report a bug or issue?">
+  We heavily rely on our testnet community to identify edge cases. If you encounter a bug, please join our official Discord server and submit a ticket in the #bug-reports channel. Detailed reports including transaction hashes and console logs are highly appreciated.
+</FAQAccordion>
+
+<FAQAccordion question="How can I join the DotMarket community?">
+  The best way to get involved is by joining our Discord and following us on Twitter/X. Participate in testnet competitions, share your prediction strategies, and help us refine the ultimate 1-minute prediction experience. Find all the links in the Community section of these docs!
+</FAQAccordion>
+
+<Callout type="tip" title="Stay Secure">
+  Always verify that you are interacting with the official DotMarket URLs and smart contract addresses. The core team will never DM you first asking for funds or your private keys.
+</Callout>

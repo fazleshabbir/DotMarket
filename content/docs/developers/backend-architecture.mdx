@@ -1,0 +1,107 @@
+---
+title: "Backend Architecture"
+description: "A detailed overview of the DotMarket backend infrastructure, including our microservices, Keeper bots, indexing solutions, and caching strategies."
+---
+
+While the DotMarket smart contracts govern the unalterable rules of the 1-minute prediction market, the backend architecture is the engine that powers the user experience. Operating a high-frequency decentralized application requires a robust, scalable, and extremely low-latency backend infrastructure.
+
+This document provides a comprehensive look at how we capture, process, and deliver real-time blockchain data to thousands of simultaneous users without missing a beat.
+
+<SectionDivider />
+
+## Infrastructure Overview
+
+The DotMarket backend is designed around a microservices architecture, hosted on a globally distributed cloud network. This modular approach allows us to scale individual components independently, isolating failures and ensuring continuous uptime even during massive traffic spikes.
+
+Our primary microservices include:
+1. **The Indexer:** Subscribes to blockchain events and builds a searchable database.
+2. **The API Gateway:** Serves historical data and user statistics to the frontend.
+3. **The WebSocket Server:** Pushes real-time updates and live price feeds to connected clients.
+4. **The Keeper Bots:** Autonomous scripts that trigger critical on-chain state changes.
+
+<Flowchart 
+  nodes={[
+    { id: "1", label: "Arc Testnet Nodes", type: "default" },
+    { id: "2", label: "Indexer Service", type: "action" },
+    { id: "3", label: "PostgreSQL Database", type: "decision" },
+    { id: "4", label: "Redis Cache", type: "decision" },
+    { id: "5", label: "API & WebSocket Gateway", type: "action" },
+    { id: "6", label: "Frontend Clients", type: "default" }
+  ]}
+/>
+
+<SectionDivider />
+
+## The Indexing Service
+
+Reading large amounts of data directly from a blockchain node is slow and inefficient. To provide instantaneous load times on the frontend, we must index the blockchain data into a traditional relational database.
+
+Our custom-built Indexer connects to the Arc Testnet via WebSocket. It listens continuously for the events emitted by the `MarketEngine` smart contract, such as `PredictionPlaced`, `RoundLocked`, and `RoundEnded`. 
+
+When an event is detected, the Indexer immediately parses the payload and inserts the formatted data into a highly optimized PostgreSQL database. This allows us to perform complex queries—such as "calculate the historical win rate of this specific wallet address"—in milliseconds.
+
+### Handling Block Reorganizations
+
+Although block reorganizations (reorgs) are rare on the fast-finality Arc Testnet, the Indexer is designed to handle them gracefully. If a reorg occurs, the Indexer automatically detects the divergence in block hashes, rolls back the affected database entries, and replays the new sequence of events, ensuring absolute data integrity at all times.
+
+<Callout type="warning" title="Data Consistency">
+  The API always serves data directly from the PostgreSQL database. There may be a 50-100 millisecond delay between a transaction confirming on-chain and the API reflecting the change. For absolute real-time state, you must listen to the blockchain events directly.
+</Callout>
+
+<SectionDivider />
+
+## Real-Time Data Delivery
+
+A 1-minute prediction market is entirely dependent on real-time information. Users need to see the countdown timer tick accurately, watch the pool sizes update dynamically, and observe the live Pyth price feed react to the market.
+
+### The WebSocket Server
+
+We utilize a horizontally scalable Node.js WebSocket server to push real-time updates to all connected clients. When the Indexer processes a new blockchain event, it simultaneously publishes a message to a Redis Pub/Sub channel. The WebSocket servers subscribe to this channel and immediately broadcast the event to the frontends.
+
+This architecture ensures that if thousands of users predict UP or DOWN in the final seconds of a round, every single user sees the pool multipliers update instantly on their screen.
+
+### Caching Strategy
+
+To protect the PostgreSQL database from excessive load, we employ an aggressive caching strategy using Redis. 
+
+- **Current Round Data:** The state of the active Betting round and the Live round is cached entirely in Redis memory. This data is read tens of thousands of times per second.
+- **Historical Queries:** Frequently accessed historical data, such as the global leaderboard, is computed periodically and cached in Redis, refreshing every few minutes.
+
+<InteractiveTimeline steps={[
+  { title: "Event Emitted", description: "Smart contract emits PredictionPlaced on Arc Testnet." },
+  { title: "Indexer Picks Up", description: "The Indexer receives the event via WebSocket in ~10ms." },
+  { title: "Redis Pub/Sub", description: "Indexer writes to Postgres and broadcasts to Redis." },
+  { title: "Client Update", description: "WebSocket Server pushes the update to all connected frontends." }
+]} />
+
+<SectionDivider />
+
+## The Keeper Infrastructure
+
+The Keeper bots are perhaps the most critical component of the entire DotMarket ecosystem. Because smart contracts cannot execute themselves based on a timer, an external entity must trigger the transition between market phases.
+
+### Responsibilities of the Keeper
+
+1. **Monitoring Time:** The Keeper meticulously tracks the exact block timestamp of the Arc Testnet.
+2. **Fetching Pyth Data:** As the 60-second Live phase concludes, the Keeper immediately queries the Pyth Hermes REST API to retrieve the absolute latest cryptographically signed BTC/USD price update.
+3. **Execution:** The Keeper submits a transaction to the `MarketEngine` contract, calling `executeSettlement()` and providing the Pyth price payload.
+
+### High Availability Keepers
+
+If a Keeper fails to execute the settlement, the 1-minute market halts. The live round cannot resolve, and the next round cannot lock. To prevent this catastrophic failure, we run a distributed cluster of Keeper bots across multiple geographic regions.
+
+These Keepers are programmed with sophisticated redundancy logic. If the primary Keeper fails to submit the transaction within 2 seconds of the deadline, the secondary Keeper automatically takes over, ensuring the continuous, uninterrupted operation of the DotMarket protocol.
+
+<Callout type="tip" title="Decentralized Execution">
+  While we run the primary Keepers to ensure optimal performance, the `executeSettlement` function is entirely permissionless. Anyone can run a Keeper bot and earn the execution bounty provided by the protocol.
+</Callout>
+
+<SectionDivider />
+
+## Next Steps
+
+With a solid grasp of how our backend infrastructure processes and delivers data, you are ready to integrate directly with our systems. Proceed to the **API Reference** documentation to explore the available REST endpoints, payload structures, and WebSocket subscription channels.
+
+<FAQAccordion question="Can I access the raw PostgreSQL database?">
+  For security and performance reasons, we do not provide direct access to the underlying PostgreSQL database. All historical and statistical data must be accessed through our documented REST API endpoints.
+</FAQAccordion>

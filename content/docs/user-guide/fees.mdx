@@ -1,0 +1,96 @@
+---
+title: "Fees"
+description: "A transparent breakdown of the protocol fees on DotMarket, gas costs on the Arc Testnet, and how they impact your predictions."
+---
+
+Transparency is a core tenet of the DotMarket protocol. In traditional centralized finance, fee structures are often obfuscated, hidden in wide spreads, or buried in complex terms of service. On DotMarket, every fee is programmatic, predictable, and verifiable directly on the blockchain.
+
+This guide provides a comprehensive breakdown of the two types of fees you will encounter while using DotMarket: Protocol Fees and Gas Fees.
+
+<SectionDivider />
+
+## 1. Protocol Fees
+
+To maintain the platform, fund ongoing development, and support the decentralized infrastructure (such as paying for Pyth Oracle updates), DotMarket charges a small protocol fee. 
+
+Crucially, **the protocol fee is only taken from the Total Pool before payouts are distributed.** You are never charged a fee simply to enter a prediction, nor are you charged a fee if a round is cancelled or results in a tie.
+
+### The Fee Structure
+
+DotMarket implements a flat **3% protocol fee** on the Total Pool of every successfully settled round. 
+
+Let’s break down exactly how this impacts a round:
+- **Total UP Pool:** 5,000 tokens
+- **Total DOWN Pool:** 5,000 tokens
+- **Gross Total Pool:** 10,000 tokens
+
+Upon settlement, the smart contract automatically deducts the 3% fee from the Gross Total Pool.
+- **Protocol Fee Deducted:** 300 tokens (3% of 10,000)
+- **Net Total Pool (Distributed to Winners):** 9,700 tokens
+
+If the UP pool wins, the 9,700 tokens are distributed proportionally among the users who predicted UP. The effective payout multiplier becomes 1.94x instead of an exact 2.0x.
+
+<Callout type="info" title="Treasury Allocation">
+  The 3% protocol fee is routed directly to the DotMarket DAO Treasury. These funds are completely transparent and are utilized for protocol incentives, liquidity provision, and future feature development.
+</Callout>
+
+### Fee Exemptions
+
+There are specific, hardcoded scenarios where the protocol fee is entirely waived, ensuring that users do not pay for inconclusive rounds.
+
+<InteractiveTimeline 
+  steps={[
+    { title: "Standard Win", description: "A clear UP or DOWN result occurs. The 3% fee is deducted from the Total Pool before distribution." },
+    { title: "Round Tied", description: "Entry Price exactly equals Settlement Price. The 3% fee is WAIVED. Users receive 100% of their funds back." },
+    { title: "Oracle Failure", description: "Pyth oracle data is stale or unavailable. Round is cancelled. The 3% fee is WAIVED. 100% refund." }
+  ]} 
+/>
+
+<SectionDivider />
+
+## 2. Gas Fees
+
+Because DotMarket is a decentralized application operating on a blockchain, every action that modifies the state of the network—such as placing a prediction or claiming rewards—requires a "gas fee." This fee does not go to DotMarket; it is paid to the network validators who secure the blockchain.
+
+### The Arc Testnet Advantage
+
+DotMarket is deployed on the **Arc Testnet**, a high-performance EVM-compatible network designed for speed and efficiency. The choice of the Arc Testnet was highly deliberate, driven by the needs of a 1-minute prediction market.
+
+<Flowchart 
+  nodes={[
+    { id: '1', label: 'User Initiates Transaction', type: 'input' },
+    { id: '2', label: 'Arc Testnet Processing', type: 'default' },
+    { id: '3', label: 'Sub-second Confirmation', type: 'default' },
+    { id: '4', label: 'Fractions of a Cent Gas Fee', type: 'output' }
+  ]} 
+  edges={[
+    { source: '1', target: '2' },
+    { source: '2', target: '3' },
+    { source: '3', target: '4' }
+  ]} 
+/>
+
+For a prediction market operating on 60-second intervals, high gas fees would ruin the user experience and make smaller predictions mathematically unviable. On the Arc Testnet, gas fees are negligible. 
+
+- **Prediction Execution:** Placing a prediction typically costs fractions of a cent in equivalent network tokens.
+- **Claiming Rewards:** Executing a claim transaction is similarly inexpensive, allowing you to batch claim or claim frequently without worrying about eroding your profits.
+
+<Callout type="tip" title="Always Keep a Gas Balance">
+  While gas fees on the Arc Testnet are microscopic, they are not zero. Ensure you always maintain a small balance of the native network token in your wallet to cover these transaction costs. If your native token balance is exactly zero, you will be unable to place predictions, even if you have the ERC-20 tokens required for the prediction itself.
+</Callout>
+
+<SectionDivider />
+
+## Verifying Fees On-Chain
+
+One of the greatest advantages of DeFi is the inability to hide financial mechanics. Every fee taken by the DotMarket protocol is completely transparent.
+
+<FAQAccordion question="How can I verify the protocol fee deduction?">
+  You can verify the exact fee taken for any given round by looking at the Market History tab. Furthermore, by clicking on the transaction hash of a settled round, you can view the exact token transfers on the Arc Testnet block explorer. You will see the total pool, the transfer of the 3% fee to the Treasury address, and the distribution of the net pool to the winning participants.
+</FAQAccordion>
+
+<FAQAccordion question="Will the 3% protocol fee ever change?">
+  The protocol fee is currently hardcoded at 3%. However, as DotMarket evolves into a fully decentralized autonomous organization (DAO), token holders may eventually have the power to propose and vote on adjustments to the fee structure to optimize the platform's economics.
+</FAQAccordion>
+
+By maintaining a clear, transparent, and fair fee structure, DotMarket ensures that users can confidently calculate their risk and potential rewards without fear of hidden costs.

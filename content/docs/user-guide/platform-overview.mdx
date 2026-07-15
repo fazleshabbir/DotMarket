@@ -1,0 +1,113 @@
+---
+title: "Platform Overview"
+description: "A comprehensive guide to the DotMarket interface, including the Trade Page, Portfolio, Market History, and Wallet management features."
+---
+
+Welcome to the DotMarket platform. Designed with an institutional-grade aesthetic and lightning-fast responsiveness, the DotMarket interface is your command center for executing 1-minute Bitcoin price predictions. This overview will guide you through every major section of the application, ensuring you know exactly where to find the data you need, when you need it.
+
+<SectionDivider />
+
+## The Trade Page: Your Command Center
+
+The Trade Page is the heart of DotMarket. It is where all the action happens, and it has been meticulously engineered to provide maximum information with minimal visual clutter. When dealing with 1-minute prediction rounds, split-second decision making is paramount, and the UI reflects this urgency.
+
+### Real-Time Price Chart
+
+At the center of the Trade Page is the live Bitcoin price chart, powered by high-fidelity data from the Pyth Oracle network. This isn't your standard delayed price feed; it updates sub-second, reflecting the true, on-chain consensus price of BTC. 
+
+The chart features several key visual indicators:
+- **Current Price Line:** A distinct, pulsing line showing the exact current price down to the 8th decimal place.
+- **Entry Price Marker:** Once a round transitions from "Open" to "Locked," a horizontal line is drawn on the chart. This is the critical threshold. If you predicted UP, the live price must remain above this line when the round ends.
+- **Round Timer:** A countdown overlay that lets you know exactly how many seconds remain before the current round locks, or before the locked round settles.
+
+<Callout type="info" title="Chart Customization">
+  You can toggle between different timeframes (1M, 5M, 15M) to get a broader macro perspective before placing your 1-minute prediction. However, remember that your prediction is strictly evaluated against the 1-minute delta.
+</Callout>
+
+### The Prediction Interface
+
+To the right of the chart is the Prediction Interface. This is where you execute your market views. The interface is intentionally binary and straightforward: 
+
+1. **UP (Green Button):** You predict the settlement price will be strictly higher than the locked entry price.
+2. **DOWN (Red Button):** You predict the settlement price will be strictly lower than the locked entry price.
+
+Above these buttons, you will see the **Current Multipliers**. These numbers update dynamically as other users place their predictions. For example, if the UP multiplier is 1.5x and the DOWN multiplier is 2.8x, it means the majority of the market is predicting UP, making a successful DOWN prediction significantly more lucrative.
+
+<Flowchart 
+  nodes={[
+    { id: '1', label: 'Analyze Chart', type: 'input' },
+    { id: '2', label: 'Check Multipliers', type: 'default' },
+    { id: '3', label: 'Select UP or DOWN', type: 'default' },
+    { id: '4', label: 'Confirm Transaction', type: 'output' }
+  ]} 
+  edges={[
+    { source: '1', target: '2' },
+    { source: '2', target: '3' },
+    { source: '3', target: '4' }
+  ]} 
+/>
+
+<SectionDivider />
+
+## Portfolio Management
+
+Navigating away from the high-octane environment of the Trade Page, the **Portfolio** tab provides a comprehensive, serene overview of your historical performance and current standings on DotMarket. 
+
+### Active Predictions
+
+In this section, you can monitor any predictions you have placed for rounds that have not yet settled. It displays the round ID, your chosen direction, the amount predicted, and the live status. While you cannot cancel a prediction once the transaction is confirmed on the Arc Testnet, monitoring this tab provides peace of mind.
+
+### Historical Performance Metrics
+
+DotMarket tracks a variety of metrics to help you analyze your prediction strategy over time:
+
+- **Total Volume:** The cumulative amount of tokens you have used across all predictions.
+- **Win Rate:** The percentage of your predictions that have resolved in your favor. This is a crucial metric for evaluating your edge in the market.
+- **Net PnL (Profit and Loss):** Your total profits minus your total losses. This figure accounts for all protocol fees, giving you an accurate representation of your bottom line.
+
+<Callout type="tip" title="Data Export">
+  For advanced users who wish to run statistical analysis on their performance, DotMarket allows you to export your entire prediction history as a CSV file directly from the Portfolio page.
+</Callout>
+
+<SectionDivider />
+
+## Market History and Transparency
+
+Because DotMarket operates purely on-chain, every single round, prediction, and settlement is publicly verifiable. The **Market History** tab acts as an accessible block explorer tailored specifically for DotMarket rounds.
+
+Here, you can view a continuous ledger of past rounds. Selecting a specific round expands a detailed view containing:
+- **Locked Price:** The exact Pyth oracle price when the round locked.
+- **Settlement Price:** The exact Pyth oracle price when the round ended.
+- **Total Pool Size:** The combined amount predicted by all participants.
+- **Payout Ratio:** The final multipliers for the UP and DOWN sides.
+
+This unprecedented level of transparency ensures that users never have to trust the platform; they can independently verify the cryptographic truth of every single market resolution.
+
+<InteractiveTimeline 
+  steps={[
+    { title: "Round Identified", description: "Locate a past round in the Market History tab by its unique ID." },
+    { title: "Data Verification", description: "Review the locked and settled prices alongside the total pool size." },
+    { title: "On-Chain Audit", description: "Click the transaction hash to verify the settlement on the Arc Testnet explorer." }
+  ]} 
+/>
+
+<SectionDivider />
+
+## Integrated Wallet Interface
+
+To facilitate a seamless user experience, DotMarket features a robust, integrated Wallet interface accessible from the top navigation bar. Instead of constantly opening your browser extension, key wallet interactions are surfaced directly within the DApp.
+
+From this dropdown, you can:
+- **View Balances:** Instantly see your available token balance without leaving the Trade Page.
+- **Claim Rewards:** Access pending payouts from successful predictions. 
+- **Disconnect/Switch:** Manage your active Web3 connection and ensure you are connected to the correct network (Arc Testnet).
+
+<FAQAccordion question="Can I use multiple wallets with DotMarket?">
+  Yes, you can easily disconnect your current wallet and connect a different one. However, predictions, portfolios, and claimable rewards are strictly tied to the specific wallet address that initiated the transaction. You cannot transfer a prediction to another wallet.
+</FAQAccordion>
+
+<FAQAccordion question="Why does the UI look different on mobile?">
+  DotMarket is fully responsive. On mobile devices, the chart and prediction interface are stacked vertically to prioritize the prediction buttons, ensuring you never miss a 1-minute window due to a cramped screen.
+</FAQAccordion>
+
+By mastering the DotMarket platform interface, you equip yourself with the tools necessary to analyze data quickly and execute predictions flawlessly in a fast-paced environment.

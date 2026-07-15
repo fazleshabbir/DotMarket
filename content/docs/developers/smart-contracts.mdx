@@ -1,0 +1,180 @@
+---
+title: "Smart Contracts"
+description: "An in-depth guide to the DotMarket smart contract architecture, covering core functions, Pyth Oracle integration, event logging, and storage optimizations."
+---
+
+The DotMarket protocol is entirely decentralized, governed by a suite of immutable smart contracts deployed on the Arc Testnet. These contracts enforce the strict rules of the 1-minute market lifecycle, manage the dynamic prize pools, ensure accurate price validation via the Pyth Oracle, and autonomously handle the distribution of payouts. 
+
+Understanding the smart contract architecture is paramount for developers who wish to integrate DotMarket into their own applications, build automated trading strategies, or construct custom analytics dashboards.
+
+<SectionDivider />
+
+## Architecture Overview
+
+The DotMarket system utilizes a modular smart contract architecture. Rather than placing all logic into a single monolithic contract, we separate concerns to optimize for gas efficiency, security, and upgradeability. 
+
+The primary components of our architecture are:
+
+1. **MarketEngine.sol:** The core contract. This contract manages the state of all prediction rounds, accepts user funds, and calculates the dynamic multipliers. It is the main entry point for user interactions.
+2. **OracleResolver.sol:** A dedicated adapter contract that interfaces securely with the Pyth Network. It is responsible for fetching, validating, and returning the highly accurate BTC/USD price feeds required for market settlement.
+3. **Treasury.sol:** A secure vault contract that holds the aggregated funds for all active rounds. It only releases funds when instructed by the MarketEngine upon successful round settlement.
+
+<Flowchart 
+  nodes={[
+    { id: "1", label: "User Wallet", type: "default" },
+    { id: "2", label: "MarketEngine (Core Logic)", type: "action" },
+    { id: "3", label: "OracleResolver (Pyth Integration)", type: "action" },
+    { id: "4", label: "Treasury (Fund Management)", type: "decision" }
+  ]}
+/>
+
+<SectionDivider />
+
+## Interacting with the Market
+
+The `MarketEngine.sol` contract exposes several crucial functions that allow users to place predictions, claim their winnings, and for Keeper bots to resolve the markets.
+
+### Predicting UP or DOWN
+
+To participate in a 1-minute round, users must submit their prediction before the 60-second prediction phase expires. The contract provides two distinct functions for this purpose to minimize gas costs and simplify routing:
+
+```solidity
+/**
+ * @notice Places an UP prediction for the current active round.
+ * @dev Reverts if the round is not in the 'Betting' phase or if the amount is 0.
+ */
+function predictUp() external payable;
+
+/**
+ * @notice Places a DOWN prediction for the current active round.
+ * @dev Reverts if the round is not in the 'Betting' phase or if the amount is 0.
+ */
+function predictDown() external payable;
+```
+
+When a user calls either `predictUp()` or `predictDown()`, the smart contract executes a series of critical state updates:
+1. **Verification:** Ensures the current timestamp is within the valid 60-second window.
+2. **Pool Update:** Increases the total ARC tokens allocated to the UP or DOWN pool.
+3. **Record Keeping:** Maps the user's address to their predicted amount for the specific epoch.
+4. **Multiplier Recalculation:** Dynamically updates the payout multipliers based on the new pool ratio.
+
+<Callout type="warning" title="Transaction Timing">
+  Because the Arc Testnet block time is ~0.8 seconds, you must submit your `predictUp()` or `predictDown()` transaction at least 3-4 seconds before the round lock time to ensure it is mined successfully. Transactions mined after the 60-second mark will automatically revert.
+</Callout>
+
+### Claiming Rewards
+
+Once a round has concluded and settled, winning users must manually claim their rewards. The protocol does not push funds automatically to prevent expensive gas operations and potential reentrancy attacks.
+
+```solidity
+/**
+ * @notice Claims the payout for a specific array of epochs.
+ * @param epochs An array of round IDs the user wishes to claim.
+ */
+function claimRewards(uint256[] calldata epochs) external;
+```
+
+This function allows for batched claiming, which is highly efficient for frequent participants. The contract verifies that the user made a winning prediction for each epoch provided, calculates their share of the prize pool, and transfers the combined winnings in a single transaction from the `Treasury.sol` contract.
+
+<SectionDivider />
+
+## Oracle Integration and Settlement
+
+The integrity of a prediction market relies entirely on the accuracy and timeliness of the underlying asset price. DotMarket integrates with the Pyth Network, a decentralized oracle that provides sub-second price updates.
+
+### The Settlement Process
+
+At the end of the 1-minute Live phase, the round must be settled. This is triggered by a decentralized Keeper bot calling the `executeSettlement()` function on the `MarketEngine`.
+
+```solidity
+/**
+ * @notice Settles a live round using the provided Pyth price update.
+ * @param priceUpdate The cryptographic price update payload from Pyth.
+ */
+function executeSettlement(bytes[] calldata priceUpdate) external payable;
+```
+
+When this function is called, the `MarketEngine` delegates the price validation to the `OracleResolver`. 
+
+1. **Cryptographic Validation:** The resolver verifies the cryptographic signatures of the Pyth network validators to ensure the price data has not been tampered with.
+2. **Freshness Check:** The resolver enforces strict freshness constraints. The price update provided by the Keeper must have a timestamp that is immediately after the round's lock time. If the price is too old (stale) or too far into the future, the transaction reverts.
+3. **Resolution:** If the price is valid, the `MarketEngine` compares it to the round's Entry Price and officially declares the winning side (UP, DOWN, or TIE).
+
+<Callout type="tip" title="Keeper Bot Operation">
+  Operating a Keeper bot is a highly specialized task. Keepers must monitor the mempool, continuously fetch price updates from the Pyth Hermes endpoint, and aggressively compete to submit the `executeSettlement` transaction. Keepers are rewarded with a small percentage of the total pool for their service.
+</Callout>
+
+<SectionDivider />
+
+## Event Logging
+
+To provide real-time updates to frontends and analytical indexing services, the DotMarket smart contracts emit comprehensive event logs. These logs contain all the necessary data to reconstruct the state of the market without requiring expensive read calls to the contract.
+
+Key events emitted by the `MarketEngine`:
+
+```solidity
+event PredictionPlaced(
+    address indexed user, 
+    uint256 indexed epoch, 
+    uint8 direction, 
+    uint256 amount
+);
+
+event RoundStarted(
+    uint256 indexed epoch, 
+    uint256 startTime, 
+    uint256 lockTime
+);
+
+event RoundLocked(
+    uint256 indexed epoch, 
+    int64 entryPrice
+);
+
+event RoundEnded(
+    uint256 indexed epoch, 
+    int64 closePrice, 
+    uint8 winningDirection
+);
+
+event RewardsClaimed(
+    address indexed user, 
+    uint256 indexed epoch, 
+    uint256 amount
+);
+```
+
+By subscribing to these events using WebSockets, your application can maintain a perfectly synchronized local state, updating UI elements, leaderboards, and charts the exact millisecond a transaction is confirmed on the Arc Testnet.
+
+<SectionDivider />
+
+## Storage Optimization
+
+In Solidity, reading from and writing to storage is the most expensive operation. Given the high-frequency nature of our 1-minute markets, optimizing storage was a critical priority.
+
+We utilize advanced bit-packing techniques to compress the state of a round into a single storage slot (256 bits). 
+
+```solidity
+struct Round {
+    uint32 startTime;
+    uint32 lockTime;
+    uint32 closeTime;
+    uint32 lockPrice;
+    uint32 closePrice;
+    uint32 totalAmountUp;
+    uint32 totalAmountDown;
+    uint8 state; // 0 = Betting, 1 = Live, 2 = Ended
+}
+```
+
+By carefully defining the size of each variable, we ensure that an entire `Round` struct can be loaded into memory or updated with a minimal gas footprint. This efficiency translates directly to lower transaction costs for our users.
+
+<FAQAccordion question="Is the DotMarket smart contract secure against Reentrancy?">
+  Absolutely. All functions that transfer funds, such as `claimRewards()`, strictly follow the Checks-Effects-Interactions pattern. Furthermore, we utilize OpenZeppelin's `ReentrancyGuard` modifier on all external state-changing functions to provide an additional layer of security against malicious recursive calls.
+</FAQAccordion>
+
+<SectionDivider />
+
+## Next Steps
+
+Now that you have a comprehensive understanding of the smart contract architecture, you are ready to learn how we index this on-chain data and serve it to thousands of users simultaneously. Proceed to the **Backend Architecture** documentation to explore our scalable microservices and robust API infrastructure.

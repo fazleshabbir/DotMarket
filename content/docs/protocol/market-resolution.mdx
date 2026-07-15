@@ -1,0 +1,114 @@
+---
+title: "Market Resolution & Payouts"
+description: "A deep dive into how DotMarket evaluates the Entry Price versus the Settlement Price, handles Pyth Oracle precision, determines winning outcomes, and calculates dynamic payouts."
+---
+
+Understanding exactly how a market resolves is the most critical aspect of participating in DotMarket. Because DotMarket is a 1-minute BTC prediction market built on the Arc Testnet, the resolution logic must be lightning-fast, highly precise, and completely deterministic. There is no room for subjectivity or manual intervention. The smart contract acts as the ultimate arbiter, utilizing cryptographic data from the Pyth Oracle to determine the winners and distribute funds.
+
+This document outlines the precise mechanics of the market resolution process, detailing the difference between Entry and Settlement prices, the exact conditions required for a prediction to win, how tie scenarios are handled, and the mathematics behind dynamic pool payouts.
+
+<SectionDivider />
+
+## The Core Concept: Entry vs. Settlement
+
+Every DotMarket round hinges on comparing exactly two price points. No other price action during the 60-second Live phase matters. The highest peak or the lowest dip within the minute are completely irrelevant to the final outcome. The protocol cares only about the price at the exact moment the prediction window closes and the price at the exact moment the round concludes.
+
+<InteractiveTimeline 
+  steps={[
+    { title: "Prediction Closes", description: "The 60-second Prediction Phase reaches 0. The smart contract rejects new entries." },
+    { title: "Entry Price Recorded", description: "The verified Pyth Oracle price is logged on-chain as the official Entry Price." },
+    { title: "Live Phase", description: "60 seconds pass. The market moves, but the contract simply waits." },
+    { title: "Round Concludes", description: "The 60-second Live Phase ends. Keepers trigger the settlement." },
+    { title: "Settlement Price Recorded", description: "The new Pyth Oracle price is logged on-chain as the official Settlement Price." }
+  ]}
+/>
+
+### The Entry Price
+The Entry Price is the foundational metric for the round. The instant the 60-second Prediction phase expires, a decentralized Keeper triggers the smart contract to fetch the latest BTC/USD price from the Pyth Network. This price is locked immutably into the contract's state for that specific round ID. For example, if the Entry Price is recorded as $65,432.10, this becomes the absolute baseline against which all predictions in that round are judged.
+
+### The Settlement Price
+Exactly 60 seconds after the Entry Price is locked, the round's Live phase concludes. Again, a Keeper fetches the newest, freshest signed price payload from Pyth. This becomes the Settlement Price. The contract will then immediately compare the Settlement Price against the Entry Price to finalize the round.
+
+<Callout type="info" title="Pyth Network Precision">
+  DotMarket utilizes the Pyth Network due to its incredible precision. Pyth provides price feeds with up to 8 decimal places of accuracy. This extreme granularity is essential for a 1-minute market, where Bitcoin's price movement over 60 seconds might be relatively small. This precision virtually eliminates ambiguity and drastically reduces the chances of a tied round.
+</Callout>
+
+## The Winning Logic
+
+Because DotMarket is governed by immutable smart contracts, the rules for determining the winning side are hardcoded and mathematically absolute. When the Settlement Price is recorded, the contract runs a simple logical check:
+
+- **Predict UP Wins:** If the Settlement Price is strictly greater than the Entry Price (Settlement Price > Entry Price).
+- **Predict DOWN Wins:** If the Settlement Price is strictly less than the Entry Price (Settlement Price < Entry Price).
+
+<Flowchart 
+  nodes={[
+    { id: "1", label: "Contract Compares Prices", type: "default" },
+    { id: "2", label: "Settlement > Entry?", type: "decision" },
+    { id: "3", label: "UP Pool Wins", type: "action" },
+    { id: "4", label: "Settlement < Entry?", type: "decision" },
+    { id: "5", label: "DOWN Pool Wins", type: "action" }
+  ]}
+  edges={[
+    { source: "1", target: "2" },
+    { source: "2", target: "3", label: "Yes" },
+    { source: "2", target: "4", label: "No" },
+    { source: "4", target: "5", label: "Yes" }
+  ]}
+/>
+
+### Handling Ties and Refunds
+
+While the 8-decimal precision of the Pyth Oracle makes it exceedingly rare, it is mathematically possible for the Settlement Price to be exactly equal to the Entry Price (Settlement Price == Entry Price). 
+
+In the event of a perfectly flat market where the price does not move even a fraction of a cent over the 60-second Live phase, the smart contract automatically declares the round a Tie. 
+
+When a Tie occurs:
+1. The contract marks the round as neutral.
+2. All participants in both the UP and DOWN pools become eligible for a full refund of their initial prediction amounts.
+3. No profit is generated for either side, and the protocol treasury does not take any fees from tied rounds. Participants only bear the cost of the Arc Testnet network gas required to claim their refund.
+
+<Callout type="tip" title="Claiming Refunds">
+  If a round results in a tie, your funds are safely held in the contract. You must navigate to the 'History' tab on the DotMarket decentralized application to manually claim your refunded tokens, just as you would claim winnings from a victorious round.
+</Callout>
+
+<SectionDivider />
+
+## Dynamic Payouts and Multiplier Calculations
+
+DotMarket does not use traditional fixed-odds mechanics found in centralized platforms. Instead, it utilizes a pari-mutuel pool system. This means that the total amount of liquidity provided by the losing side is proportionately distributed to the users on the winning side, minus a small protocol treasury fee used to fund the Keeper network and protocol development.
+
+The payout multiplier for any given round is entirely dynamic and shifts constantly during the Prediction phase as new liquidity enters the pools. The final payout is calculated precisely at the moment the Prediction phase locks.
+
+### The Calculation Formula
+
+The formula used by the smart contract to determine the payout multiplier for the winning side is straightforward:
+
+**Total Pool** = (UP Pool Total + DOWN Pool Total) - Protocol Fee
+**Winning Multiplier** = Total Pool / Winning Pool Total
+
+### Example Scenario
+Let us imagine a round where users have placed a total of 10,000 tokens predicting UP, and 30,000 tokens predicting DOWN. The total liquidity in the round is 40,000 tokens. (For the sake of simplicity, we will ignore the small protocol fee in this example).
+
+**If UP Wins:**
+The total pool of 40,000 tokens is divided by the UP pool's 10,000 tokens.
+- **UP Multiplier:** 4.0x
+- Every 1 token predicted on UP yields 4 tokens in return (1 original token + 3 tokens profit).
+
+**If DOWN Wins:**
+The total pool of 40,000 tokens is divided by the DOWN pool's 30,000 tokens.
+- **DOWN Multiplier:** 1.33x
+- Every 1 token predicted on DOWN yields 1.33 tokens in return.
+
+<Callout type="warning" title="Contrarian Advantage">
+  As demonstrated by the mathematics, predicting against the overwhelming majority of the market yields significantly higher payout multipliers. A smaller pool size relative to the opposing pool always results in a higher potential return on investment.
+</Callout>
+
+<FAQAccordion question="Why did my multiplier change right before the round locked?">
+  Because the system is dynamic, large predictions placed in the final seconds of the Prediction phase will heavily influence the pool ratio. Your final multiplier is locked in at the exact same moment the Entry Price is recorded, ensuring everyone on the winning side receives the exact same proportional reward.
+</FAQAccordion>
+
+<FAQAccordion question="Who pays for the gas fees during the automated settlement?">
+  The decentralized Keeper network pays the gas fees required to submit the Pyth Oracle data and trigger the settlement function on the Arc Testnet. These Keepers are compensated directly from the small protocol fee collected from the total pool of each round.
+</FAQAccordion>
+
+Understanding the mechanics of market resolution empowers you to make informed decisions and accurately calculate your potential risk and reward in every 1-minute cycle. For more information on how the protocol secures its price data, proceed to the Oracle System documentation.

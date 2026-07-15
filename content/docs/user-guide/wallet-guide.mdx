@@ -1,0 +1,103 @@
+---
+title: "Wallet Guide"
+description: "Everything you need to know about connecting your Web3 wallet, switching to the Arc Testnet, and maintaining security on DotMarket."
+---
+
+DotMarket is a non-custodial, decentralized application (DApp). This means there are no user accounts, no passwords, and no central database holding your funds. Instead, you interact with the platform entirely through your personal Web3 wallet. Your wallet acts as your identity, your bank, and your remote control for interacting with the DotMarket smart contracts.
+
+This guide will walk you through setting up your wallet, connecting it to the correct network, and adhering to critical security best practices.
+
+<SectionDivider />
+
+## Supported Web3 Wallets
+
+DotMarket is built utilizing standard EVM (Ethereum Virtual Machine) architecture, meaning it supports a wide array of popular Web3 wallets. For the most seamless experience on desktop and mobile, we recommend the following:
+
+- **MetaMask:** The industry standard browser extension and mobile wallet. Highly reliable and widely supported.
+- **Rabby Wallet:** A wallet optimized for DeFi users, offering excellent transaction previews and enhanced security features.
+- **WalletConnect:** A protocol that allows you to connect a vast ecosystem of mobile wallets (like Trust Wallet or Rainbow) to the DotMarket desktop interface by simply scanning a QR code.
+
+<InteractiveTimeline 
+  steps={[
+    { title: "Install Wallet", description: "Download a supported Web3 wallet extension for your browser or mobile device." },
+    { title: "Connect to DApp", description: "Click 'Connect Wallet' on DotMarket and approve the connection request." },
+    { title: "Switch Network", description: "Approve the prompt to switch your wallet's network to the Arc Testnet." }
+  ]} 
+/>
+
+<SectionDivider />
+
+## Connecting to the Arc Testnet
+
+Because DotMarket requires extreme speed and low transaction costs for its 1-minute rounds, it is deployed on the **Arc Testnet**, rather than the Ethereum mainnet. 
+
+When you first connect your wallet to DotMarket, the platform will detect if you are on the wrong network. A prompt will automatically appear in your wallet asking for permission to add and switch to the Arc Testnet. 
+
+### Manual Network Configuration
+
+If the automatic prompt fails, or if you prefer to add the network manually, you can enter the following details into your wallet's network settings (e.g., in MetaMask, go to Settings > Networks > Add Network):
+
+- **Network Name:** Arc Testnet
+- **New RPC URL:** `https://rpc.arc-testnet.com` *(Example URL)*
+- **Chain ID:** `9999` *(Example ID)*
+- **Currency Symbol:** `ARC`
+- **Block Explorer URL:** `https://explorer.arc-testnet.com`
+
+<Callout type="warning" title="Testnet Assets">
+  Because DotMarket currently operates on a testnet, the assets used for predictions and gas fees hold no real-world monetary value. They are strictly for testing, platform refinement, and simulating the prediction market environment before mainnet launch.
+</Callout>
+
+<SectionDivider />
+
+## Token Approvals and Security
+
+Interacting with any decentralized smart contract requires a fundamental understanding of token approvals. This is a critical security concept that every Web3 user must master.
+
+### Understanding the Approval Process
+
+Before the DotMarket smart contract can take your tokens to place them into the UP or DOWN prediction pools, you must cryptographically grant the contract permission to do so. This is known as a token approval transaction.
+
+<Flowchart 
+  nodes={[
+    { id: '1', label: 'Initiate First Prediction', type: 'input' },
+    { id: '2', label: 'Wallet Prompts Token Approval', type: 'default' },
+    { id: '3', label: 'User Grants Spending Limit', type: 'default' },
+    { id: '4', label: 'Wallet Prompts Prediction TX', type: 'output' }
+  ]} 
+  edges={[
+    { source: '1', target: '2' },
+    { source: '2', target: '3' },
+    { source: '3', target: '4' }
+  ]} 
+/>
+
+When you make your first prediction, you will actually be asked to sign *two* transactions:
+1. **The Approval:** This grants the contract permission to spend your tokens.
+2. **The Execution:** This actually executes the prediction and moves the tokens into the pool.
+
+### Setting Spending Limits
+
+When prompted for an approval, modern wallets like MetaMask and Rabby will ask you to define a "Spending Limit." 
+
+- **Infinite Approval (Convenient):** You grant the contract permission to access all your current and future tokens of that type. You will never need to sign an approval transaction again for DotMarket, making future predictions one click faster.
+- **Specific Approval (Secure):** You grant the contract permission to access *only* the exact amount you are predicting right now. This is highly secure, but it means you will have to pay a gas fee and sign an extra approval transaction every single time you want to make a prediction.
+
+<Callout type="tip" title="Best Practice Recommendation">
+  For a high-frequency DApp like DotMarket, infinite approvals are often necessary for a smooth UX, as stopping to approve every 1-minute round is impractical. However, it is a best practice to regularly review and revoke approvals using tools like Revoke.cash when you are not actively using a platform.
+</Callout>
+
+<SectionDivider />
+
+## Wallet Troubleshooting
+
+Even with robust architecture, Web3 interactions can occasionally encounter friction. Here are solutions to common wallet issues:
+
+<FAQAccordion question="My transaction is stuck on 'Pending'. What do I do?">
+  This usually happens if you submitted a transaction with a gas fee that was too low for the network to process. In your wallet (like MetaMask), look for the pending transaction and click "Speed Up" to resubmit it with a slightly higher gas fee. Note that if a transaction is pending when a DotMarket round locks, it will ultimately fail and revert.
+</FAQAccordion>
+
+<FAQAccordion question="The platform isn't recognizing my wallet balance.">
+  First, ensure your wallet is definitely connected to the Arc Testnet. If it is, and the balance is still incorrect, try performing a hard refresh of your browser, or manually disconnect and reconnect your wallet via the DotMarket UI.
+</FAQAccordion>
+
+By maintaining a secure wallet environment and understanding the mechanics of network switching and token approvals, you ensure a safe and uninterrupted experience on DotMarket.

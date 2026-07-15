@@ -1,0 +1,96 @@
+---
+title: "How DotMarket Works: Protocol Architecture"
+description: "A comprehensive overview of the complete protocol flow, market creation, continuous cycles, settlement mechanics, and Pyth oracle integration powering our 1-minute BTC prediction market."
+---
+
+Welcome to the foundational guide on how DotMarket operates at the protocol level. Built on the lightning-fast Arc Testnet, DotMarket is a fully decentralized, non-custodial 1-minute prediction market specifically designed for the BTC/USD trading pair. By combining continuous prediction cycles, dynamic payout mechanisms, and high-fidelity decentralized oracle networks, DotMarket delivers an unparalleled decentralized finance experience. This document will walk you through every aspect of the complete protocol flow, from market creation to final settlement, ensuring you have a complete technical and conceptual understanding of the engine.
+
+<SectionDivider />
+
+## Introduction to the DotMarket Architecture
+
+At its core, DotMarket is a continuous state machine operating on the blockchain. Unlike traditional prediction platforms where users might create customized markets with arbitrary expiries and conditions, DotMarket focuses entirely on providing a unified, high-frequency, continuous loop for predicting the short-term price movement of Bitcoin. The system is entirely permissionless and non-custodial; smart contracts handle every interaction, meaning no central authority ever has access to user funds, and every outcome is determined purely by mathematics and cryptographic truth.
+
+The decision to utilize a strict 1-minute market interval is intentional. This duration minimizes the exposure to long-term market volatility while maximizing the engagement and volume for liquidity providers and predictors alike. Everything in the protocol is designed around optimizing the execution speed and settlement reliability of this rapid timeframe. 
+
+<Callout type="info" title="The Power of the Arc Testnet">
+  DotMarket leverages the Arc Testnet's high-throughput capabilities to ensure that transactions are confirmed with sub-second latency. This allows the 1-minute prediction cycles to function without being hampered by network congestion or high gas fees typically associated with layer-1 environments.
+</Callout>
+
+## The Complete Protocol Flow
+
+The DotMarket engine operates through overlapping sequences, ensuring there is always a market open for predictions and a market currently actively live. This continuous pipeline is managed autonomously by the core smart contracts. 
+
+<InteractiveTimeline 
+  steps={[
+    { title: "Market Instantiation", description: "The smart contract automatically initializes a new prediction round with a unique ID." },
+    { title: "Prediction Phase", description: "Users deposit funds into the UP or DOWN pools for exactly 60 seconds." },
+    { title: "Entry Price Lock", description: "The Prediction phase concludes, and the protocol securely fetches the current BTC price from the Pyth Oracle." },
+    { title: "Live Price Action", description: "For the next 60 seconds, the market is locked while the real-world Bitcoin price fluctuates." },
+    { title: "Market Settlement", description: "A decentralized keeper triggers the settlement function, fetching the final Pyth price." },
+    { title: "Payout Distribution", description: "The contract evaluates the outcome and releases funds to the winning predictors." }
+  ]}
+/>
+
+### Market Creation and Continuous Sequencing
+
+One of the unique aspects of DotMarket is that individual markets (or "rounds") do not require manual creation by administrators or users. The `MarketManager` smart contract operates a deterministic queue. The moment one round enters its Live phase, the very next round is instantly instantiated and opened for its Prediction phase. This overlapping architecture guarantees that users never have to wait to participate in the ecosystem. 
+
+Because the blockchain operates sequentially by block height and timestamp, the smart contract relies on the block timestamp to validate the boundaries of the 60-second Prediction and Live phases. When a user submits a transaction to Predict UP or Predict DOWN, the contract first checks if the current block timestamp falls within the strict 60-second window assigned to that specific round ID. If the transaction is included in a block even one second past the deadline, the contract automatically reverts the transaction, ensuring absolute fairness and preventing anyone from predicting with late information.
+
+<Flowchart 
+  nodes={[
+    { id: "start", label: "User Predicts UP/DOWN", type: "default" },
+    { id: "validation", label: "Timestamp Verification", type: "action" },
+    { id: "pool_update", label: "Pool Liquidity Updated", type: "decision" },
+    { id: "lock", label: "Round Transition to Live", type: "default" }
+  ]}
+  edges={[
+    { source: "start", target: "validation" },
+    { source: "validation", target: "pool_update" },
+    { source: "pool_update", target: "lock" }
+  ]}
+/>
+
+### Dynamic Liquidity and Pool Mechanics
+
+DotMarket operates on a pari-mutuel model, which means that predictors are not playing against a central "house," but rather against each other. The payouts are dynamic and determined exclusively by the ratio of funds placed in the UP pool versus the DOWN pool. 
+
+When you place a prediction, your funds are securely held in the smart contract escrow for that specific round. As more users enter the round, the projected payout multipliers fluctuate in real-time. For instance, if a vast majority of the capital is predicting that the price of Bitcoin will go UP, the payout multiplier for the UP pool will decrease, while the potential reward for the DOWN pool will substantially increase to incentivize counter-predictions. This self-balancing mechanism ensures that the market always reflects the aggregate sentiment of the participants while guaranteeing that the protocol remains perfectly solvent in all scenarios.
+
+<Callout type="warning" title="Slippage and Multiplier Shifts">
+  Because the multipliers are fully dynamic during the Prediction phase, the exact payout you receive is not finalized until the very last transaction is processed at the 60-second deadline. Large predictions placed in the final seconds can significantly shift the final multiplier ratios.
+</Callout>
+
+<SectionDivider />
+
+## Integration with the Pyth Oracle
+
+A decentralized prediction market is only as secure as the price data it relies upon. DotMarket integrates exclusively with the Pyth Network to source high-fidelity, real-time Bitcoin pricing data. Pyth is uniquely suited for a 1-minute market because it aggregates price data directly from top-tier institutional exchanges and market makers, pushing updates with sub-second latency.
+
+When a DotMarket round requires a price—either the Entry Price when locking the round or the Settlement Price when concluding it—it does not rely on a simple on-chain time-weighted average price (TWAP), which would be too slow for a 1-minute interval. Instead, DotMarket utilizes a decentralized Keeper network.
+
+These Keeper bots constantly monitor the DotMarket contract. The exact moment a round's 60-second timer expires, the Keeper queries the off-chain Pyth network for the freshest, cryptographically signed price update. The Keeper then submits a transaction to the DotMarket contract, passing this signed price payload. The smart contract mathematically verifies the Pyth cryptographic signature on-chain to ensure the price is authentic, untampered, and accurately reflects the market at that exact moment. Only after this rigorous verification is the price recorded as the Entry or Settlement Price.
+
+<Callout type="tip" title="Decentralized Keepers">
+  You do not have to worry about network congestion delaying settlements. DotMarket's Keeper network is heavily incentivized to process settlements immediately, guaranteeing that the continuous flow of 1-minute rounds is never interrupted.
+</Callout>
+
+## Settlement and Execution
+
+The final phase of the protocol flow is the automated settlement. Once the Keeper has successfully submitted the verified Pyth Settlement Price, the smart contract instantaneously evaluates the outcome of the round. The logic is entirely deterministic:
+- If the Settlement Price is greater than the Entry Price, the UP pool is declared the winner.
+- If the Settlement Price is lower than the Entry Price, the DOWN pool wins.
+- The smart contract then calculates the final payout amounts by dividing the total losing pool by the winning pool and unlocks the funds.
+
+Users can then claim their winnings directly to their wallets. Because the system is non-custodial, the protocol has no ability to withhold funds or alter the settlement outcome. The entire process—from the initial prediction to the final payout—is completely transparent, immutable, and verifiable on the Arc Testnet explorer.
+
+<FAQAccordion question="Can I predict in multiple rounds simultaneously?">
+  Yes! Because DotMarket operates with overlapping rounds, you can always predict in the current open round even while you are waiting for the previous round to finish its Live phase. Each round is completely mathematically isolated.
+</FAQAccordion>
+
+<FAQAccordion question="What prevents the protocol from stealing funds?">
+  The smart contracts are entirely open-source, non-upgradeable (or governed by a timelocked DAO), and have undergone rigorous security audits. There are no administrative functions that allow the withdrawal of user funds from the prediction pools under any circumstances.
+</FAQAccordion>
+
+By mastering the complete protocol flow—from the dynamic pool mechanics to the Pyth oracle settlement—you are well-equipped to navigate the fast-paced, 1-minute prediction environment of DotMarket. The next step is to deeply understand the exact mathematical resolution rules in the Market Resolution documentation.

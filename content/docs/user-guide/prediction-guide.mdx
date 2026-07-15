@@ -1,0 +1,95 @@
+---
+title: "Prediction Guide"
+description: "Learn exactly how to execute UP or DOWN predictions in DotMarket's 1-minute rounds, including validation, strategy, and wallet interactions."
+---
+
+Participating in a 1-minute prediction market requires speed, conviction, and a clear understanding of the mechanics. DotMarket strips away the complexities of traditional trading—there are no order books, no slippage, no stop-losses, and no liquidations. Your only task is to predict the directional movement of Bitcoin's price over the next 60 seconds.
+
+This guide will walk you through the entire lifecycle of a prediction, from analysis to execution, and finally, settlement.
+
+<SectionDivider />
+
+## The 1-Minute Lifecycle
+
+Every market on DotMarket operates on a strict, continuous 1-minute schedule. Understanding the phases of this cycle is critical to timing your predictions effectively.
+
+<InteractiveTimeline 
+  steps={[
+    { title: "Open Phase", description: "The round is open for predictions. Users can commit funds to either the UP or DOWN pools." },
+    { title: "Locked Phase", description: "Predictions are halted. The Pyth oracle captures the Entry Price. The 60-second observation period begins." },
+    { title: "Settlement Phase", description: "The 60 seconds conclude. The Pyth oracle captures the Settlement Price. Winners are determined." }
+  ]} 
+/>
+
+### 1. The Open Phase
+During the Open phase, the prediction window is active. You will see a countdown timer indicating how much time remains before the round locks. It is during this window that you must make your decision and confirm your transaction. 
+
+Because DotMarket is built on the lightning-fast Arc Testnet, transactions confirm almost instantly. However, it is a best practice to avoid waiting until the very last second to submit your prediction, as minor network congestion could result in your transaction being included in the subsequent block, potentially missing the window.
+
+### 2. The Locked Phase
+Once the timer hits zero, the round enters the Locked phase. At this precise moment, the smart contract requests the latest price from the Pyth Oracle network. This price becomes the **Entry Price**. 
+
+For the next 60 seconds, no new predictions can be placed for this specific round. The UI will clearly display the Entry Price as a horizontal line on your chart, allowing you to visually track whether the live price is currently in winning or losing territory based on your prediction.
+
+### 3. The Settlement Phase
+Exactly 1 minute after the round locked, the Settlement phase begins. The smart contract again requests the latest price from the Pyth Oracle. This becomes the **Settlement Price**.
+
+- If you predicted **UP** and the Settlement Price is strictly greater than the Entry Price, you win.
+- If you predicted **DOWN** and the Settlement Price is strictly less than the Entry Price, you win.
+- In the rare event that the Settlement Price is exactly equal to the Entry Price, the round is a Tie, and all participants can reclaim their initial funds.
+
+<SectionDivider />
+
+## Executing a Prediction
+
+Placing a prediction on DotMarket is designed to be as frictionless as possible. Follow these steps to execute your market view.
+
+<Flowchart 
+  nodes={[
+    { id: '1', label: 'Select Direction (UP/DOWN)', type: 'input' },
+    { id: '2', label: 'Enter Amount', type: 'default' },
+    { id: '3', label: 'Review Multiplier', type: 'default' },
+    { id: '4', label: 'Sign via Wallet', type: 'output' }
+  ]} 
+  edges={[
+    { source: '1', target: '2' },
+    { source: '2', target: '3' },
+    { source: '3', target: '4' }
+  ]} 
+/>
+
+### Step 1: Analyze the Market
+Before committing capital, observe the real-time Pyth chart. Are there clear short-term trends? Is Bitcoin consolidating? While 1-minute markets are highly volatile, reading short-term momentum can provide an edge.
+
+### Step 2: Choose UP or DOWN
+Click either the green UP button or the red DOWN button. This selection dictates which pool your funds will be routed to. 
+
+### Step 3: Enter Your Amount
+Input the amount of tokens you wish to commit to this prediction. The interface will instantly calculate your *estimated* payout based on the current state of the pools.
+
+<Callout type="warning" title="Dynamic Multipliers">
+  Remember that payouts in pari-mutuel systems are dynamic. The multiplier you see when placing your prediction is an estimate based on the pool sizes at that exact moment. If other users place large predictions in the opposite direction before the round locks, your potential payout multiplier will increase. Conversely, if they predict in the same direction, your multiplier will decrease.
+</Callout>
+
+### Step 4: Confirm and Sign
+Click the final submit button. Your Web3 wallet (e.g., MetaMask) will prompt you to sign the transaction. Review the gas fee (which will be negligible on the Arc Testnet) and confirm. Within moments, you will see a success notification on the DotMarket interface, and your prediction will be registered in the "Active Predictions" panel.
+
+<SectionDivider />
+
+## Advanced Strategies: Multiple Predictions
+
+DotMarket allows for flexibility within the Open phase. You are not restricted to a single transaction per round. 
+
+**Adding to a Position:** If you place an initial prediction of 100 tokens on UP, and thirty seconds later you feel even more confident in that direction, you can execute a second transaction to add another 50 tokens to the UP pool for the same round. 
+
+**Hedging (Not Recommended):** Technically, the smart contract does not prevent you from placing a prediction on both UP and DOWN in the same round. However, due to the protocol fee taken from the total pool, this strategy guarantees a net loss and should be avoided. You should only commit capital when you have a directional conviction.
+
+<FAQAccordion question="Can I cancel a prediction?">
+  No. Once your transaction is confirmed on the blockchain and registered in the smart contract, it cannot be reversed, canceled, or modified. Always double-check your direction and amount before signing the transaction in your wallet.
+</FAQAccordion>
+
+<FAQAccordion question="What if my transaction is pending when the round locks?">
+  If your transaction is submitted but not mined into a block before the Open phase ends, the smart contract will reject the transaction. Your funds will remain in your wallet, minus the gas fee consumed by the failed transaction attempt. This highlights the importance of not waiting until the final second to submit.
+</FAQAccordion>
+
+By understanding the mechanics of the 1-minute lifecycle and the pari-mutuel structure, you can navigate DotMarket with confidence and precision.
