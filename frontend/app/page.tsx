@@ -834,7 +834,13 @@ export default function LandingPage() {
               paddingTop: 24
             }}
           >
-            <div>&copy; {new Date().getFullYear()} dotMarket. All rights reserved.</div>
+            <div style={{ display: 'flex', gap: 16, alignItems: 'center', flexWrap: 'wrap', justifyContent: 'center' }}>
+              <div>&copy; {new Date().getFullYear()} dotMarket. All rights reserved.</div>
+              <div style={{ width: 1, height: 10, background: 'rgba(255,255,255,0.1)' }} />
+              <Link href="/privacy" className="premium-text-link" style={{ fontSize: 12, color: 'var(--text-muted)', textDecoration: 'none' }}>
+                Privacy Policy
+              </Link>
+            </div>
             
             <div style={{ display: 'flex', gap: 12, alignItems: 'center', flexWrap: 'wrap', justifyContent: 'center' }}>
               <span style={{ fontSize: 11, fontFamily: 'var(--font-mono)' }}>dotMarket Testnet</span>
