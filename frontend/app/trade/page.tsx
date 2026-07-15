@@ -221,7 +221,7 @@ function TerminalClient() {
         )}
         {/* Leaderboard — fills viewport, no scroll needed */}
         {activeTab === 'Leaderboard' && (
-          <div style={{ flex: 1, overflow: 'hidden', padding: '0 24px 24px 24px' }}>
+          <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', padding: '0 24px 24px 24px' }}>
             <LeaderboardView />
           </div>
         )}
