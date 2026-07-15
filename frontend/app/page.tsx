@@ -425,14 +425,14 @@ export default function LandingPage() {
               alignItems: 'center',
             }}
           >
-            {['Markets', 'How It Works', 'FAQ'].map((tab) => (
-              <a
+            {['Markets', 'How It Works', 'FAQ', 'Docs'].map((tab) => (
+              <Link
                 key={tab}
-                href={`#${tab.toLowerCase().replace(/\s+/g, '-')}`}
+                href={tab === 'Docs' ? '/docs/user-guide/introduction' : `#${tab.toLowerCase().replace(/\s+/g, '-')}`}
                 className="premium-text-link"
               >
                 {tab}
-              </a>
+              </Link>
             ))}
           </nav>
         )}
@@ -496,20 +496,16 @@ export default function LandingPage() {
               boxShadow: '0 20px 40px rgba(0,0,0,0.8)',
             }}
           >
-            {['Markets', 'How It Works', 'FAQ'].map((tab) => (
-              <a
+            {['Markets', 'How It Works', 'FAQ', 'Docs'].map((tab) => (
+              <Link
                 key={tab}
-                href={`#${tab.toLowerCase().replace(/\s+/g, '-')}`}
-                onClick={() => setMenuOpen(false)}
+                href={tab === 'Docs' ? '/docs/user-guide/introduction' : `#${tab.toLowerCase().replace(/\s+/g, '-')}`}
                 className="premium-text-link"
-                style={{
-                  fontSize: 16,
-                  padding: '8px 0',
-                  borderBottom: '1px solid rgba(255, 255, 255, 0.03)',
-                }}
+                style={{ fontSize: 18, borderBottom: '1px solid rgba(255,255,255,0.05)', paddingBottom: 16 }}
+                onClick={() => setMenuOpen(false)}
               >
                 {tab}
-              </a>
+              </Link>
             ))}
             <Link href="/trade" style={{ textDecoration: 'none', marginTop: 8 }} onClick={() => setMenuOpen(false)}>
               <button
@@ -810,9 +806,13 @@ export default function LandingPage() {
             <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
               <strong style={{ fontSize: 13, color: '#ffffff', letterSpacing: '0.5px' }}>RESOURCES</strong>
               {['Documentation', 'Brand Kit', 'Privacy Policy', 'Terms of Service'].map((link) => (
-                <a key={link} href="#" className="premium-text-link">
+                <Link 
+                  key={link} 
+                  href={link === 'Documentation' ? '/docs/user-guide/introduction' : '#'} 
+                  className="premium-text-link"
+                >
                   {link}
-                </a>
+                </Link>
               ))}
             </div>
 
