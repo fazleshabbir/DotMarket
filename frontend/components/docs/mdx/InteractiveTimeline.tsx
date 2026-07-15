@@ -12,8 +12,10 @@ interface TimelineProps {
   steps: TimelineStep[];
 }
 
-export function InteractiveTimeline({ steps }: TimelineProps) {
+export function InteractiveTimeline({ steps = [] }: { steps?: TimelineStep[] }) {
   const [activeStep, setActiveStep] = useState(0);
+
+  if (steps.length === 0) return null;
 
   return (
     <div style={{ margin: '32px 0', padding: '24px', background: 'rgba(255,255,255,0.02)', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.06)' }}>

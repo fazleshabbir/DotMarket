@@ -19,9 +19,11 @@ interface FlowchartProps {
   edges: Edge[];
 }
 
-export function Flowchart({ nodes, edges }: FlowchartProps) {
+export function Flowchart({ nodes = [], edges = [] }: { nodes?: Node[]; edges?: Edge[] }) {
   // A simplified premium vertical flowchart for documentation
   
+  if (nodes.length === 0) return null;
+
   return (
     <div style={{
       padding: '32px',

@@ -63,3 +63,26 @@ export default async function DocsPage({ params }: PageProps) {
     </article>
   );
 }
+
+export async function generateStaticParams() {
+  const categories = ['user-guide', 'protocol', 'developers', 'community'];
+  const paramsList: { category: string; slug: string }[] = [];
+
+  for (const cat of categories) {
+    const dirPath = path.join(process.cwd(), 'content', 'docs', cat);
+    if (fs.existsSync(dirPath)) {
+      const files = fs.readdirSync(dirPath);
+      for (const file of files) {
+        if (file.endsWith('.mdx')) {
+          paramsList.push({
+            category: cat,
+            slug: file.replace('.mdx', ''),
+          });
+        }
+      }
+    }
+  }
+
+  return paramsList;
+}
+
