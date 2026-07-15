@@ -3,7 +3,6 @@
 import React, { useState } from 'react';
 import { Sidebar } from '@/components/docs/Sidebar';
 import Link from 'next/link';
-import { ConnectButton } from '@/components/ConnectButton';
 import { usePathname } from 'next/navigation';
 import { Menu, X } from 'lucide-react';
 
@@ -185,7 +184,6 @@ export default function DocsLayout({
               <polyline points="7 7 17 7 17 17"></polyline>
             </svg>
           </Link>
-          <ConnectButton />
         </div>
       </header>
 
