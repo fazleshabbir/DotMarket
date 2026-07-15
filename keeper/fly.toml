@@ -1,0 +1,20 @@
+# Fly.io configuration for DotMarket Keeper Bot
+app = "dotmarket-keeper"
+primary_region = "sin"  # Singapore — closest to ARC testnet
+
+[build]
+  # Use Node.js builder
+  builder = "heroku/buildpacks:20"
+
+[env]
+  NODE_ENV = "production"
+  ARC_TESTNET_RPC = "https://5042002.rpc.thirdweb.com"
+  MARKET_ADDRESS = "0xA801878f362D7c0093Fd96B6616b33812c28ce8E"
+  PRICE_FEED_ID = "0xe62df6c8b4a85fe1a67db44dc12de5db330f7ac66b72dc658afedf0f4a415b43"
+
+# No HTTP service — this is a pure background worker
+# Fly keeps it running 24/7 on the free tier (shared-cpu-1x, 256MB)
+[[vm]]
+  cpu_kind = "shared"
+  cpus = 1
+  memory_mb = 256

@@ -12,7 +12,7 @@ services:
       - key: ARC_TESTNET_RPC
         value: https://5042002.rpc.thirdweb.com
       - key: MARKET_ADDRESS
-        value: "0xA801878f362D7c0093Fd96B6616b33812c28ce8E"
+        value: "0x31Aeb323aEE44e3EE5036F14bBD0D7f1429B4938"
       - key: PRICE_FEED_ID
         value: "0xe62df6c8b4a85fe1a67db44dc12de5db330f7ac66b72dc658afedf0f4a415b43"
       # KEEPER_PRIVATE_KEY must be set manually in Render dashboard (secret)
