@@ -12,6 +12,7 @@ import { Card } from '@/components/ui/Card';
 import { Section } from '@/components/ui/Section';
 import { PageHeader } from '@/components/ui/PageHeader';
 import { useMotionSystem } from '@/hooks/useMotionSystem';
+import { COMMUNITY_LINKS } from '@/config/communityLinks';
 
 // Lazy load below-the-fold sections to optimize initial bundle size & performance
 const HowItWorksSection = dynamic(() => import('@/components/HowItWorksSection').then(m => m.HowItWorksSection), { ssr: false });
@@ -812,9 +813,9 @@ export default function LandingPage() {
             {/* Community Column */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
               <strong style={{ fontSize: 13, color: '#ffffff', letterSpacing: '0.5px' }}>COMMUNITY</strong>
-              <a href="https://discord.gg/SGCjXsgdY" target="_blank" rel="noopener noreferrer" className="premium-text-link">Discord</a>
-              <a href="https://x.com/dotmarketai" target="_blank" rel="noopener noreferrer" className="premium-text-link">X</a>
-              <a href="https://github.com/fazleshabbir/DotMarket" target="_blank" rel="noopener noreferrer" className="premium-text-link">GitHub</a>
+              <a href={COMMUNITY_LINKS.discord} target="_blank" rel="noopener noreferrer" aria-label="Join DotMarket Discord" className="premium-text-link">Discord</a>
+              <a href={COMMUNITY_LINKS.twitter} target="_blank" rel="noopener noreferrer" aria-label="Visit DotMarket on X" className="premium-text-link">X</a>
+              <a href={COMMUNITY_LINKS.telegram} target="_blank" rel="noopener noreferrer" aria-label="Join DotMarket Telegram" className="premium-text-link">Telegram</a>
             </div>
           </div>
 

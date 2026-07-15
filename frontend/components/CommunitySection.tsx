@@ -6,6 +6,7 @@ import { ArrowRight } from 'lucide-react';
 import { useMediaQuery } from '@/hooks/useMediaQuery';
 import { useMotionSystem } from '@/hooks/useMotionSystem';
 import { Button } from '@/components/ui/Button';
+import { COMMUNITY_LINKS } from '@/config/communityLinks';
 
 // ── MAGNETIC SOCIAL ICON COMPONENT ───────────────────────────────────────────
 interface MagneticIconProps {
@@ -13,9 +14,10 @@ interface MagneticIconProps {
   tooltip: string;
   href: string;
   delayIndex: number;
+  ariaLabel?: string;
 }
 
-function MagneticIcon({ children, tooltip, href, delayIndex }: MagneticIconProps) {
+function MagneticIcon({ children, tooltip, href, delayIndex, ariaLabel }: MagneticIconProps) {
   const x = useMotionValue(0);
   const y = useMotionValue(0);
   const springConfig = { damping: 12, stiffness: 120 };
@@ -56,6 +58,7 @@ function MagneticIcon({ children, tooltip, href, delayIndex }: MagneticIconProps
       href={href}
       target="_blank"
       rel="noopener noreferrer"
+      aria-label={ariaLabel || tooltip}
       onMouseMove={handleMouseMove}
       onMouseLeave={handleMouseLeave}
       onMouseEnter={() => setHovered(true)}
@@ -432,9 +435,10 @@ export function CommunitySection() {
             >
               <div style={{ display: 'flex', alignItems: 'center', gap: 24, flexWrap: 'wrap' }}>
                 <a 
-                  href="https://discord.com" 
+                  href={COMMUNITY_LINKS.discord} 
                   target="_blank" 
                   rel="noopener noreferrer"
+                  aria-label="Join DotMarket Discord"
                   style={{ textDecoration: 'none' }}
                 >
                   <Button variant="primary" size="lg" showArrow={true}>
@@ -450,7 +454,7 @@ export function CommunitySection() {
 
               {/* Social icons row */}
               <div style={{ display: 'flex', gap: 12, marginTop: 12 }}>
-                <MagneticIcon tooltip="Join Discord" href="https://discord.com" delayIndex={0}>
+                <MagneticIcon tooltip="Join Discord" ariaLabel="Join DotMarket Discord" href={COMMUNITY_LINKS.discord} delayIndex={0}>
                   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                     <path d="M7.5 4.2c-2.43 1.8-3.4 5.23-3.4 8.78c0 3.32.74 5.94 1.48 7.37c1.37 2.65 4.25 3.35 6.42 1.35v0c1.07-.98 2.93-.98 4 0v0c2.17 2 5.05 1.3 6.42-1.35c.74-1.43 1.48-4.05 1.48-7.37c0-3.55-.97-6.98-3.4-8.78c-2.73-2-6.52-2.28-9-1.95c-2.48-.33-6.27-.05-9 1.95z"></path>
                     <path d="M9 12h.01"></path>
@@ -458,14 +462,14 @@ export function CommunitySection() {
                   </svg>
                 </MagneticIcon>
                 
-                <MagneticIcon tooltip="Follow X (Twitter)" href="https://twitter.com" delayIndex={1}>
+                <MagneticIcon tooltip="Follow X (Twitter)" ariaLabel="Visit DotMarket on X" href={COMMUNITY_LINKS.twitter} delayIndex={1}>
                   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                     <path d="M4 4l11.733 16h4.267l-11.733 -16z"></path>
                     <path d="M4 20l6.768 -6.768m2.46 -2.46l6.772 -6.772"></path>
                   </svg>
                 </MagneticIcon>
 
-                <MagneticIcon tooltip="Join Telegram" href="https://telegram.org" delayIndex={2}>
+                <MagneticIcon tooltip="Join Telegram" ariaLabel="Join DotMarket Telegram" href={COMMUNITY_LINKS.telegram} delayIndex={2}>
                   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                     <path d="M15 10l-4 4l6 6l4 -16l-18 7l4 2l2 6l3 -4"></path>
                   </svg>

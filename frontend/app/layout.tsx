@@ -47,6 +47,8 @@ export const metadata: Metadata = {
   },
 };
 
+import { COMMUNITY_LINKS } from '@/config/communityLinks';
+
 const jsonLd = {
   "@context": "https://schema.org",
   "@graph": [
@@ -57,9 +59,9 @@ const jsonLd = {
       "url": BASE_URL,
       "logo": `${BASE_URL}/icon.png`,
       "sameAs": [
-        "https://x.com/dotmarketai",
-        "https://discord.gg/SGCjXsgdY",
-        "https://t.me/dotmarketai"
+        COMMUNITY_LINKS.twitter,
+        COMMUNITY_LINKS.discord,
+        COMMUNITY_LINKS.telegram
       ]
     },
     {
