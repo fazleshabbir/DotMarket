@@ -766,7 +766,7 @@ export default function LandingPage() {
           <div 
             style={{ 
               display: 'grid',
-              gridTemplateColumns: isMobile ? '1fr 1fr' : isTablet ? '1fr 1fr 1.5fr' : '2fr 1fr 1fr 1fr',
+              gridTemplateColumns: isMobile ? '1fr 1fr' : isTablet ? '1fr 1fr 1.5fr' : '2fr 1fr 1fr 1fr 1fr',
               gap: 40,
               marginBottom: 48
             }}
@@ -795,35 +795,33 @@ export default function LandingPage() {
             {/* Product Column */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
               <strong style={{ fontSize: 13, color: '#ffffff', letterSpacing: '0.5px' }}>PRODUCT</strong>
-              {['Start Trading', 'Leaderboard', 'Portfolio'].map((link) => (
-                <Link key={link} href="/trade" className="premium-text-link">
-                  {link}
-                </Link>
-              ))}
+              <Link href="/trade" className="premium-text-link">Trade</Link>
+              <Link href="/docs/user-guide/introduction" className="premium-text-link">Documentation</Link>
+              <a href="#roadmap" className="premium-text-link">Roadmap</a>
             </div>
 
-            {/* Documentation Column */}
+            {/* Developers Column */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+              <strong style={{ fontSize: 13, color: '#ffffff', letterSpacing: '0.5px' }}>DEVELOPERS</strong>
+              <Link href="/docs/developers/api-reference" className="premium-text-link">API</Link>
+              <Link href="/docs/developers/smart-contracts" className="premium-text-link">Smart Contracts</Link>
+              <Link href="/brand-kit" className="premium-text-link">Brand Kit</Link>
+            </div>
+
+            {/* Resources Column */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
               <strong style={{ fontSize: 13, color: '#ffffff', letterSpacing: '0.5px' }}>RESOURCES</strong>
-              {['Documentation', 'Brand Kit', 'Privacy Policy', 'Terms of Service'].map((link) => (
-                <Link 
-                  key={link} 
-                  href={link === 'Documentation' ? '/docs/user-guide/introduction' : '#'} 
-                  className="premium-text-link"
-                >
-                  {link}
-                </Link>
-              ))}
+              <Link href="/docs/community/faq" className="premium-text-link">FAQ</Link>
+              <Link href="/docs/protocol/security" className="premium-text-link">Security</Link>
+              <Link href="/docs/community/changelog-roadmap" className="premium-text-link">Changelog</Link>
             </div>
 
-            {/* Social Column */}
+            {/* Community Column */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
               <strong style={{ fontSize: 13, color: '#ffffff', letterSpacing: '0.5px' }}>COMMUNITY</strong>
-              {['X (Twitter)', 'Discord', 'Telegram', 'GitHub'].map((link) => (
-                <a key={link} href="#" className="premium-text-link">
-                  {link}
-                </a>
-              ))}
+              <a href="https://discord.gg/SGCjXsgdY" target="_blank" rel="noopener noreferrer" className="premium-text-link">Discord</a>
+              <a href="https://x.com/dotmarketai" target="_blank" rel="noopener noreferrer" className="premium-text-link">X</a>
+              <a href="https://github.com/fazleshabbir/DotMarket" target="_blank" rel="noopener noreferrer" className="premium-text-link">GitHub</a>
             </div>
           </div>
 
