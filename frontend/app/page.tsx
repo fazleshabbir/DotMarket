@@ -806,9 +806,7 @@ export default function LandingPage() {
               <Link href="/docs/developers/api-reference" className="premium-text-link">API</Link>
               <Link href="/brand-kit" className="premium-text-link">Brand Kit</Link>
               <Link href="/docs/community/faq" className="premium-text-link">FAQ</Link>
-              <Link href="/docs/protocol/security" className="premium-text-link">Security</Link>
               <Link href="/docs/community/changelog-roadmap" className="premium-text-link">Changelog</Link>
-              <Link href="/privacy" className="premium-text-link">Privacy Policy</Link>
             </div>
 
             {/* Community Column */}
@@ -837,10 +835,6 @@ export default function LandingPage() {
           >
             <div style={{ display: 'flex', gap: 16, alignItems: 'center', flexWrap: 'wrap', justifyContent: 'center' }}>
               <div>&copy; {new Date().getFullYear()} dotMarket. All rights reserved.</div>
-              <div style={{ width: 1, height: 10, background: 'rgba(255,255,255,0.1)' }} />
-              <Link href="/privacy" className="premium-text-link" style={{ fontSize: 12, color: 'var(--text-muted)', textDecoration: 'none' }}>
-                Privacy Policy
-              </Link>
             </div>
             
             <div style={{ display: 'flex', gap: 12, alignItems: 'center', flexWrap: 'wrap', justifyContent: 'center' }}>

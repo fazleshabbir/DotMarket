@@ -26,7 +26,6 @@ const DOCS_NAV = [
       { title: '1-Minute Market Lifecycle', href: '/docs/protocol/1-minute-market-lifecycle' },
       { title: 'Market Resolution', href: '/docs/protocol/market-resolution' },
       { title: 'Oracle System', href: '/docs/protocol/oracle-system' },
-      { title: 'Security', href: '/docs/protocol/security' },
     ]
   },
   {
