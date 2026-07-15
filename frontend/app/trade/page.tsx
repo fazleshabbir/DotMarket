@@ -17,6 +17,7 @@ import { useContracts } from '@/hooks/useNetworkConfig';
 import { PortfolioView } from '@/components/trade/PortfolioView';
 import { LeaderboardView } from '@/components/trade/LeaderboardView';
 import { HistoryView } from '@/components/trade/HistoryView';
+import { ActivityFeed } from '@/components/trade/ActivityFeed';
 
 function CountdownText() {
   const { timeLeftToLock, timeLeftToEnd, marketStatus } = useMarket();
@@ -206,8 +207,13 @@ function TerminalClient() {
           </div>
         </div>
 
+        {/* Center Section: Live Activity Feed */}
+        <div style={{ width: '200px', flexShrink: 0, display: 'flex', flexDirection: 'column', minHeight: 0, background: 'rgba(8,8,8,0.6)', backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)', border: '1px solid rgba(255,255,255,0.06)', borderRadius: '16px', overflow: 'hidden' }}>
+          <ActivityFeed />
+        </div>
+
         {/* Right Section: Betting Panel */}
-        <div style={{ width: '380px', flexShrink: 0, display: 'flex', flexDirection: 'column', minHeight: 0 }}>
+        <div style={{ width: '360px', flexShrink: 0, display: 'flex', flexDirection: 'column', minHeight: 0 }}>
           <BettingPanel currentBtcPrice={btcPrice} />
         </div>
       </div>

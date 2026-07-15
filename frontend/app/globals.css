@@ -429,27 +429,109 @@ body::before {
   transform: scaleX(1);
 }
 .premium-card {
-  background: rgba(15, 15, 15, 0.4);
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(10, 10, 10, 0.5);
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  border: 1px solid rgba(255, 255, 255, 0.07);
   border-radius: 20px;
-  box-shadow: 0 10px 30px -20px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.03);
-  transform: translateY(0px) scale(1);
-  transition: background 250ms cubic-bezier(0.16, 1, 0.3, 1),
-              border-color 250ms cubic-bezier(0.16, 1, 0.3, 1),
-              box-shadow 250ms cubic-bezier(0.16, 1, 0.3, 1),
-              transform 250ms cubic-bezier(0.16, 1, 0.3, 1);
+  box-shadow:
+    0 10px 40px -20px rgba(0,0,0,0.6),
+    inset 0 1px 0 rgba(255,255,255,0.05),
+    inset 0 -1px 0 rgba(0,0,0,0.2);
+  transform: translateY(0px) scale(1) perspective(1000px) rotateX(0deg) rotateY(0deg);
+  transition:
+    background 300ms cubic-bezier(0.16, 1, 0.3, 1),
+    border-color 300ms cubic-bezier(0.16, 1, 0.3, 1),
+    box-shadow 300ms cubic-bezier(0.16, 1, 0.3, 1),
+    transform 300ms cubic-bezier(0.16, 1, 0.3, 1);
   will-change: transform;
 }
 
 .premium-card.hover-effect:hover {
-  background: rgba(255, 255, 255, 0.025);
-  border-color: rgba(255, 255, 255, 0.2);
-  box-shadow: 0 20px 40px -15px rgba(0,0,0,0.7), inset 0 1px 0 rgba(255,255,255,0.1);
-  transform: translateY(-8px) scale(1.03);
+  background: rgba(255, 255, 255, 0.03);
+  border-color: rgba(255, 255, 255, 0.18);
+  box-shadow:
+    0 24px 50px -15px rgba(0,0,0,0.8),
+    inset 0 1px 0 rgba(255,255,255,0.12),
+    inset 0 -1px 0 rgba(0,0,0,0.3);
+  transform: translateY(-6px) scale(1.015);
 }
 
 .premium-card.no-inner-highlight {
   box-shadow: 0 10px 30px -20px rgba(0,0,0,0.5);
 }
+
+/* ── Tilt Card (3D hover effect) ─────────────────────────────────────────── */
+.tilt-card {
+  transition: transform 200ms cubic-bezier(0.16, 1, 0.3, 1), box-shadow 200ms ease;
+  transform-style: preserve-3d;
+  will-change: transform;
+}
+.tilt-card:hover {
+  box-shadow:
+    0 20px 60px -15px rgba(0,0,0,0.7),
+    inset 0 1px 0 rgba(255,255,255,0.1);
+}
+
+/* ── Glassmorphism panel ─────────────────────────────────────────────────── */
+.glass-panel {
+  background: rgba(8, 8, 8, 0.6);
+  backdrop-filter: blur(24px) saturate(200%);
+  -webkit-backdrop-filter: blur(24px) saturate(200%);
+  border: 1px solid rgba(255,255,255,0.07);
+  box-shadow:
+    0 8px 32px rgba(0,0,0,0.4),
+    inset 0 1px 0 rgba(255,255,255,0.06);
+}
+
+/* ── Price glow flash on tick ────────────────────────────────────────────── */
+@keyframes priceTickUp {
+  0%   { text-shadow: 0 0 0px rgba(255,255,255,0); }
+  30%  { text-shadow: 0 0 12px rgba(255,255,255,0.7), 0 0 24px rgba(255,255,255,0.3); }
+  100% { text-shadow: 0 0 0px rgba(255,255,255,0); }
+}
+@keyframes priceTickDown {
+  0%   { text-shadow: 0 0 0px rgba(100,100,100,0); }
+  30%  { text-shadow: 0 0 10px rgba(120,120,120,0.5); }
+  100% { text-shadow: 0 0 0px rgba(100,100,100,0); }
+}
+.price-tick-up   { animation: priceTickUp   600ms ease forwards; }
+.price-tick-down { animation: priceTickDown 600ms ease forwards; }
+
+/* ── Activity feed scroll styling ────────────────────────────────────────── */
+.activity-scroll::-webkit-scrollbar { display: none; }
+.activity-scroll { -ms-overflow-style: none; scrollbar-width: none; }
+
+/* ── Claimable glow pulse on round cards ────────────────────────────────── */
+@keyframes claimablePulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(255,255,255,0.08); }
+  50%       { box-shadow: 0 0 0 6px rgba(255,255,255,0); }
+}
+.claimable-pulse {
+  animation: claimablePulse 2.5s ease-in-out infinite;
+}
+
+/* ── Bet direction badge glow ────────────────────────────────────────────── */
+.direction-up-glow {
+  box-shadow: 0 0 12px rgba(255,255,255,0.15);
+}
+.direction-down-glow {
+  box-shadow: 0 0 8px rgba(82,82,82,0.2);
+}
+
+/* ── Scan line overlay for terminal feel ─────────────────────────────────── */
+.terminal-scanlines::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: repeating-linear-gradient(
+    0deg,
+    transparent,
+    transparent 2px,
+    rgba(255,255,255,0.007) 2px,
+    rgba(255,255,255,0.007) 4px
+  );
+  pointer-events: none;
+  z-index: 1;
+}
+
