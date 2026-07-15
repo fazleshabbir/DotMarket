@@ -104,7 +104,7 @@ export function LiveMarketsSection() {
     : '0.00';
 
   const btcTotalPool = activeRound ? activeRound.totalUpAmount + activeRound.totalDownAmount : 0n;
-  const btcUpPercent = btcTotalPool > 0n 
+  const btcUpPercent = btcTotalPool > 0n && activeRound
     ? Math.round(Number((activeRound.totalUpAmount * 100n) / btcTotalPool))
     : 50;
 
