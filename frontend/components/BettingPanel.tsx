@@ -399,7 +399,7 @@ export function BettingPanel({ currentBtcPrice: _unusedProps }: { currentBtcPric
           }}
         >
           {isBettingTab && <span style={{ marginRight: 4 }}>●</span>}
-          PLACE BET
+          PREDICT
         </button>
         <button
           onClick={() => setActiveTab('live')}
@@ -803,7 +803,7 @@ export function BettingPanel({ currentBtcPrice: _unusedProps }: { currentBtcPric
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
                   <span style={{ fontSize: 12, fontWeight: 700, letterSpacing: '0.06em', color: '#ffffff' }}>LIVE MARKET</span>
                   {hasPlacedLiveBet && isLiveRoundSettling && (
-                    <span style={{ fontSize: 8, fontWeight: 500, letterSpacing: '0.04em', color: 'rgba(255,255,255,0.5)' }}>YOUR BET IS LIVE</span>
+                    <span style={{ fontSize: 8, fontWeight: 500, letterSpacing: '0.04em', color: 'rgba(255,255,255,0.5)' }}>YOUR PREDICTION IS LIVE</span>
                   )}
                 </div>
                 {hasPlacedLiveBet && isLiveRoundSettling ? (
