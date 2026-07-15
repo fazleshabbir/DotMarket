@@ -44,7 +44,37 @@ export default function DocsLayout({
           <span style={{ fontSize: '12px', color: 'rgba(255,255,255,0.5)', fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase' }}>Docs</span>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-          <Link href="/trade" style={{ fontSize: '14px', color: '#ffffff', textDecoration: 'none' }}>Trade App</Link>
+          <style>{`
+            .premium-trade-btn {
+              font-size: 13px;
+              color: #ffffff;
+              text-decoration: none;
+              font-weight: 500;
+              padding: 8px 16px;
+              border-radius: 20px;
+              border: 1px solid rgba(255,255,255,0.08);
+              background: rgba(255,255,255,0.03);
+              display: flex;
+              align-items: center;
+              gap: 6px;
+              transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+              backdrop-filter: blur(8px);
+              cursor: pointer;
+            }
+            .premium-trade-btn:hover {
+              background: rgba(255, 255, 255, 0.08);
+              border-color: rgba(255, 255, 255, 0.2);
+              transform: translateY(-1px);
+              box-shadow: 0 4px 12px rgba(255,255,255,0.03);
+            }
+          `}</style>
+          <Link href="/trade" className="premium-trade-btn">
+            <span>Trade Terminal</span>
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ opacity: 0.7 }}>
+              <line x1="7" y1="17" x2="17" y2="7"></line>
+              <polyline points="7 7 17 7 17 17"></polyline>
+            </svg>
+          </Link>
           <ConnectButton />
         </div>
       </header>
