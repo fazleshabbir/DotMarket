@@ -1,0 +1,103 @@
+---
+title: "1-Minute Market Lifecycle"
+description: "A deep dive into the exact phases of a DotMarket round, from the moment a prediction is placed to the final settlement."
+---
+
+The DotMarket engine operates on a continuous, uninterrupted loop of 1-minute phases. Understanding this lifecycle is critical for timing your predictions and understanding how the protocol interacts with the Pyth Oracle and the blockchain.
+
+<SectionDivider />
+
+## The Core Loop
+
+DotMarket prediction markets operate in pairs. At any given moment, there are two active rounds in the system:
+1. **The Betting Round (Next Round):** Open for predictions.
+2. **The Live Round (Current Round):** Locked, and its outcome is currently being decided by the price action.
+
+Each round lasts exactly 60 seconds. Because rounds overlap, there is a new settlement every 60 seconds.
+
+<Flowchart 
+  nodes={[
+    { id: "1", label: "Round N starts Betting (60s)", type: "default" },
+    { id: "2", label: "Lock Price Recorded", type: "action" },
+    { id: "3", label: "Round N enters Live Phase (60s)", type: "default" },
+    { id: "4", label: "Settlement Price Recorded", type: "action" },
+    { id: "5", label: "Round N Settles & Pays Out", type: "decision" }
+  ]}
+/>
+
+## Phase Breakdown
+
+### 1. Betting Phase (60 Seconds)
+When a round is in the Betting Phase, the market is completely open. 
+
+- **User Action:** You can predict UP or DOWN. You can place multiple predictions. 
+- **Frontend:** Displays a 60-second countdown timer synchronized to the blockchain's current timestamp.
+- **Smart Contract:** Accepts funds, updates the UP/DOWN pool totals, and recalculates the dynamic payout multipliers on every single transaction.
+
+<Callout type="tip" title="Wait for the Last Second?">
+  While waiting until the final seconds allows you to see the current pool multipliers, you risk your transaction failing if the blockchain experiences sudden congestion. Always leave a 3-5 second buffer!
+</Callout>
+
+### 2. Lock
+At exactly the 60-second mark, the Betting Phase ends. 
+
+- **Oracle Action:** The protocol fetches the exact price of BTC/USD from the Pyth Oracle.
+- **Smart Contract Action:** This price is permanently recorded on-chain as the **Entry Price** (or Lock Price) for the round. The smart contract completely rejects any further predictions for this round.
+
+### 3. Live Phase (60 Seconds)
+The round is now Live. Your prediction is locked in.
+
+- **User Action:** Watch the live chart and the live PnL. 
+- **Frontend:** Compares the real-time Pyth price feed against your round's Entry Price to show whether you are currently winning or losing.
+- **Smart Contract:** The contract is simply waiting. No state changes occur during this time.
+
+<Callout type="info" title="Under the Hood">
+  During the Live Phase, the *next* round has simultaneously entered its Betting Phase. The DotMarket engine is highly asynchronous, allowing the protocol to handle multiple overlapping markets seamlessly.
+</Callout>
+
+### 4. Settlement
+Once the 60-second Live Phase concludes, the round must be settled.
+
+- **Keeper Action:** A decentralized Keeper bot monitors the blockchain. The moment the round ends, the Keeper triggers the `executeSettlement` function on the smart contract, passing along the newest Pyth Oracle price.
+- **Oracle Action:** The Pyth price is verified on-chain to ensure it is fresh and cryptographically secure.
+- **Smart Contract Action:** This new price is recorded as the **Settlement Price**.
+
+### 5. Resolution & Payouts
+The smart contract instantly compares the Settlement Price to the Entry Price.
+
+- **If Settlement > Entry:** UP wins.
+- **If Settlement < Entry:** DOWN wins.
+- **If Settlement == Entry:** Tie (Refund).
+
+The protocol automatically calculates the final payouts based on the pool sizes and unlocks the funds for the winners to claim.
+
+<SectionDivider />
+
+## Technical Diagram
+
+For developers, here is how the architecture synchronizes during the lifecycle transition:
+
+```javascript
+// A simplified conceptual representation of the Keeper bot
+async function monitorLifecycle() {
+  const currentTimestamp = Date.now() / 1000;
+  
+  if (currentTimestamp >= liveRound.lockTimestamp + 60) {
+    // 1. Fetch fresh price from Pyth
+    const pythPrice = await fetchPythPriceUpdate();
+    
+    // 2. Submit transaction to settle the Live Round
+    await contract.executeSettlement(pythPrice);
+    
+    console.log("Round settled successfully!");
+  }
+}
+```
+
+<FAQAccordion question="Why does a round sometimes say 'Settling...' for a few seconds?">
+  Because blockchains do not execute code on a cron job, a transaction must be sent by a Keeper to trigger the settlement. The "Settling..." state simply means the 60 seconds are up, and the frontend is waiting for the Keeper's transaction to be mined in the next block.
+</FAQAccordion>
+
+<Callout type="tip" title="Next Steps">
+  Now that you understand the lifecycle, learn how prices are fetched and validated in the **Oracle System** documentation.
+</Callout>

@@ -1,0 +1,76 @@
+---
+title: "Introduction"
+description: "Welcome to DotMarket, the premium 1-minute BTC prediction market. Learn what it is, why it matters, and how you can participate."
+---
+
+Welcome to DotMarket, the fastest, most transparent on-chain prediction market available. DotMarket is designed from the ground up to provide a seamless, premium experience for users who want to predict the short-term price movements of Bitcoin.
+
+<SectionDivider />
+
+## What is DotMarket?
+
+DotMarket is a decentralized, non-custodial prediction market where users can predict whether the price of Bitcoin will go **UP** or **DOWN** over a rapid 1-minute timeframe. It operates entirely on-chain through smart contracts, ensuring complete transparency, provable fairness, and trustless payouts.
+
+Instead of navigating complex perpetual futures, managing leverage, or worrying about liquidations, DotMarket simplifies the experience. You are purely predicting the direction of the asset.
+
+<Callout type="info" title="Zero Liquidation Risk">
+  Unlike margin trading or futures, your maximum risk in a prediction market is simply the amount you use to predict. There are no margin calls, no funding rates, and no forced liquidations.
+</Callout>
+
+## Trading vs. Predicting
+
+While traditional trading involves buying and holding an asset in the hopes its value increases, prediction markets operate on the probability of an event occurring.
+
+- **Trading:** You buy 1 BTC at $60,000. If it drops to $59,000, you are down $1,000. Your PnL is linearly tied to the price.
+- **Predicting:** You predict BTC will go UP over the next minute. If it goes up by even $0.01, you win the entire payout for that pool. If it goes down, you lose the initial prediction amount.
+
+<InteractiveTimeline 
+  steps={[
+    { title: "Predict", description: "Choose UP or DOWN for the upcoming 1-minute round." },
+    { title: "Lock", description: "The round begins and the entry price is secured." },
+    { title: "Settle", description: "60 seconds later, the final price is captured and winners are paid." }
+  ]} 
+/>
+
+## Protocol Philosophy
+
+DotMarket was built with three core pillars in mind:
+
+1. **Extreme Speed:** In modern crypto, users want immediate feedback. 1-minute markets provide the highest velocity of engagement possible.
+2. **Immaculate UI/UX:** The platform is designed to feel like a premium, institutional-grade product, not a disjointed Web3 experiment.
+3. **Decentralized Execution:** Every prediction, every price update, and every payout is handled entirely by smart contracts and Pyth oracles.
+
+<SectionDivider />
+
+## Use Cases
+
+Who is DotMarket for?
+
+### 1. The Scalper
+Traders who watch the tape and read short-term order flow can use DotMarket to execute highly profitable, direction-only trades without managing stop-losses.
+
+### 2. The Hedger
+If you are about to execute a large spot buy that might take minutes to fill, predicting DOWN on DotMarket can offset potential short-term volatility while you accumulate.
+
+### 3. The Enthusiast
+Crypto moves fast. DotMarket provides an engaging, fast-paced way to participate in the market's pulse without needing a deep understanding of technical analysis.
+
+<SectionDivider />
+
+## Frequently Asked Questions
+
+<FAQAccordion question="Is DotMarket non-custodial?">
+  Yes. DotMarket never holds your funds. All funds are held in transparent smart contracts, and payouts are automatically distributed or claimable directly to your Web3 wallet.
+</FAQAccordion>
+
+<FAQAccordion question="What happens if there's a tie?">
+  If the settlement price is exactly equal to the entry price (down to the 8th decimal), the market resolves as a tie. All predictions are refunded and can be claimed back by the users.
+</FAQAccordion>
+
+<FAQAccordion question="What network is DotMarket on?">
+  DotMarket is currently deployed on the Arc Testnet, providing extremely fast block times and low transaction fees to support high-frequency 1-minute rounds.
+</FAQAccordion>
+
+<Callout type="tip" title="Next Steps">
+  Ready to dive in? Move on to the **Platform Overview** to familiarize yourself with the DotMarket interface.
+</Callout>
