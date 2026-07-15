@@ -50,7 +50,11 @@ const DOCS_NAV = [
   }
 ];
 
-export function Sidebar() {
+interface SidebarProps {
+  onItemClick?: () => void;
+}
+
+export function Sidebar({ onItemClick }: SidebarProps) {
   const pathname = usePathname();
 
   return (
@@ -78,6 +82,7 @@ export function Sidebar() {
                 <li key={i}>
                   <Link 
                     href={item.href}
+                    onClick={onItemClick}
                     style={{
                       display: 'block',
                       fontSize: '14px',
