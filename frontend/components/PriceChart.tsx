@@ -28,7 +28,9 @@ export default function PriceChart() {
   const containerRef = useRef<HTMLDivElement>(null);
   const chartRef = useRef<IChartApi | null>(null);
   const seriesRef = useRef<ISeriesApi<'Area'> | null>(null);
-  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  
+  // Track chart state refs for updates
+  const lastPointRef = useRef({ price: 0, time: 0 });
 
   const initChart = useCallback(() => {
     if (!containerRef.current) return;
@@ -91,17 +93,11 @@ export default function PriceChart() {
     chartRef.current = chart;
     seriesRef.current = series;
 
-    // Simulate live price updates
-    let lastPrice = data[data.length - 1].value;
-    let lastTime = data[data.length - 1].time as number;
-
-    intervalRef.current = setInterval(() => {
-      lastPrice += (Math.random() - 0.48) * 30;
-      lastPrice = Math.max(62000, Math.min(70000, lastPrice));
-      lastTime += 10;
-      const point = { time: lastTime, value: Math.round(lastPrice * 100) / 100 };
-      series.update(point as any);
-    }, 3000);
+    // Set up initial state for updates
+    lastPointRef.current = {
+      price: data[data.length - 1].value,
+      time: data[data.length - 1].time as number
+    };
   }, []);
 
   useEffect(() => {
@@ -125,13 +121,26 @@ export default function PriceChart() {
 
     return () => {
       observer.disconnect();
-      if (intervalRef.current) clearInterval(intervalRef.current);
       if (chartRef.current) {
         chartRef.current.remove();
         chartRef.current = null;
       }
     };
   }, [initChart]);
+
+  const { now } = window.hasOwnProperty('document') ? require('@/lib/marketStore').useMarket() || {} : { now: 0 };
+  
+  useEffect(() => {
+    if (!now || !seriesRef.current || now % 3 !== 0) return;
+    
+    let { price, time } = lastPointRef.current;
+    price += (Math.random() - 0.48) * 30;
+    price = Math.max(62000, Math.min(70000, price));
+    time += 3;
+    
+    lastPointRef.current = { price, time };
+    seriesRef.current.update({ time, value: Math.round(price * 100) / 100 } as any);
+  }, [now]);
 
   return (
     <div

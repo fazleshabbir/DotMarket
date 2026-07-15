@@ -68,7 +68,7 @@ export function PositionsTable() {
     abi: ROUND_MARKET_ABI,
     functionName: 'getUserRounds',
     args: [address || '0x0000000000000000000000000000000000000000'],
-    query: { enabled: !!address, refetchInterval: 10000 },
+    query: { enabled: !!address, refetchInterval: 3000 },
   });
 
   const roundIds = (userRoundIds as bigint[] | undefined) || [];
@@ -240,7 +240,7 @@ function PositionRow({
     abi: ROUND_MARKET_ABI,
     functionName: 'getRound',
     args: [roundId],
-    query: { refetchInterval: 10000 },
+    query: { refetchInterval: 3000 },
   });
 
   const { data: betData } = useReadContract({
@@ -248,7 +248,7 @@ function PositionRow({
     abi: ROUND_MARKET_ABI,
     functionName: 'getUserBet',
     args: [roundId, address as `0x${string}`],
-    query: { refetchInterval: 10000 },
+    query: { refetchInterval: 3000 },
   });
 
   const { data: canClaim } = useReadContract({
@@ -256,7 +256,7 @@ function PositionRow({
     abi: ROUND_MARKET_ABI,
     functionName: 'claimable',
     args: [roundId, address as `0x${string}`],
-    query: { refetchInterval: 10000 },
+    query: { refetchInterval: 3000 },
   });
 
   const { data: multipliersData } = useReadContract({
@@ -264,7 +264,7 @@ function PositionRow({
     abi: ROUND_MARKET_ABI,
     functionName: 'getMultipliers',
     args: [roundId],
-    query: { refetchInterval: 10000 },
+    query: { refetchInterval: 3000 },
   });
 
   const round = roundData as unknown as RoundData | undefined;

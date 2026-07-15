@@ -119,6 +119,9 @@ export function BettingPanel({ currentBtcPrice: _unusedProps }: { currentBtcPric
   const [betAmount, setBetAmount] = useState('');
   const [txStatus, setTxStatus] = useState<string | null>(null);
 
+  // User-selected tab state
+  const [activeTab, setActiveTab] = useState<'betting' | 'live'>('betting');
+
   // States to handle button micro-interactions
   const [hoveredButton, setHoveredButton] = useState<number | null>(null);
   const [depressedButton, setDepressedButton] = useState<number | null>(null);
@@ -187,21 +190,18 @@ export function BettingPanel({ currentBtcPrice: _unusedProps }: { currentBtcPric
     isBettingOpen,
   } = useMarket();
 
-  // ── Phase is the authoritative source of truth (committed, never flickers) ──
-  // During 'betting': show Place Bet tab (active round is open for bets)
-  // During 'live':    show Live Market tab (active round is locked & settling)
-  const isBettingPhase = phase === 'betting';
+  // ── UI Tab State vs Global Phase ──────────────────────────────────────────
+  const isBettingTab = activeTab === 'betting';
 
   // ── Derive bet/live round correctly from phase ───────────────────────────
-  // Betting phase: user bets on activeRound
-  // Live phase:    activeRound is now the LOCKED round being settled
-  //                prevRound is the one just before (already resolved or resolving)
+  // The 'live' round is always the one currently settling.
+  // If we are in the betting phase, the active round is open, so the settling round is prevRound.
+  // If we are in the live phase, the active round is settling, so it is the live round.
   const hasPlacedActiveBet = !!(activeUserBet && activeUserBet.amount > 0n);
   const hasPlacedPrevBet = !!(prevUserBet && prevUserBet.amount > 0n);
 
-  // Live Market card always tracks the locked/settling round.
-  // During 'live' phase, activeRound is the one locked — show it.
-  // During 'betting' phase, prevRound is settling (if it exists) — show that.
+  const isBettingPhase = phase === 'betting';
+
   const liveRound = isBettingPhase ? prevRound : activeRound;
   const liveUserBet = isBettingPhase ? prevUserBet : activeUserBet;
   const liveTotalPool = isBettingPhase ? prevTotalPool : activeTotalPool;
@@ -211,11 +211,9 @@ export function BettingPanel({ currentBtcPrice: _unusedProps }: { currentBtcPric
   const liveDownPercent = isBettingPhase ? prevDownPercent : activeDownPercent;
   const hasPlacedLiveBet = isBettingPhase ? hasPlacedPrevBet : hasPlacedActiveBet;
 
-  // Live phase status: during 'live', the active round is LOCKED (timer shows timeLeftToEnd)
-  // During 'betting', prevRound may still be settling
   const isLiveRoundSettling = isBettingPhase
     ? (prevMarketStatus === 'LOCKED' || prevMarketStatus === 'SETTLING')
-    : true; // always settling/live during live phase
+    : true;
 
   // Write contract actions - Zero Latency Pipeline
   const { sendTransaction, data: txHash, isPending } = useSendTransaction();
@@ -373,7 +371,7 @@ export function BettingPanel({ currentBtcPrice: _unusedProps }: { currentBtcPric
         }
       `}</style>
 
-      {/* ─── TAB HEADER — driven by committed phase (NEVER flickers) ─────────── */}
+      {/* ─── TAB HEADER — strictly user-controlled ─────────── */}
       <div style={{
         display: 'flex',
         gap: 0,
@@ -384,6 +382,7 @@ export function BettingPanel({ currentBtcPrice: _unusedProps }: { currentBtcPric
         border: '1px solid rgba(255,255,255,0.06)',
       }}>
         <button
+          onClick={() => setActiveTab('betting')}
           style={{
             flex: 1,
             padding: '8px 0',
@@ -392,17 +391,18 @@ export function BettingPanel({ currentBtcPrice: _unusedProps }: { currentBtcPric
             letterSpacing: '0.06em',
             border: 'none',
             borderRadius: 11,
-            cursor: 'default',
+            cursor: 'pointer',
             transition: 'all 300ms cubic-bezier(0.16, 1, 0.3, 1)',
-            background: isBettingPhase ? 'rgba(255,255,255,0.1)' : 'transparent',
-            color: isBettingPhase ? '#ffffff' : 'rgba(255,255,255,0.35)',
-            boxShadow: isBettingPhase ? '0 2px 8px rgba(255,255,255,0.06)' : 'none',
+            background: isBettingTab ? 'rgba(255,255,255,0.1)' : 'transparent',
+            color: isBettingTab ? '#ffffff' : 'rgba(255,255,255,0.35)',
+            boxShadow: isBettingTab ? '0 2px 8px rgba(255,255,255,0.06)' : 'none',
           }}
         >
-          {isBettingPhase && <span style={{ marginRight: 4 }}>●</span>}
+          {isBettingTab && <span style={{ marginRight: 4 }}>●</span>}
           PLACE BET
         </button>
         <button
+          onClick={() => setActiveTab('live')}
           style={{
             flex: 1,
             padding: '8px 0',
@@ -411,14 +411,14 @@ export function BettingPanel({ currentBtcPrice: _unusedProps }: { currentBtcPric
             letterSpacing: '0.06em',
             border: 'none',
             borderRadius: 11,
-            cursor: 'default',
+            cursor: 'pointer',
             transition: 'all 300ms cubic-bezier(0.16, 1, 0.3, 1)',
-            background: !isBettingPhase ? 'rgba(255,255,255,0.1)' : 'transparent',
-            color: !isBettingPhase ? '#ffffff' : 'rgba(255,255,255,0.35)',
-            boxShadow: !isBettingPhase ? '0 2px 8px rgba(255,255,255,0.06)' : 'none',
+            background: !isBettingTab ? 'rgba(255,255,255,0.1)' : 'transparent',
+            color: !isBettingTab ? '#ffffff' : 'rgba(255,255,255,0.35)',
+            boxShadow: !isBettingTab ? '0 2px 8px rgba(255,255,255,0.06)' : 'none',
           }}
         >
-          {!isBettingPhase && <span style={{ marginRight: 4 }}>●</span>}
+          {!isBettingTab && <span style={{ marginRight: 4 }}>●</span>}
           LIVE MARKET
         </button>
       </div>
@@ -429,7 +429,7 @@ export function BettingPanel({ currentBtcPrice: _unusedProps }: { currentBtcPric
         {/* ══════════════════════════════════════════════════════════════════════ */}
         {/* ▌ BETTING PHASE                                                      */}
         {/* ══════════════════════════════════════════════════════════════════════ */}
-        {isBettingPhase && (
+        {isBettingTab && (
           <div key="betting" style={{ animation: 'slideInLeft 300ms cubic-bezier(0.16, 1, 0.3, 1)' }}>
 
             {/* Claim Banner (if unclaimed payout exists during betting phase) */}
@@ -682,10 +682,9 @@ export function BettingPanel({ currentBtcPrice: _unusedProps }: { currentBtcPric
                           if (!canBet || !betAmount) return;
                           setLocalSelectedButton(0);
                           setDepressedButton(0);
-                          setTimeout(() => {
-                            setDepressedButton(null);
-                            handlePlaceBet(0);
-                          }, 120);
+                          handlePlaceBet(0);
+                          // Clear depressed visually after click
+                          setTimeout(() => setDepressedButton(null), 120);
                         }}
                         disabled={!canBet || isWorking || !betAmount || (hasPlacedActiveBet && activeUserBet?.position === 1)}
                         style={{
@@ -728,10 +727,9 @@ export function BettingPanel({ currentBtcPrice: _unusedProps }: { currentBtcPric
                           if (!canBet || !betAmount) return;
                           setLocalSelectedButton(1);
                           setDepressedButton(1);
-                          setTimeout(() => {
-                            setDepressedButton(null);
-                            handlePlaceBet(1);
-                          }, 120);
+                          handlePlaceBet(1);
+                          // Clear depressed visually after click
+                          setTimeout(() => setDepressedButton(null), 120);
                         }}
                         disabled={!canBet || isWorking || !betAmount || (hasPlacedActiveBet && activeUserBet?.position === 0)}
                         style={{
@@ -775,7 +773,7 @@ export function BettingPanel({ currentBtcPrice: _unusedProps }: { currentBtcPric
         {/* Shows the LOCKED/SETTLING round. During 'live' phase this is the    */}
         {/* active round (just locked). During 'betting' phase this is prevRound */}
         {/* ══════════════════════════════════════════════════════════════════════ */}
-        {!isBettingPhase && (
+        {!isBettingTab && (
           <div key="live" style={{ animation: 'slideInRight 300ms cubic-bezier(0.16, 1, 0.3, 1)' }}>
             <div
               style={{

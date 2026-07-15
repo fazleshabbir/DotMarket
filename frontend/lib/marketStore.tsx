@@ -494,63 +494,20 @@ export function MarketProvider({ children }: { children: React.ReactNode }) {
   const prevTimeLeftToEnd = (prevEndTimestamp > 0 && now > 0) ? Math.max(0, prevEndTimestamp - now) : 0;
 
   // ┌──────────────────────────────────────────────────────────────────────────┐
-  // │ 9. COMMITTED PHASE ENGINE                                                │
+  // │ 9. STRICT TIME-BASED PHASE ENGINE                                        │
   // │                                                                          │
-  // │ THE CORE STABILITY FIX.                                                  │
-  // │                                                                          │
-  // │ Once a phase is determined, it is COMMITTED with a deadline timestamp.  │
-  // │ The phase is then LOCKED until that deadline passes.                     │
-  // │                                                                          │
-  // │ Rules:                                                                   │
-  // │ • Phase only changes when committedDeadline passes (now >= deadline)     │
-  // │ • committedDeadline can be EXTENDED (later timestamp) but NEVER          │
-  // │   shortened. This prevents flickering from RPC jitter.                   │
-  // │ • When deadline passes, we look at current data to determine next phase │
-  // │ • If no data is available after deadline, phase holds until data arrives │
-  // │                                                                          │
-  // │ This makes it PHYSICALLY IMPOSSIBLE for the tabs to oscillate.          │
+  // │ Phase is strictly derived from the current time. No commitments, no     │
+  // │ deadlocks. If the time passes, the phase changes instantly.              │
   // └──────────────────────────────────────────────────────────────────────────┘
-  const [phase, setPhase] = useState<Phase>('betting');
-  const committedDeadlineRef = useRef(0);     // Unix timestamp when current phase ends
-  const committedRoundRef = useRef(0n);        // Which roundId the commitment is for
-
-  useEffect(() => {
-    if (now === 0) return; // SSR guard
-
-    const deadline = committedDeadlineRef.current;
-
-    // ── LOCKED STATE: Phase committed and deadline not reached ──────────
-    if (deadline > 0 && now < deadline) {
-      // Phase is locked. Only allow EXTENDING the deadline (never shorten).
-      if (phase === 'betting' && lockTimestamp > deadline) {
-        committedDeadlineRef.current = lockTimestamp;
-      } else if (phase === 'live' && endTimestamp > deadline) {
-        committedDeadlineRef.current = endTimestamp;
-      }
-      return; // Phase stays locked. Count down only.
-    }
-
-    // ── TRANSITION: Deadline reached or not yet initialized ────────────
-    // We need valid timestamps to determine the correct phase.
-    if (currentRoundId === 0n) return; // No rounds exist yet
-    if (lockTimestamp === 0 || endTimestamp === 0) return; // Waiting for data
-
+  let phase: Phase = 'betting';
+  if (currentRoundId > 0n && lockTimestamp > 0 && endTimestamp > 0) {
     if (now < lockTimestamp) {
-      // BETTING PHASE: Bets are open until lockTimestamp
-      setPhase('betting');
-      committedDeadlineRef.current = lockTimestamp;
-      committedRoundRef.current = currentRoundId;
-    } else if (now < endTimestamp) {
-      // LIVE/SETTLEMENT PHASE: Bets closed, settlement running until endTimestamp
-      setPhase('live');
-      committedDeadlineRef.current = endTimestamp;
-      committedRoundRef.current = currentRoundId;
+      phase = 'betting';
     } else {
-      // Round is completely over. Hold current phase until next round data arrives.
-      // When the next round opens and its timestamps become available,
-      // the condition `now < lockTimestamp` will match and commit to 'betting'.
+      // Anything past lockTimestamp is 'live' panel (which handles LOCKED and SETTLING)
+      phase = 'live';
     }
-  }, [now, lockTimestamp, endTimestamp, currentRoundId, phase]);
+  }
 
   // ┌──────────────────────────────────────────────────────────────────────────┐
   // │ 10. MARKET STATUS & BUSINESS LOGIC                                       │
