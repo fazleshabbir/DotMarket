@@ -193,105 +193,109 @@ export function LeaderboardView() {
         style={{
           position: 'relative',
           zIndex: 10,
-          maxWidth: 520,
+          maxWidth: 900,
           width: '100%',
           background: 'rgba(6, 6, 6, 0.85)',
           backdropFilter: 'blur(32px)',
           WebkitBackdropFilter: 'blur(32px)',
           border: '1px solid rgba(255,255,255,0.1)',
           borderRadius: 24,
-          padding: '44px 40px',
           boxShadow: '0 32px 80px rgba(0,0,0,0.8), inset 0 1px 0 rgba(255,255,255,0.07)',
           display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'center',
-          gap: 28,
-          textAlign: 'center',
+          flexDirection: 'row',
+          alignItems: 'stretch',
+          overflow: 'hidden',
         }}
       >
-        {/* Trophy icon with orbital rings */}
-        <div style={{ position: 'relative', width: 100, height: 100, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-          {/* Outer orbital ring SVG */}
-          <svg width={100} height={100} style={{ position: 'absolute', animation: 'ringRotate 12s linear infinite' }}>
-            <circle cx={50} cy={50} r={46} fill="none" stroke="rgba(255,255,255,0.06)" strokeWidth={1} strokeDasharray="4 8" />
-          </svg>
-          <svg width={80} height={80} style={{ position: 'absolute', animation: 'ringRotateRev 8s linear infinite' }}>
-            <circle cx={40} cy={40} r={36} fill="none" stroke="rgba(255,255,255,0.04)" strokeWidth={1} strokeDasharray="2 6" />
-          </svg>
+        {/* Left Section: Info */}
+        <div style={{ flex: '1.1', padding: '48px 44px', display: 'flex', flexDirection: 'column', alignItems: 'flex-start', justifyContent: 'center', gap: 24, textAlign: 'left' }}>
+          
+          <div style={{ display: 'flex', alignItems: 'center', gap: 20 }}>
+            {/* Trophy icon with orbital rings */}
+            <div style={{ position: 'relative', width: 72, height: 72, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              {/* Outer orbital ring SVG */}
+              <svg width={72} height={72} style={{ position: 'absolute', animation: 'ringRotate 12s linear infinite' }}>
+                <circle cx={36} cy={36} r={34} fill="none" stroke="rgba(255,255,255,0.06)" strokeWidth={1} strokeDasharray="4 8" />
+              </svg>
+              {/* Trophy center */}
+              <div style={{
+                width: 48, height: 48, borderRadius: '50%',
+                background: 'rgba(255,255,255,0.05)',
+                border: '1px solid rgba(255,255,255,0.12)',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                boxShadow: glowPhase
+                  ? '0 0 20px rgba(255,255,255,0.12), inset 0 1px 0 rgba(255,255,255,0.1)'
+                  : '0 0 8px rgba(255,255,255,0.04), inset 0 1px 0 rgba(255,255,255,0.06)',
+                transition: 'box-shadow 1.2s ease',
+                animation: 'floatTrophy 4s ease-in-out infinite',
+              }}>
+                <Trophy size={20} style={{ color: '#ffffff' }} />
+              </div>
+            </div>
 
-          {/* Trophy center */}
-          <div style={{
-            width: 64, height: 64, borderRadius: '50%',
-            background: 'rgba(255,255,255,0.05)',
-            border: '1px solid rgba(255,255,255,0.12)',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            boxShadow: glowPhase
-              ? '0 0 30px rgba(255,255,255,0.12), inset 0 1px 0 rgba(255,255,255,0.1)'
-              : '0 0 10px rgba(255,255,255,0.04), inset 0 1px 0 rgba(255,255,255,0.06)',
-            transition: 'box-shadow 1.2s ease',
-            animation: 'floatTrophy 4s ease-in-out infinite',
-          }}>
-            <Trophy size={26} style={{ color: '#ffffff' }} />
+            {/* Lock badge */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 20, padding: '6px 14px' }}>
+              <Lock size={12} style={{ color: 'rgba(255,255,255,0.5)' }} />
+              <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.1em', color: 'rgba(255,255,255,0.5)' }}>COMING SOON</span>
+            </div>
+          </div>
+
+          {/* Heading */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+            <h2 style={{ margin: 0, fontSize: 36, fontWeight: 300, fontFamily: "'Cormorant Garamond', serif", color: '#ffffff', lineHeight: 1.1 }}>
+              Leaderboard
+            </h2>
+            <p style={{ margin: 0, fontSize: 14, color: 'rgba(255,255,255,0.45)', lineHeight: 1.6 }}>
+              On-chain rankings are being indexed from the contract. The leaderboard will go live once enough round data is collected.
+            </p>
+          </div>
+
+          <div style={{ flexGrow: 1 }} />
+
+          {/* Footer inside Left Section */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginTop: 12 }}>
+            <p style={{ margin: 0, fontSize: 12, color: 'rgba(255,255,255,0.3)' }}>
+              Continue trading to contribute to the rankings data.
+            </p>
+            <a
+              href="#"
+              onClick={e => { e.preventDefault(); }}
+              style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 13, color: 'rgba(255,255,255,0.65)', textDecoration: 'none', fontWeight: 600, transition: 'color 150ms' }}
+            >
+              Go to Live Market <ArrowUpRight size={14} />
+            </a>
           </div>
         </div>
 
-        {/* Lock badge */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 20, padding: '5px 14px' }}>
-          <Lock size={10} style={{ color: 'rgba(255,255,255,0.5)' }} />
-          <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.1em', color: 'rgba(255,255,255,0.5)' }}>COMING SOON</span>
-        </div>
+        {/* Vertical Divider */}
+        <div style={{ width: 1, background: 'linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.08), rgba(255,255,255,0.02))' }} />
 
-        {/* Heading */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-          <h2 style={{ margin: 0, fontSize: 32, fontWeight: 300, fontFamily: "'Cormorant Garamond', serif", color: '#ffffff', lineHeight: 1.1 }}>
-            Leaderboard
-          </h2>
-          <p style={{ margin: 0, fontSize: 14, color: 'rgba(255,255,255,0.45)', lineHeight: 1.6, maxWidth: 380 }}>
-            On-chain rankings are being indexed from the contract. The leaderboard will go live once enough round data is collected.
-          </p>
-        </div>
-
-        {/* Feature grid */}
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, width: '100%' }}>
-          {FEATURES.map((f, i) => (
-            <motion.div
-              key={i}
-              initial={{ opacity: 0, y: 8 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.2 + i * 0.08, duration: 0.35 }}
-              style={{
-                background: 'rgba(255,255,255,0.02)',
-                border: '1px solid rgba(255,255,255,0.06)',
-                borderRadius: 12,
-                padding: '14px 16px',
-                display: 'flex',
-                flexDirection: 'column',
-                gap: 6,
-                textAlign: 'left',
-              }}
-            >
-              <div style={{ color: 'rgba(255,255,255,0.4)' }}>{f.icon}</div>
-              <div style={{ fontSize: 12, fontWeight: 700, color: '#fff' }}>{f.title}</div>
-              <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.35)', lineHeight: 1.5 }}>{f.desc}</div>
-            </motion.div>
-          ))}
-        </div>
-
-        {/* Divider */}
-        <div style={{ width: '100%', height: 1, background: 'rgba(255,255,255,0.06)' }} />
-
-        {/* Footer */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 6, alignItems: 'center' }}>
-          <p style={{ margin: 0, fontSize: 12, color: 'rgba(255,255,255,0.3)' }}>
-            Continue trading to contribute to the rankings data.
-          </p>
-          <a
-            href="#"
-            onClick={e => { e.preventDefault(); }}
-            style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 12, color: 'rgba(255,255,255,0.55)', textDecoration: 'none', fontWeight: 600, transition: 'color 150ms' }}
-          >
-            Go to Live Market <ArrowUpRight size={13} />
-          </a>
+        {/* Right Section: Feature Grid */}
+        <div style={{ flex: '1', padding: '48px 44px', display: 'flex', flexDirection: 'column', justifyContent: 'center', background: 'radial-gradient(ellipse at center, rgba(255,255,255,0.015) 0%, transparent 100%)' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+            {FEATURES.map((f, i) => (
+              <motion.div
+                key={i}
+                initial={{ opacity: 0, y: 12 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.2 + i * 0.08, duration: 0.4 }}
+                style={{
+                  background: 'rgba(255,255,255,0.02)',
+                  border: '1px solid rgba(255,255,255,0.06)',
+                  borderRadius: 14,
+                  padding: '16px 18px',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: 8,
+                  textAlign: 'left',
+                }}
+              >
+                <div style={{ color: 'rgba(255,255,255,0.4)' }}>{f.icon}</div>
+                <div style={{ fontSize: 13, fontWeight: 700, color: '#fff' }}>{f.title}</div>
+                <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.35)', lineHeight: 1.5 }}>{f.desc}</div>
+              </motion.div>
+            ))}
+          </div>
         </div>
       </motion.div>
     </div>
