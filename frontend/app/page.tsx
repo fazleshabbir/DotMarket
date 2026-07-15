@@ -766,7 +766,7 @@ export default function LandingPage() {
           <div 
             style={{ 
               display: 'grid',
-              gridTemplateColumns: isMobile ? '1fr 1fr' : isTablet ? '1fr 1fr 1.5fr' : '2fr 1fr 1fr 1fr 1fr',
+              gridTemplateColumns: isMobile ? '1fr 1fr' : isTablet ? '1fr 1fr 1.5fr' : '2fr 1fr 1fr 1fr',
               gap: 40,
               marginBottom: 48
             }}
@@ -800,17 +800,11 @@ export default function LandingPage() {
               <a href="#roadmap" className="premium-text-link">Roadmap</a>
             </div>
 
-            {/* Developers Column */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-              <strong style={{ fontSize: 13, color: '#ffffff', letterSpacing: '0.5px' }}>DEVELOPERS</strong>
-              <Link href="/docs/developers/api-reference" className="premium-text-link">API</Link>
-              <Link href="/docs/developers/smart-contracts" className="premium-text-link">Smart Contracts</Link>
-              <Link href="/brand-kit" className="premium-text-link">Brand Kit</Link>
-            </div>
-
             {/* Resources Column */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
               <strong style={{ fontSize: 13, color: '#ffffff', letterSpacing: '0.5px' }}>RESOURCES</strong>
+              <Link href="/docs/developers/api-reference" className="premium-text-link">API</Link>
+              <Link href="/brand-kit" className="premium-text-link">Brand Kit</Link>
               <Link href="/docs/community/faq" className="premium-text-link">FAQ</Link>
               <Link href="/docs/protocol/security" className="premium-text-link">Security</Link>
               <Link href="/docs/community/changelog-roadmap" className="premium-text-link">Changelog</Link>
