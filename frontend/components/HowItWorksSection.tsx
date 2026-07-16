@@ -336,9 +336,9 @@ export function HowItWorksSection() {
                     width: '12px',
                     height: '12px',
                     borderRadius: '50%',
-                    background: isHovered ? '#00ff88' : 'rgba(255, 255, 255, 0.2)',
+                    background: isHovered ? '#ffffff' : 'rgba(255, 255, 255, 0.2)',
                     border: isHovered ? '2px solid #ffffff' : '2px solid transparent',
-                    boxShadow: isHovered ? '0 0 15px #00ff88' : 'none',
+                    boxShadow: isHovered ? 'var(--up-glow)' : 'none',
                     zIndex: 2,
                     transition: 'all 300ms ease',
                     position: 'relative',
@@ -362,8 +362,8 @@ export function HowItWorksSection() {
                     display: 'flex',
                     flexDirection: 'column',
                     gap: '16px',
-                    background: isHovered ? 'rgba(0, 255, 136, 0.04)' : undefined,
-                    borderColor: isHovered ? 'rgba(0, 255, 136, 0.3)' : undefined,
+                    background: isHovered ? 'rgba(255, 255, 255, 0.025)' : undefined,
+                    borderColor: isHovered ? 'rgba(255, 255, 255, 0.15)' : undefined,
                     transition: 'all 300ms ease',
                   }}
                 >
@@ -372,14 +372,14 @@ export function HowItWorksSection() {
                       width: '32px',
                       height: '32px',
                       borderRadius: '8px',
-                      background: isHovered ? 'rgba(0, 255, 136, 0.1)' : 'rgba(255,255,255,0.02)',
+                      background: isHovered ? 'rgba(255, 255, 255, 0.05)' : 'rgba(255,255,255,0.02)',
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
-                      border: isHovered ? '1px solid rgba(0, 255, 136, 0.2)' : '1px solid rgba(255,255,255,0.05)',
+                      border: isHovered ? '1px solid rgba(255, 255, 255, 0.15)' : '1px solid rgba(255,255,255,0.05)',
                       transition: 'all 300ms ease',
                     }}>
-                      <span style={{ color: isHovered ? '#00ff88' : '#ffffff', opacity: 0.8, display: 'flex', alignItems: 'center' }}>
+                      <span style={{ color: '#ffffff', opacity: 0.8, display: 'flex', alignItems: 'center' }}>
                         <ShieldIcon size={16} />
                       </span>
                     </div>
@@ -387,7 +387,7 @@ export function HowItWorksSection() {
                       <h4 style={{
                         fontSize: '14px',
                         fontWeight: 700,
-                        color: isHovered ? '#00ff88' : '#ffffff',
+                        color: '#ffffff',
                         margin: 0,
                       }}>
                         {step.shieldTitle}
@@ -421,14 +421,14 @@ export function HowItWorksSection() {
                     fontFamily: 'var(--font-mono)',
                     fontSize: '10.5px',
                     border: '1px solid rgba(255, 255, 255, 0.03)',
-                    borderColor: isHovered ? 'rgba(0, 255, 136, 0.1)' : 'rgba(255, 255, 255, 0.03)',
+                    borderColor: isHovered ? 'rgba(255, 255, 255, 0.08)' : 'rgba(255, 255, 255, 0.03)',
                     display: 'flex',
                     flexDirection: 'column',
                     gap: '4px',
                     transition: 'all 300ms ease',
                   }}>
                     {step.shieldMetrics.map((metric, mIdx) => (
-                      <div key={mIdx} style={{ display: 'flex', justifyContent: 'space-between', color: isHovered ? '#00ff88' : 'rgba(255,255,255,0.4)' }}>
+                      <div key={mIdx} style={{ display: 'flex', justifyContent: 'space-between', color: isHovered ? '#ffffff' : 'rgba(255,255,255,0.4)' }}>
                         <span>{metric.split(': ')[0]}</span>
                         <span style={{ fontWeight: 600, color: isHovered ? '#ffffff' : 'rgba(255,255,255,0.6)' }}>
                           {metric.split(': ')[1]}
@@ -486,7 +486,7 @@ export function HowItWorksSection() {
           position: absolute;
           inset: -6px;
           border-radius: 50%;
-          border: 1px solid #00ff88;
+          border: 1px solid #ffffff;
           animation: radarRipple 1.2s cubic-bezier(0.16, 1, 0.3, 1) infinite;
         }
       `}</style>
