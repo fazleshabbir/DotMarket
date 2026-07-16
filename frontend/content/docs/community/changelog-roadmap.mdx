@@ -1,25 +1,25 @@
 ---
 title: "Changelog & Roadmap"
-description: "Track the evolution of DotMarket. Review our completed milestones on the Arc Testnet, see what the team is currently building, and explore our long-term vision for 1-minute prediction markets."
+description: "Track the evolution of DotMarket. Review completed milestones, explore our active DotShield AI-Secured Infrastructure, and see our path toward fully autonomous mainnet stability."
 ---
 
 DotMarket is built on a philosophy of rapid iteration and relentless optimization. Because our core product—a 1-minute BTC prediction market—relies on extreme speed and flawless execution, our development cycle reflects that same urgency. 
 
-This page serves as a living document of our progress. Here you will find our completed milestones, our current engineering priorities on the Arc Testnet, and the ambitious roadmap that leads us toward a fully decentralized mainnet launch.
+This page serves as a living document of our progress. Here you will find our completed milestones, our active security infrastructure on the Arc Testnet, and the ambitious roadmap that leads us toward a fully decentralized mainnet launch.
 
 <SectionDivider />
 
 ## How We Build
 
-Before diving into the roadmap, it is essential to understand the lifecycle of a DotMarket feature. From initial concept to smart contract deployment, every update undergoes rigorous testing to ensure it meets our premium, institutional-grade standards.
+Before diving into the roadmap, it is essential to understand the lifecycle of a DotMarket update. From initial concept to smart contract deployment, every update undergoes validation by our automated testing frameworks and our autonomous security layers to ensure it meets our premium, institutional-grade standards.
 
 <Flowchart 
   nodes={[
     { id: "1", label: "Community Feedback & Ideation", type: "input" },
     { id: "2", label: "Smart Contract Prototyping", type: "default" },
-    { id: "3", label: "Local Testnet Auditing", type: "default" },
+    { id: "3", label: "DotShield Simulation Testing", type: "default" },
     { id: "4", label: "UI/UX Integration", type: "default" },
-    { id: "5", label: "Arc Testnet Deployment", type: "output" }
+    { id: "5", label: "Arc Testnet Live Deployment", type: "output" }
   ]} 
   edges={[
     { source: "1", target: "2" },
@@ -33,7 +33,7 @@ Before diving into the roadmap, it is essential to understand the lifecycle of a
 
 ## Phase 1: Foundation (Completed)
 
-Our initial phase was entirely focused on proving that a secure, non-custodial 1-minute market was technologically viable. We needed to ensure that smart contracts could handle high-frequency interactions without buckling under the pressure.
+Our initial phase was entirely focused on proving that a secure, non-custodial 1-minute market was technologically viable. We needed to ensure that smart contracts could handle high-frequency interactions without execution lag.
 
 <InteractiveTimeline 
   steps={[
@@ -44,61 +44,52 @@ Our initial phase was entirely focused on proving that a secure, non-custodial 1
   ]} 
 />
 
-The successful completion of Phase 1 validated our core thesis: users crave high-velocity, low-complexity DeFi products.
-
 <SectionDivider />
 
-## Phase 2: Engagement & Optimization (Current)
+## Phase 2: Engagement & AI Security (Current)
 
 We are currently operating in Phase 2. While the core prediction mechanics are solid, the platform requires extensive features to drive user engagement, retain liquidity, and ensure flawless performance under heavy load.
 
-The engineering team is actively deploying updates on a weekly basis to the Arc Testnet. 
+<Callout type="tip" title="DotShield AI Active">
+  The Arc Testnet is now actively monitored by **DotShield**, our autonomous self-healing AI Guardian engine. DotShield continuously assesses RPC node health, Pyth price feed freshness, and keeper heartbeats every 5 seconds to perform automatic failovers and guarantee 100% uptime.
+</Callout>
 
 ### Current Development Priorities
 
-- **Gas Optimization:** Rewriting specific state variables within the Solidity contracts to drastically reduce the gas required to execute a prediction. Even on a cheap network, efficiency is key for high-frequency actors.
-- **Dynamic Payout Display:** Overhauling the frontend logic to calculate and display the real-time payout multipliers much faster as the UP and DOWN pools fluctuate before the lock period.
-- **Global Leaderboard:** Implementing an on-chain tracking system that ranks users based on their prediction win rate, total volume predicted, and longest winning streaks.
-- **Automated Claiming:** Researching meta-transaction infrastructure that would allow the protocol to auto-distribute winnings back to wallets, removing the need for users to manually click "Claim" after every successful round.
+- **DotShield Embedded Guardian:** Enhancing the self-healing scripts to carry out automatic keeper process restarts and RPC node rotations during network congestion or rate-limiting events.
+- **Gas Optimization:** Rewriting specific state variables within the Solidity contracts to drastically reduce the gas required to execute a prediction.
+- **Dynamic Payout Display:** Overhauling the frontend logic to calculate and display the real-time payout multipliers faster as pools fluctuate.
+- **Global Leaderboard:** Implementing an on-chain tracking system that ranks users based on win rate, volume, and winning streaks.
 
 <Callout type="warning" title="Testnet Volatility">
-  During Phase 2, the Arc Testnet contracts may be periodically paused or upgraded without prior warning. This is a necessary step to ensure we can hot-fix bugs and implement gas optimizations rapidly.
+  During Phase 2, the Arc Testnet contracts may be periodically paused or upgraded without prior warning. This is necessary to ensure we can hot-fix bugs and implement optimizations rapidly.
 </Callout>
 
 <SectionDivider />
 
 ## Phase 3: Mainnet & Ecosystem (Future Vision)
 
-Phase 3 represents the culmination of our testing. Once the protocol has operated flawlessly on the Arc Testnet with thousands of concurrent users, we will prepare for real economic value.
-
-This phase is not just about launching; it is about establishing DotMarket as the premier prediction platform in decentralized finance.
+Phase 3 represents the culmination of our testing. Once the protocol has operated flawlessly on the Arc Testnet with thousands of concurrent users under DotShield supervision, we will prepare for real economic value.
 
 ### Upcoming Milestones
 
 #### 1. Security Audits & Mainnet Launch
-Before transitioning from the Arc Testnet, the entire codebase will be frozen and submitted to multiple tier-1 blockchain security firms. Only upon receiving pristine audit reports will DotMarket be deployed to a high-throughput Mainnet ecosystem. 
+Before transitioning from the Arc Testnet, the entire codebase will be frozen and submitted to multiple tier-1 blockchain security firms. Only upon receiving pristine audit reports will DotMarket be deployed to a high-throughput Mainnet.
 
-#### 2. Multi-Asset Expansion
-While Bitcoin (BTC) is the perfect asset for proving our 1-minute model due to its massive liquidity and Oracle reliability, our community demands more. Following mainnet stabilization, we will implement governance votes to introduce new prediction pools for assets like Ethereum (ETH) and Solana (SOL).
+#### 2. DotShield Autonomous Governance
+Upgrade DotShield to handle autonomous risk parameter adjustments on mainnet. The AI Guardian will dynamically throttle round execution times or increase pool bounds during high-slippage market fluctuations to shield user liquidity.
 
-#### 3. Algorithmic Trading API
-To cater to our most sophisticated users, we will release a comprehensive SDK and WebSocket API. This will allow developers to run algorithmic bots that ingest Oracle data and automatically execute UP or DOWN predictions based on quantitative strategies.
+#### 3. Multi-Asset Expansion
+Following mainnet stabilization, we will implement governance votes to introduce new prediction pools for assets like Ethereum (ETH) and Solana (SOL).
 
-#### 4. Decentralized Governance (DAO)
-The ultimate goal of DotMarket is absolute decentralization. The core team will slowly step back, handing over parameter control, fee management, and asset curation directly to the community via an on-chain DAO structure. 
-
-<Callout type="tip" title="How to Contribute">
-  Want to influence this roadmap? Engage heavily with the current testnet build! The features we prioritize in Phase 2 are directly dictated by the feedback we receive in the Discord `#testnet-feedback` channel.
-</Callout>
+#### 4. Algorithmic Trading API
+To cater to our most sophisticated users, we will release a comprehensive SDK and WebSocket API. This will allow developers to run algorithmic bots that ingest Oracle data and automatically execute predictions.
 
 <SectionDivider />
 
 ## Archival Changelog
 
-*This section will be populated with specific version numbers, smart contract commit hashes, and granular UI updates as we continue our weekly deployment cycles.*
-
-- **v1.0.0-beta (Current):** Initial Arc Testnet deployment. BTC 1-minute pools active. Manual claiming required.
+- **v1.1.0-guardian (Current):** Deployed DotShield AI self-healing layer, active keeper rotating logic, and status control center.
+- **v1.0.0-beta:** Initial Arc Testnet deployment. BTC 1-minute pools active. Manual claiming required.
 - **v0.9.5-alpha:** Internal testnet. Finalized Pyth Oracle adapter.
-- **v0.9.0-alpha:** Proof of concept contract deployment. Basic UI scaffolding.
-
-We remain hyper-focused on delivering the fastest, most reliable prediction market in Web3. Stay tuned.
+- **v0.9.0-alpha:** Proof of concept contract deployment. Basic UI scaffolding.ned.
