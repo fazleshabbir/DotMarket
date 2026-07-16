@@ -95,7 +95,7 @@ const MAX_RETRIES = 3;
 const RETRY_BASE_DELAY_MS = 3_000;
 const ERROR_COOLDOWN_MS = 15_000;
 const RESOLVE_TO_OPEN_DELAY_MS = 3_000;
-const END_BUFFER_MS = 2_000;
+const END_BUFFER_MS = 5_000;
 
 // ── Polling interval: only 2 reads per loop (currentRoundId + getRound).
 // 15s is safe for any public RPC — well under rate limits.
@@ -494,7 +494,7 @@ async function main() {
         !currentRound.resolved &&
         !currentRound.canceled &&
         currentRound.startPrice === 0n &&
-        nowSec >= currentRound.lockTimestamp
+        nowSec >= currentRound.lockTimestamp + 4n
       ) {
         log("🔒", `Round #${currentRoundId} at lock time. Locking and opening next...`);
         const lockPrice = await fetchPrice(pair);
