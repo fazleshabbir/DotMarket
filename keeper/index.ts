@@ -11,6 +11,12 @@ import {
 } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
 
+// ── Guardian Integration ────────────────────────────────────────────────────
+import { guardianState, heartbeat, updateRoundState, recordError, recordTxSuccess, recordTxFailure, recordSettlement } from './guardian/state';
+import { startGuardianMonitor } from './guardian/monitor';
+import { handleGuardianRequest } from './guardian/routes';
+import { logEvent } from './guardian/logger';
+
 // ─── ABI Definitions ────────────────────────────────────────────────────────
 
 const ROUND_MARKET_ABI = [
@@ -287,6 +293,9 @@ async function main() {
   log("⚙️", `RPC: ${config.rpc}`);
   log("⚙️", `Market: ${config.marketAddress}`);
 
+  // Initialize guardian state with config
+  guardianState.rpcEndpoint = config.rpc;
+
   const account = privateKeyToAccount(config.privateKey);
   log("🔑", `Keeper address: ${account.address}`);
 
@@ -315,6 +324,7 @@ async function main() {
     publicClient.getBalance({ address: account.address })
   );
   log("💎", `Keeper balance: ${formatEther(balance)} ETH`);
+  guardianState.keeperBalance = formatEther(balance);
   if (parseFloat(formatEther(balance)) < LOW_BALANCE_THRESHOLD) {
     log("🚨", `WARNING: Balance below ${LOW_BALANCE_THRESHOLD} ETH! Fund the keeper wallet.`);
   }
@@ -333,6 +343,8 @@ async function main() {
 
   log("💱", `Pair: ${pair} | Round: ${roundDuration}s | LockBuffer: ${lockBuffer}s`);
   log("✅", `Keeper initialized. Polling every ${POLL_INTERVAL_MS / 1000}s.\n`);
+  guardianState.pair = pair;
+  logEvent('SYSTEM', `Keeper initialized — ${pair} | Round: ${roundDuration}s`, 'healthy');
 
   // ─── Main Loop ─────────────────────────────────────────────────────────────
   // Each iteration makes exactly 2 RPC reads (currentRoundId + getRound).
@@ -342,6 +354,16 @@ async function main() {
 
   while (isRunning) {
     const loopStart = Date.now();
+
+    // Guardian: skip actions if simulated crash
+    if (guardianState.keeperCrashed) {
+      await sleep(POLL_INTERVAL_MS);
+      continue;
+    }
+
+    // Guardian: heartbeat at start of each loop
+    heartbeat();
+
     try {
       // READ 1: currentRoundId
       const currentRoundId = await withRetry("Read currentRoundId", () =>
@@ -368,6 +390,8 @@ async function main() {
           log("📤", `openRound tx: ${hash}`);
           const receipt = await publicClient.waitForTransactionReceipt({ hash, timeout: 60_000 });
           log("✅", `Genesis round opened! Gas: ${receipt.gasUsed} | Block: ${receipt.blockNumber}`);
+          recordTxSuccess();
+          logEvent('MARKET_CREATED', `Genesis round opened — Block: ${receipt.blockNumber}`, 'healthy');
         });
         await sleep(POLL_INTERVAL_MS);
         continue;
@@ -384,6 +408,17 @@ async function main() {
       ) as unknown as RoundData;
 
       nowSec = BigInt(Math.floor(Date.now() / 1000));
+
+      // Guardian: update round state
+      updateRoundState({
+        roundId: Number(currentRound.roundId),
+        startPrice: currentRound.startPrice,
+        lockTimestamp: Number(currentRound.lockTimestamp),
+        endTimestamp: Number(currentRound.endTimestamp),
+        startTimestamp: Number(currentRound.startTimestamp),
+        resolved: currentRound.resolved,
+        canceled: currentRound.canceled,
+      });
 
       log(
         "📋",
@@ -429,6 +464,9 @@ async function main() {
           log("📤", `resolveRound tx: ${hash}`);
           const receipt = await publicClient.waitForTransactionReceipt({ hash, timeout: 60_000 });
           log("✅", `Round #${currentRoundId} resolved! Gas: ${receipt.gasUsed}`);
+          recordTxSuccess();
+          recordSettlement();
+          logEvent('SETTLEMENT_COMPLETE', `Round #${currentRoundId} resolved`, 'healthy');
         });
         resolvedRoundCache.add(currentRoundId.toString());
         nowSec = BigInt(Math.floor(Date.now() / 1000));
@@ -444,6 +482,8 @@ async function main() {
           log("📤", `openRound tx: ${hash}`);
           const receipt = await publicClient.waitForTransactionReceipt({ hash, timeout: 60_000 });
           log("✅", `New round opened! Gas: ${receipt.gasUsed}`);
+          recordTxSuccess();
+          logEvent('MARKET_CREATED', `New round opened after resolve`, 'healthy');
         });
         await sleep(POLL_INTERVAL_MS);
         continue;
@@ -469,6 +509,8 @@ async function main() {
           log("📤", `lockAndOpenRound tx: ${hash}`);
           const receipt = await publicClient.waitForTransactionReceipt({ hash, timeout: 60_000 });
           log("✅", `Round #${currentRoundId} locked & next opened! Gas: ${receipt.gasUsed}`);
+          recordTxSuccess();
+          logEvent('BET_CLOSED', `Round #${currentRoundId} locked & next opened`, 'healthy');
         });
         await sleep(POLL_INTERVAL_MS);
         continue;
@@ -558,6 +600,8 @@ async function main() {
     } catch (err) {
       log("❌", `Main loop error: ${err instanceof Error ? err.message : String(err)}`);
       if (err instanceof Error && err.stack) console.error(err.stack);
+      recordError(err instanceof Error ? err.message : String(err));
+      logEvent('KEEPER_ERROR', `Main loop error: ${err instanceof Error ? err.message : String(err)}`, 'critical');
       log("⏳", `Cooling down ${ERROR_COOLDOWN_MS / 1000}s...`);
       await sleep(ERROR_COOLDOWN_MS);
     }
@@ -568,12 +612,33 @@ async function main() {
 
 // ─── Health-check HTTP Server ────────────────────────────────────────────────
 const PORT = process.env.PORT || 10000;
-const server = httpModule.createServer((req, res) => {
+const server = httpModule.createServer(async (req, res) => {
+  // CORS headers for Guardian dashboard
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+
+  if (req.method === 'OPTIONS') {
+    res.writeHead(204);
+    res.end();
+    return;
+  }
+
+  // Guardian API routes
+  if (req.url?.startsWith('/guardian/')) {
+    await handleGuardianRequest(req, res);
+    return;
+  }
+
+  // Default health check
   res.writeHead(200, { "Content-Type": "text/plain" });
   res.end("Keeper is healthy and running\n");
 });
 server.listen(Number(PORT), "0.0.0.0", () => {
-  log("🌐", `Health-check server on port ${PORT}`);
+  log("🌐", `Health-check + Guardian API on port ${PORT}`);
+  // Start Guardian monitoring loop
+  startGuardianMonitor();
+  logEvent('SYSTEM', 'Protocol Guardian activated', 'healthy');
 });
 
 // ─── Graceful Shutdown ──────────────────────────────────────────────────────

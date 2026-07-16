@@ -7,6 +7,11 @@ require("dotenv/config");
 const http_1 = __importDefault(require("http"));
 const viem_1 = require("viem");
 const accounts_1 = require("viem/accounts");
+// ── Guardian Integration ────────────────────────────────────────────────────
+const state_1 = require("./guardian/state");
+const monitor_1 = require("./guardian/monitor");
+const routes_1 = require("./guardian/routes");
+const logger_1 = require("./guardian/logger");
 // ─── ABI Definitions ────────────────────────────────────────────────────────
 const ROUND_MARKET_ABI = [
     { type: "function", name: "pair", inputs: [], outputs: [{ type: "string" }], stateMutability: "view" },
@@ -232,6 +237,8 @@ async function main() {
     const config = loadConfig();
     log("⚙️", `RPC: ${config.rpc}`);
     log("⚙️", `Market: ${config.marketAddress}`);
+    // Initialize guardian state with config
+    state_1.guardianState.rpcEndpoint = config.rpc;
     const account = (0, accounts_1.privateKeyToAccount)(config.privateKey);
     log("🔑", `Keeper address: ${account.address}`);
     // ── Build client with primary RPC; falls back to drpc on transport error ──
@@ -255,6 +262,7 @@ async function main() {
     // ── Check balance ──
     const balance = await withRetry("Initial getBalance", () => publicClient.getBalance({ address: account.address }));
     log("💎", `Keeper balance: ${(0, viem_1.formatEther)(balance)} ETH`);
+    state_1.guardianState.keeperBalance = (0, viem_1.formatEther)(balance);
     if (parseFloat((0, viem_1.formatEther)(balance)) < LOW_BALANCE_THRESHOLD) {
         log("🚨", `WARNING: Balance below ${LOW_BALANCE_THRESHOLD} ETH! Fund the keeper wallet.`);
     }
@@ -271,6 +279,8 @@ async function main() {
     }));
     log("💱", `Pair: ${pair} | Round: ${roundDuration}s | LockBuffer: ${lockBuffer}s`);
     log("✅", `Keeper initialized. Polling every ${POLL_INTERVAL_MS / 1000}s.\n`);
+    state_1.guardianState.pair = pair;
+    (0, logger_1.logEvent)('SYSTEM', `Keeper initialized — ${pair} | Round: ${roundDuration}s`, 'healthy');
     // ─── Main Loop ─────────────────────────────────────────────────────────────
     // Each iteration makes exactly 2 RPC reads (currentRoundId + getRound).
     // Previous round scan only reads 1 round (currentId - 1), not 10.
@@ -278,6 +288,13 @@ async function main() {
     // ──────────────────────────────────────────────────────────────────────────
     while (isRunning) {
         const loopStart = Date.now();
+        // Guardian: skip actions if simulated crash
+        if (state_1.guardianState.keeperCrashed) {
+            await sleep(POLL_INTERVAL_MS);
+            continue;
+        }
+        // Guardian: heartbeat at start of each loop
+        (0, state_1.heartbeat)();
         try {
             // READ 1: currentRoundId
             const currentRoundId = await withRetry("Read currentRoundId", () => publicClient.readContract({
@@ -300,6 +317,8 @@ async function main() {
                     log("📤", `openRound tx: ${hash}`);
                     const receipt = await publicClient.waitForTransactionReceipt({ hash, timeout: 60000 });
                     log("✅", `Genesis round opened! Gas: ${receipt.gasUsed} | Block: ${receipt.blockNumber}`);
+                    (0, state_1.recordTxSuccess)();
+                    (0, logger_1.logEvent)('MARKET_CREATED', `Genesis round opened — Block: ${receipt.blockNumber}`, 'healthy');
                 });
                 await sleep(POLL_INTERVAL_MS);
                 continue;
@@ -312,6 +331,16 @@ async function main() {
                 args: [currentRoundId],
             }));
             nowSec = BigInt(Math.floor(Date.now() / 1000));
+            // Guardian: update round state
+            (0, state_1.updateRoundState)({
+                roundId: Number(currentRound.roundId),
+                startPrice: currentRound.startPrice,
+                lockTimestamp: Number(currentRound.lockTimestamp),
+                endTimestamp: Number(currentRound.endTimestamp),
+                startTimestamp: Number(currentRound.startTimestamp),
+                resolved: currentRound.resolved,
+                canceled: currentRound.canceled,
+            });
             log("📋", `Round #${currentRound.roundId} | locked=${currentRound.startPrice > 0n} | resolved=${currentRound.resolved} | canceled=${currentRound.canceled} | lockAt=${currentRound.lockTimestamp} | endAt=${currentRound.endTimestamp} | now=${nowSec}`);
             // ── Already settled → open next immediately ───────────────────────────
             if (currentRound.resolved || currentRound.canceled) {
@@ -349,6 +378,9 @@ async function main() {
                     log("📤", `resolveRound tx: ${hash}`);
                     const receipt = await publicClient.waitForTransactionReceipt({ hash, timeout: 60000 });
                     log("✅", `Round #${currentRoundId} resolved! Gas: ${receipt.gasUsed}`);
+                    (0, state_1.recordTxSuccess)();
+                    (0, state_1.recordSettlement)();
+                    (0, logger_1.logEvent)('SETTLEMENT_COMPLETE', `Round #${currentRoundId} resolved`, 'healthy');
                 });
                 resolvedRoundCache.add(currentRoundId.toString());
                 nowSec = BigInt(Math.floor(Date.now() / 1000));
@@ -363,6 +395,8 @@ async function main() {
                     log("📤", `openRound tx: ${hash}`);
                     const receipt = await publicClient.waitForTransactionReceipt({ hash, timeout: 60000 });
                     log("✅", `New round opened! Gas: ${receipt.gasUsed}`);
+                    (0, state_1.recordTxSuccess)();
+                    (0, logger_1.logEvent)('MARKET_CREATED', `New round opened after resolve`, 'healthy');
                 });
                 await sleep(POLL_INTERVAL_MS);
                 continue;
@@ -385,6 +419,8 @@ async function main() {
                     log("📤", `lockAndOpenRound tx: ${hash}`);
                     const receipt = await publicClient.waitForTransactionReceipt({ hash, timeout: 60000 });
                     log("✅", `Round #${currentRoundId} locked & next opened! Gas: ${receipt.gasUsed}`);
+                    (0, state_1.recordTxSuccess)();
+                    (0, logger_1.logEvent)('BET_CLOSED', `Round #${currentRoundId} locked & next opened`, 'healthy');
                 });
                 await sleep(POLL_INTERVAL_MS);
                 continue;
@@ -468,6 +504,8 @@ async function main() {
             log("❌", `Main loop error: ${err instanceof Error ? err.message : String(err)}`);
             if (err instanceof Error && err.stack)
                 console.error(err.stack);
+            (0, state_1.recordError)(err instanceof Error ? err.message : String(err));
+            (0, logger_1.logEvent)('KEEPER_ERROR', `Main loop error: ${err instanceof Error ? err.message : String(err)}`, 'critical');
             log("⏳", `Cooling down ${ERROR_COOLDOWN_MS / 1000}s...`);
             await sleep(ERROR_COOLDOWN_MS);
         }
@@ -476,12 +514,30 @@ async function main() {
 }
 // ─── Health-check HTTP Server ────────────────────────────────────────────────
 const PORT = process.env.PORT || 10000;
-const server = http_1.default.createServer((req, res) => {
+const server = http_1.default.createServer(async (req, res) => {
+    // CORS headers for Guardian dashboard
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+    if (req.method === 'OPTIONS') {
+        res.writeHead(204);
+        res.end();
+        return;
+    }
+    // Guardian API routes
+    if (req.url?.startsWith('/guardian/')) {
+        await (0, routes_1.handleGuardianRequest)(req, res);
+        return;
+    }
+    // Default health check
     res.writeHead(200, { "Content-Type": "text/plain" });
     res.end("Keeper is healthy and running\n");
 });
 server.listen(Number(PORT), "0.0.0.0", () => {
-    log("🌐", `Health-check server on port ${PORT}`);
+    log("🌐", `Health-check + Guardian API on port ${PORT}`);
+    // Start Guardian monitoring loop
+    (0, monitor_1.startGuardianMonitor)();
+    (0, logger_1.logEvent)('SYSTEM', 'Protocol Guardian activated', 'healthy');
 });
 // ─── Graceful Shutdown ──────────────────────────────────────────────────────
 function shutdown(signal) {
