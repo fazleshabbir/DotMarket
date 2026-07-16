@@ -350,21 +350,7 @@ export function RoadmapSection() {
           zIndex: 1,
         }}
       />
-      {/* Soft radial glow behind header */}
-      <div
-        style={{
-          position: 'absolute',
-          top: '0%',
-          left: '50%',
-          transform: 'translateX(-50%)',
-          width: '500px',
-          height: '250px',
-          background: 'radial-gradient(circle, rgba(255, 255, 255, 0.02) 0%, transparent 70%)',
-          filter: 'blur(50px)',
-          pointerEvents: 'none',
-          zIndex: 1,
-        }}
-      />
+
 
       <PageHeader
         title="Roadmap"
