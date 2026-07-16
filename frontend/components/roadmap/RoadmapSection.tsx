@@ -300,13 +300,41 @@ function DesktopScrollReveal({ milestones }: { milestones: Milestone[] }) {
   );
 }
 
-// ── MOBILE: Click accordion (unchanged behaviour from before) ─────────────────
-function MobileAccordion({ milestones, revealCard, staggerContainer }: {
-  milestones: Milestone[];
-  revealCard: Variants;
-  staggerContainer: (delay?: number) => Variants;
-}) {
-  const [openIdx, setOpenIdx] = useState<number | null>(2); // Default Q3 open
+// ── MOBILE: Scroll-driven, one card open at a time (mirrors desktop) ──────────
+function MobileScrollReveal({ milestones }: { milestones: Milestone[] }) {
+  const [activeIdx, setActiveIdx] = useState<number>(0);
+  const cardRefs = useRef<(HTMLDivElement | null)[]>([]);
+
+  useEffect(() => {
+    const observers: IntersectionObserver[] = [];
+
+    milestones.forEach((_, idx) => {
+      const el = cardRefs.current[idx];
+      if (!el) return;
+
+      const observer = new IntersectionObserver(
+        ([entry]) => {
+          if (entry.isIntersecting) {
+            setActiveIdx(idx);
+          }
+        },
+        {
+          threshold: 0.55,
+          rootMargin: '0px 0px -30% 0px',
+        }
+      );
+
+      observer.observe(el);
+      observers.push(observer);
+    });
+
+    return () => observers.forEach(o => o.disconnect());
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const cardVariants: Variants = {
+    hidden: { opacity: 0, y: 20 },
+    visible: { opacity: 1, y: 0, transition: { duration: 0.45, ease: [0.16, 1, 0.3, 1] } },
+  };
 
   return (
     <div style={{ position: 'relative', maxWidth: 720, margin: '0 auto' }}>
@@ -320,20 +348,21 @@ function MobileAccordion({ milestones, revealCard, staggerContainer }: {
       <motion.div
         initial="hidden"
         whileInView="visible"
-        viewport={{ once: true, amount: 0.1 }}
-        variants={staggerContainer(0.1)}
+        viewport={{ once: true, amount: 0.05 }}
+        variants={{ visible: { transition: { staggerChildren: 0.08 } } }}
         style={{ display: 'flex', flexDirection: 'column', gap: 0 }}
       >
         {milestones.map((m, idx) => {
           const Icon = m.icon;
           const isCompleted = m.status === 'Completed';
           const isInProgress = m.status === 'In Progress';
-          const isOpen = openIdx === idx;
+          const isExpanded = activeIdx === idx;
 
           return (
             <motion.div
               key={idx}
-              variants={revealCard}
+              variants={cardVariants}
+              ref={el => { cardRefs.current[idx] = el; }}
               style={{ display: 'flex', gap: 24, paddingBottom: idx < milestones.length - 1 ? 32 : 0 }}
             >
               {/* Left: Timeline node */}
@@ -352,21 +381,20 @@ function MobileAccordion({ milestones, revealCard, staggerContainer }: {
 
               {/* Right: Card content */}
               <div style={{ flex: 1, minWidth: 0 }}>
-                <Card
-                  hoverEffect={false}
-                  innerHighlight={false}
-                  onClick={() => setOpenIdx(isOpen ? null : idx)}
+                <motion.div
+                  animate={{
+                    background: isExpanded ? 'rgba(255,255,255,0.03)' : 'transparent',
+                    borderColor: isExpanded ? 'rgba(255,255,255,0.1)' : 'rgba(255,255,255,0.06)',
+                  }}
+                  transition={{ duration: 0.35, ease: 'easeOut' }}
                   style={{
-                    padding: '20px 24px',
-                    cursor: 'pointer',
-                    background: isOpen ? 'rgba(255,255,255,0.03)' : 'transparent',
-                    border: isOpen ? '1px solid rgba(255,255,255,0.1)' : '1px solid rgba(255,255,255,0.06)',
-                    borderRadius: 12,
-                    transition: 'all 250ms ease',
+                    padding: '20px 24px', borderRadius: 12,
+                    border: '1px solid', borderColor: 'rgba(255,255,255,0.06)',
+                    background: 'transparent',
                   }}
                 >
-                  {/* Header row */}
-                  <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12 }}>
+                  {/* Header — always visible */}
+                  <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12 }}>
                     <div style={{ flex: 1 }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 6, flexWrap: 'wrap' }}>
                         <span style={{
@@ -384,24 +412,24 @@ function MobileAccordion({ milestones, revealCard, staggerContainer }: {
                         {m.desc}
                       </p>
                     </div>
-                    {/* Expand chevron */}
-                    <div style={{
-                      flexShrink: 0, width: 24, height: 24,
-                      display: 'flex', alignItems: 'center', justifyContent: 'center',
-                      color: 'var(--text-muted)', transition: 'transform 250ms ease',
-                      transform: isOpen ? 'rotate(180deg)' : 'rotate(0deg)', marginTop: 2,
-                    }}>
-                      <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
-                        <path d="M2 5L7 10L12 5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-                      </svg>
-                    </div>
                   </div>
 
-                  {/* Expanded feature list */}
-                  {isOpen && (
-                    <CardFeatures m={m} isCompleted={isCompleted} isInProgress={isInProgress} />
-                  )}
-                </Card>
+                  {/* Scroll-driven expandable features */}
+                  <AnimatePresence initial={false}>
+                    {isExpanded && (
+                      <motion.div
+                        key="features"
+                        initial={{ height: 0, opacity: 0, y: 8 }}
+                        animate={{ height: 'auto', opacity: 1, y: 0 }}
+                        exit={{ height: 0, opacity: 0, y: 4 }}
+                        transition={{ duration: 0.42, ease: [0.16, 1, 0.3, 1] }}
+                        style={{ overflow: 'hidden' }}
+                      >
+                        <CardFeatures m={m} isCompleted={isCompleted} isInProgress={isInProgress} />
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </motion.div>
               </div>
             </motion.div>
           );
@@ -413,7 +441,6 @@ function MobileAccordion({ milestones, revealCard, staggerContainer }: {
 
 // ── Main Export ───────────────────────────────────────────────────────────────
 export function RoadmapSection() {
-  const { revealCard, staggerContainer } = useMotionSystem();
   const [isMounted, setIsMounted] = useState(false);
   const isMobileQuery = useMediaQuery('(max-width: 1023px)');
   const isMobile = isMounted ? isMobileQuery : false;
@@ -427,7 +454,7 @@ export function RoadmapSection() {
         subtitle="Building the future of high-frequency prediction markets."
       />
       {isMobile
-        ? <MobileAccordion milestones={milestones} revealCard={revealCard} staggerContainer={staggerContainer} />
+        ? <MobileScrollReveal milestones={milestones} />
         : <DesktopScrollReveal milestones={milestones} />
       }
     </Section>
