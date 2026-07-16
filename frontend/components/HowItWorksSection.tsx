@@ -251,6 +251,7 @@ export function HowItWorksSection() {
               key={idx}
               onMouseEnter={() => setHoveredCard(idx)}
               onMouseLeave={() => setHoveredCard(null)}
+              onClick={() => setHoveredCard(hoveredCard === idx ? null : idx)}
               className="dual-row-layout"
               style={{
                 display: 'grid',
@@ -258,6 +259,7 @@ export function HowItWorksSection() {
                 alignItems: 'center',
                 position: 'relative',
                 zIndex: 2,
+                cursor: 'pointer',
               }}
             >
               {/* Left Column: Trader Action Card */}
@@ -323,7 +325,7 @@ export function HowItWorksSection() {
               </motion.div>
 
               {/* Middle Timeline Node */}
-              <div style={{
+              <div className="hidden-mobile-tablet" style={{
                 display: 'flex',
                 justifyContent: 'center',
                 alignItems: 'center',
