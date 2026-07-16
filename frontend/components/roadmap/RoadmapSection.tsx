@@ -193,7 +193,7 @@ export function RoadmapSection() {
 
   // IntersectionObserver to track visible cards asynchronously without scroll blocking or layout thrashing
   useEffect(() => {
-    if (!mounted) return;
+    if (!mounted || isMobile) return;
     const container = containerRef.current;
     if (!container) return;
     const children = container.children;
@@ -222,7 +222,7 @@ export function RoadmapSection() {
     return () => {
       observer.disconnect();
     };
-  }, [mounted]);
+  }, [mounted, isMobile]);
 
   // Click handler on top nodes to scroll them into viewport view
   const scrollToMilestone = (idx: number) => {
@@ -575,7 +575,10 @@ export function RoadmapSection() {
           return (
             <motion.div
               key={m.phase}
-              variants={revealCard}
+              variants={!isMobile ? revealCard : undefined}
+              initial={isMobile ? { opacity: 0, y: 15 } : "hidden"}
+              animate={isMobile ? { opacity: 1, y: 0 } : undefined}
+              transition={{ duration: 0.35, ease: 'easeOut' }}
               style={{
                 flex: isMobile ? '1 1 100%' : isTablet ? '0 0 320px' : '0 0 350px',
                 maxWidth: isMobile ? '450px' : 'none',
