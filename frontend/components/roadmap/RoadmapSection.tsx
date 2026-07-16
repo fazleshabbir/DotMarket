@@ -389,7 +389,7 @@ export function RoadmapSection() {
               key={milestone.phase}
               onClick={() => setActiveIdx(idx)}
               style={{
-                flex: '0 0 auto',
+                flex: 1,
                 padding: '8px 12px',
                 borderRadius: '12px',
                 background: activeIdx === idx ? '#ffffff' : 'transparent',
