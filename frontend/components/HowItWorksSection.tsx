@@ -63,13 +63,12 @@ const steps: Step[] = [
   },
 ];
 
-// ── Mobile Accordion Layout ───────────────────────────────────────────────────
-function MobileAccordion({ steps, staggerContainer, revealCard }: {
-  steps: Step[];
-  staggerContainer: (delay?: number) => Variants;
-  revealCard: Variants;
-}) {
-  const [openIdx, setOpenIdx] = useState<number | null>(0);
+// ── Mobile Scroll-Reveal Layout ───────────────────────────────────────────────
+function MobileScrollReveal({ steps }: { steps: Step[] }) {
+  const cardVariants: Variants = {
+    hidden: { opacity: 0, y: 28 },
+    visible: { opacity: 1, y: 0, transition: { duration: 0.45, ease: [0.16, 1, 0.3, 1] } },
+  };
 
   return (
     <div style={{ position: 'relative', maxWidth: 560, margin: '0 auto' }}>
@@ -84,186 +83,148 @@ function MobileAccordion({ steps, staggerContainer, revealCard }: {
         pointerEvents: 'none',
       }} />
 
-      <motion.div
-        initial="hidden"
-        whileInView="visible"
-        viewport={{ once: true, amount: 0.1 }}
-        variants={staggerContainer(0.08)}
-        style={{ display: 'flex', flexDirection: 'column', gap: 0 }}
-      >
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
         {steps.map((step, idx) => {
           const TraderIcon = step.traderIcon;
           const ShieldIcon = step.shieldIcon;
-          const isOpen = openIdx === idx;
 
           return (
             <motion.div
               key={idx}
-              variants={revealCard}
-              style={{ display: 'flex', gap: 20, paddingBottom: idx < steps.length - 1 ? 24 : 0 }}
+              initial="hidden"
+              whileInView="visible"
+              viewport={{ once: true, amount: 0.25 }}
+              variants={cardVariants}
+              style={{ display: 'flex', gap: 20, paddingBottom: idx < steps.length - 1 ? 28 : 0 }}
             >
               {/* Timeline node */}
-              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', flexShrink: 0, paddingTop: 10 }}>
+              <div style={{ flexShrink: 0, paddingTop: 10 }}>
                 <div style={{
                   width: 40,
                   height: 40,
                   borderRadius: '50%',
-                  background: isOpen ? '#ffffff' : 'rgba(255,255,255,0.04)',
-                  border: isOpen ? '2px solid #ffffff' : '2px solid rgba(255,255,255,0.12)',
+                  background: '#ffffff',
+                  border: '2px solid #ffffff',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  color: isOpen ? '#000000' : 'rgba(255,255,255,0.5)',
-                  flexShrink: 0,
+                  color: '#000000',
                   position: 'relative',
                   zIndex: 2,
-                  transition: 'all 250ms ease',
                 }}>
                   <TraderIcon size={16} />
                 </div>
               </div>
 
-              {/* Card */}
+              {/* Fully expanded card — always open */}
               <div style={{ flex: 1, minWidth: 0 }}>
                 <Card
                   hoverEffect={false}
                   innerHighlight={false}
-                  onClick={() => setOpenIdx(isOpen ? null : idx)}
                   style={{
                     padding: '16px 20px',
-                    cursor: 'pointer',
-                    background: isOpen ? 'rgba(255,255,255,0.03)' : 'transparent',
-                    border: isOpen ? '1px solid rgba(255,255,255,0.10)' : '1px solid rgba(255,255,255,0.06)',
+                    background: 'rgba(255,255,255,0.03)',
+                    border: '1px solid rgba(255,255,255,0.08)',
                     borderRadius: 12,
-                    transition: 'all 250ms ease',
                   }}
                 >
-                  {/* Header row */}
-                  <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 10 }}>
-                    <div style={{ flex: 1 }}>
-                      <span style={{
-                        display: 'block',
-                        fontFamily: 'var(--font-mono)',
-                        fontSize: '10px',
-                        fontWeight: 700,
-                        color: 'var(--text-muted)',
-                        letterSpacing: '1px',
-                        textTransform: 'uppercase',
-                        marginBottom: 4,
+                  {/* Step label + title + description */}
+                  <span style={{
+                    display: 'block',
+                    fontFamily: 'var(--font-mono)',
+                    fontSize: '10px',
+                    fontWeight: 700,
+                    color: 'var(--text-muted)',
+                    letterSpacing: '1px',
+                    textTransform: 'uppercase',
+                    marginBottom: 4,
+                  }}>
+                    STEP {step.num}
+                  </span>
+                  <h3 style={{
+                    fontSize: '16px',
+                    fontWeight: 700,
+                    color: '#ffffff',
+                    margin: 0,
+                    letterSpacing: '-0.3px',
+                  }}>
+                    {step.traderTitle}
+                  </h3>
+                  <p style={{
+                    fontSize: '13px',
+                    color: 'var(--text-secondary)',
+                    margin: '5px 0 0 0',
+                    lineHeight: 1.6,
+                  }}>
+                    {step.traderDesc}
+                  </p>
+
+                  {/* Divider */}
+                  <div style={{ height: 1, background: 'rgba(255,255,255,0.06)', margin: '14px 0' }} />
+
+                  {/* DotShield AI panel */}
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                      <div style={{
+                        width: 28,
+                        height: 28,
+                        borderRadius: 8,
+                        background: 'rgba(255,255,255,0.04)',
+                        border: '1px solid rgba(255,255,255,0.1)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        color: 'rgba(255,255,255,0.7)',
+                        flexShrink: 0,
                       }}>
-                        STEP {step.num}
-                      </span>
-                      <h3 style={{
-                        fontSize: '16px',
-                        fontWeight: 700,
-                        color: '#ffffff',
-                        margin: 0,
-                        letterSpacing: '-0.3px',
-                      }}>
-                        {step.traderTitle}
-                      </h3>
-                      <p style={{
-                        fontSize: '13px',
-                        color: 'var(--text-secondary)',
-                        margin: '5px 0 0 0',
-                        lineHeight: 1.6,
-                      }}>
-                        {step.traderDesc}
-                      </p>
+                        <ShieldIcon size={13} />
+                      </div>
+                      <div>
+                        <p style={{ fontSize: '13px', fontWeight: 700, color: '#ffffff', margin: 0 }}>
+                          {step.shieldTitle}
+                        </p>
+                        <span style={{
+                          fontSize: '9px',
+                          fontFamily: 'var(--font-mono)',
+                          color: 'var(--text-muted)',
+                          letterSpacing: '1px',
+                          textTransform: 'uppercase',
+                        }}>
+                          DotShield AI Agent
+                        </span>
+                      </div>
                     </div>
 
-                    {/* Expand chevron */}
-                    <div style={{
-                      flexShrink: 0,
-                      width: 24,
-                      height: 24,
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      color: 'var(--text-muted)',
-                      transition: 'transform 250ms ease',
-                      transform: isOpen ? 'rotate(180deg)' : 'rotate(0deg)',
-                      marginTop: 2,
-                    }}>
-                      <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
-                        <path d="M2 5L7 10L12 5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-                      </svg>
-                    </div>
-                  </div>
+                    <p style={{ fontSize: '12.5px', color: 'var(--text-secondary)', lineHeight: 1.55, margin: 0 }}>
+                      {step.shieldDesc}
+                    </p>
 
-                  {/* Expanded: DotShield panel */}
-                  {isOpen && (
+                    {/* Metrics */}
                     <div style={{
-                      marginTop: 16,
-                      paddingTop: 16,
-                      borderTop: '1px solid rgba(255,255,255,0.06)',
+                      background: 'rgba(0,0,0,0.35)',
+                      borderRadius: 8,
+                      padding: '10px 14px',
+                      fontFamily: 'var(--font-mono)',
+                      fontSize: '10.5px',
+                      border: '1px solid rgba(255,255,255,0.06)',
                       display: 'flex',
                       flexDirection: 'column',
-                      gap: 12,
+                      gap: 5,
                     }}>
-                      {/* DotShield label + title */}
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                        <div style={{
-                          width: 28,
-                          height: 28,
-                          borderRadius: 8,
-                          background: 'rgba(255,255,255,0.04)',
-                          border: '1px solid rgba(255,255,255,0.1)',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          color: 'rgba(255,255,255,0.7)',
-                          flexShrink: 0,
-                        }}>
-                          <ShieldIcon size={13} />
+                      {step.shieldMetrics.map((metric, mIdx) => (
+                        <div key={mIdx} style={{ display: 'flex', justifyContent: 'space-between', color: 'rgba(255,255,255,0.5)' }}>
+                          <span>{metric.split(': ')[0]}</span>
+                          <span style={{ fontWeight: 600, color: '#ffffff' }}>{metric.split(': ')[1]}</span>
                         </div>
-                        <div>
-                          <p style={{ fontSize: '13px', fontWeight: 700, color: '#ffffff', margin: 0 }}>
-                            {step.shieldTitle}
-                          </p>
-                          <span style={{
-                            fontSize: '9px',
-                            fontFamily: 'var(--font-mono)',
-                            color: 'var(--text-muted)',
-                            letterSpacing: '1px',
-                            textTransform: 'uppercase',
-                          }}>
-                            DotShield AI Agent
-                          </span>
-                        </div>
-                      </div>
-
-                      <p style={{ fontSize: '12.5px', color: 'var(--text-secondary)', lineHeight: 1.55, margin: 0 }}>
-                        {step.shieldDesc}
-                      </p>
-
-                      {/* Metrics panel */}
-                      <div style={{
-                        background: 'rgba(0,0,0,0.35)',
-                        borderRadius: 8,
-                        padding: '10px 14px',
-                        fontFamily: 'var(--font-mono)',
-                        fontSize: '10.5px',
-                        border: '1px solid rgba(255,255,255,0.06)',
-                        display: 'flex',
-                        flexDirection: 'column',
-                        gap: 5,
-                      }}>
-                        {step.shieldMetrics.map((metric, mIdx) => (
-                          <div key={mIdx} style={{ display: 'flex', justifyContent: 'space-between', color: 'rgba(255,255,255,0.5)' }}>
-                            <span>{metric.split(': ')[0]}</span>
-                            <span style={{ fontWeight: 600, color: '#ffffff' }}>{metric.split(': ')[1]}</span>
-                          </div>
-                        ))}
-                      </div>
+                      ))}
                     </div>
-                  )}
+                  </div>
                 </Card>
               </div>
             </motion.div>
           );
         })}
-      </motion.div>
+      </div>
     </div>
   );
 }
@@ -441,7 +402,7 @@ export function HowItWorksSection() {
   const isMobileQuery = useMediaQuery('(max-width: 1023px)');
   const isMobile = isMounted ? isMobileQuery : false;
 
-  const { revealCard, staggerContainer, shouldReduceMotion } = useMotionSystem();
+  const { shouldReduceMotion } = useMotionSystem();
 
   useEffect(() => {
     setIsMounted(true);
@@ -455,9 +416,10 @@ export function HowItWorksSection() {
       />
 
       {isMobile
-        ? <MobileAccordion steps={steps} staggerContainer={staggerContainer} revealCard={revealCard} />
+        ? <MobileScrollReveal steps={steps} />
         : <DesktopDualLayout steps={steps} shouldReduceMotion={shouldReduceMotion} />
       }
     </Section>
   );
 }
+
