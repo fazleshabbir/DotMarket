@@ -378,17 +378,14 @@ export function RoadmapSection() {
               zIndex: 1,
             }}
           >
-            {/* Drawing Line animation */}
-            <motion.div
-              initial={{ scaleX: 0 }}
-              whileInView={{ scaleX: 1 }}
-              viewport={{ once: true }}
-              transition={{ duration: 1.2, ease: 'easeOut' }}
+            {/* Live Progress Bar drawing */}
+            <div
               style={{
-                width: '100%',
+                width: `${(activeIdx / (milestones.length - 1)) * 100}%`,
                 height: '100%',
-                background: 'linear-gradient(to right, rgba(255,255,255,0.05), rgba(255,255,255,0.5) 50%, rgba(255,255,255,0.05))',
-                transformOrigin: 'left',
+                background: 'linear-gradient(to right, rgba(255,255,255,0.2), #ffffff)',
+                transition: 'width 600ms cubic-bezier(0.16, 1, 0.3, 1)',
+                boxShadow: '0 0 10px rgba(255,255,255,0.5)',
               }}
             />
           </div>
@@ -673,14 +670,33 @@ export function RoadmapSection() {
                   <div style={{ flex: 1, borderTop: '1px solid rgba(255,255,255,0.05)', paddingTop: '16px' }}>
                     <span style={{ display: 'block', fontSize: '10px', fontFamily: 'var(--font-mono)', color: 'var(--text-muted)', letterSpacing: '0.5px', marginBottom: '10px', textTransform: 'uppercase' }}>Scope Metrics</span>
                     <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                      {m.features.map((feat, fidx) => (
-                        <li key={fidx} style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: '12px', color: '#ffffff' }}>
-                          <span style={{ color: m.status === 'Completed' ? '#ffffff' : 'var(--text-muted)', display: 'inline-flex', opacity: 0.8 }}>
-                            <Check size={11} strokeWidth={3} />
-                          </span>
-                          <span style={{ opacity: m.status === 'Completed' ? 0.95 : 0.7 }}>{feat}</span>
-                        </li>
-                      ))}
+                      {m.features.map((feat, fidx) => {
+                        const isCompleted = m.status === 'Completed';
+                        const isInProgress = m.status === 'In Progress';
+                        return (
+                          <li key={fidx} style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: '12px' }}>
+                            {isCompleted ? (
+                              <span style={{ color: '#ffffff', display: 'inline-flex', opacity: 0.9 }}>
+                                <Check size={10} strokeWidth={3.5} />
+                              </span>
+                            ) : isInProgress ? (
+                              <span style={{ display: 'inline-flex', position: 'relative', width: 6, height: 6 }}>
+                                <span className="animate-ping" style={{ position: 'absolute', inset: 0, borderRadius: '50%', background: '#ffffff', opacity: 0.75 }} />
+                                <span style={{ position: 'relative', display: 'inline-flex', borderRadius: '50%', width: 6, height: 6, background: '#ffffff' }} />
+                              </span>
+                            ) : (
+                              <span style={{ width: 6, height: 6, borderRadius: '50%', border: '1px solid rgba(255,255,255,0.3)', background: 'transparent' }} />
+                            )}
+                            <span style={{
+                              color: isCompleted ? '#ffffff' : isInProgress ? 'var(--text-secondary)' : 'var(--text-muted)',
+                              fontWeight: isInProgress ? 500 : 400,
+                              opacity: isCompleted ? 0.95 : isInProgress ? 0.8 : 0.6
+                            }}>
+                              {feat}
+                            </span>
+                          </li>
+                        );
+                      })}
                     </ul>
                   </div>
 
@@ -696,6 +712,28 @@ export function RoadmapSection() {
           );
         })}
       </motion.div>
+
+      {/* Apple-Style Slide Indicator Dots Track */}
+      <div style={{ display: 'flex', justifyContent: 'center', gap: 8, marginTop: 32 }}>
+        {milestones.map((_, idx) => {
+          const isActive = activeIdx === idx;
+          return (
+            <div
+              key={idx}
+              onClick={() => scrollToMilestone(idx)}
+              style={{
+                width: isActive ? 24 : 6,
+                height: 6,
+                borderRadius: 3,
+                background: isActive ? '#ffffff' : 'rgba(255,255,255,0.1)',
+                cursor: 'pointer',
+                transition: 'all 350ms cubic-bezier(0.16, 1, 0.3, 1)',
+              }}
+              title={`Go to Phase ${idx + 1}`}
+            />
+          );
+        })}
+      </div>
 
       {/* Hide scrollbars style */}
       <style jsx global>{`
