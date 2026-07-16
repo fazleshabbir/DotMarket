@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { useMediaQuery } from '@/hooks/useMediaQuery';
-import { useMotionSystem, VIEWPORT_SETTINGS } from '@/hooks/useMotionSystem';
+import { useMotionSystem } from '@/hooks/useMotionSystem';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 import { Section } from '@/components/ui/Section';
@@ -90,13 +90,13 @@ export function CommunitySection() {
 }
 
 function DesktopCommunityLayout() {
-  const { staggerContainer } = useMotionSystem();
+  const { staggerContainer, viewport } = useMotionSystem();
   
   return (
     <motion.div
       initial="hidden"
       whileInView="visible"
-      viewport={VIEWPORT_SETTINGS}
+      viewport={viewport}
       variants={staggerContainer(0.08)}
       style={{
         display: 'grid',
@@ -112,15 +112,15 @@ function DesktopCommunityLayout() {
 }
 
 function MobileCommunityLayout() {
-  const { revealCard, staggerContainer, staggerItem } = useMotionSystem();
+  const { revealCard, staggerContainer, staggerItem, viewport } = useMotionSystem();
 
   return (
     <motion.div 
       initial="hidden"
       whileInView="visible"
-      viewport={VIEWPORT_SETTINGS}
+      viewport={viewport}
       variants={staggerContainer(0.1)}
-      style={{ display: 'flex', flexDirection: 'column', gap: 32, marginTop: 12, position: 'relative' }}
+      style={{ display: 'flex', flexDirection: 'column', gap: 32, marginTop: 12, position: 'relative', willChange: 'transform, opacity' }}
     >
       {/* Animated Background Glow for Premium feel */}
       <div style={{

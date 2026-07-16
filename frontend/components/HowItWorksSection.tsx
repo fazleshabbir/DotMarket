@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { motion, type Variants } from 'framer-motion';
 import { Wallet, CandlestickChart, Target, Trophy, Shield, Cpu, Activity, HardDrive } from 'lucide-react';
-import { useMotionSystem, VIEWPORT_SETTINGS } from '@/hooks/useMotionSystem';
+import { useMotionSystem } from '@/hooks/useMotionSystem';
 import { Card } from '@/components/ui/Card';
 import { Section } from '@/components/ui/Section';
 import { PageHeader } from '@/components/ui/PageHeader';
@@ -63,10 +63,11 @@ const steps: Step[] = [
   },
 ];
 
-// ── Mobile Scroll-Reveal Layout ───────────────────────────────────────────────
 function MobileScrollReveal({ steps }: { steps: Step[] }) {
+  const { viewport } = useMotionSystem();
+
   const cardVariants: Variants = {
-    hidden: { opacity: 0, y: 28 },
+    hidden: { opacity: 0, y: 15 },
     visible: { opacity: 1, y: 0, transition: { duration: 0.45, ease: [0.16, 1, 0.3, 1] } },
   };
 
@@ -93,9 +94,9 @@ function MobileScrollReveal({ steps }: { steps: Step[] }) {
               key={idx}
               initial="hidden"
               whileInView="visible"
-              viewport={VIEWPORT_SETTINGS}
+              viewport={viewport}
               variants={cardVariants}
-              style={{ display: 'flex', gap: 20, paddingBottom: idx < steps.length - 1 ? 28 : 0 }}
+              style={{ display: 'flex', gap: 20, paddingBottom: idx < steps.length - 1 ? 28 : 0, willChange: 'transform, opacity' }}
             >
               {/* Timeline node */}
               <div style={{ flexShrink: 0, paddingTop: 10 }}>
@@ -253,6 +254,7 @@ function DesktopDualLayout({ steps, shouldReduceMotion, revealCardVariant }: { s
 
 function DesktopStepRow({ step, idx, revealCardVariant }: { step: Step; idx: number; revealCardVariant: any }) {
   const [isHovered, setIsHovered] = useState(false);
+  const { viewport } = useMotionSystem();
   const TraderIcon = step.traderIcon;
   const ShieldIcon = step.shieldIcon;
 
@@ -272,9 +274,9 @@ function DesktopStepRow({ step, idx, revealCardVariant }: { step: Step; idx: num
             <motion.div
               initial="hidden"
               whileInView="visible"
-              viewport={VIEWPORT_SETTINGS}
+              viewport={viewport}
               variants={revealCardVariant}
-              style={{ height: '100%' }}
+              style={{ height: '100%', willChange: 'transform, opacity' }}
             >
               <Card
                 hoverEffect={false}
@@ -330,9 +332,9 @@ function DesktopStepRow({ step, idx, revealCardVariant }: { step: Step; idx: num
             <motion.div
               initial="hidden"
               whileInView="visible"
-              viewport={VIEWPORT_SETTINGS}
+              viewport={viewport}
               variants={revealCardVariant}
-              style={{ height: '100%' }}
+              style={{ height: '100%', willChange: 'transform, opacity' }}
             >
               <Card
                 hoverEffect={false}

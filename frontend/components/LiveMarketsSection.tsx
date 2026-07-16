@@ -10,7 +10,7 @@ import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 import { Section } from '@/components/ui/Section';
 import { PageHeader } from '@/components/ui/PageHeader';
-import { useMotionSystem, VIEWPORT_SETTINGS } from '@/hooks/useMotionSystem';
+import { useMotionSystem } from '@/hooks/useMotionSystem';
 
 interface MarketCardProps {
   pair: string;
@@ -155,7 +155,7 @@ function SimulatedMarketCard({
 }
 
 export function LiveMarketsSection() {
-  const { revealCard, staggerContainer } = useMotionSystem();
+  const { revealCard, staggerContainer, viewport } = useMotionSystem();
 
   return (
     <Section id="markets">
@@ -167,12 +167,13 @@ export function LiveMarketsSection() {
       <motion.div
         initial="hidden"
         whileInView="visible"
-        viewport={VIEWPORT_SETTINGS}
+        viewport={viewport}
         variants={staggerContainer(0.08)}
         style={{ 
           display: 'grid', 
           gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 320px), 1fr))', 
           gap: 24,
+          willChange: 'transform, opacity',
         }}
       >
         <ConnectedBtcMarketCard revealCardVariant={revealCard} />
