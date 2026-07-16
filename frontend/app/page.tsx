@@ -385,95 +385,108 @@ export default function LandingPage() {
           position: 'sticky',
           top: 0,
           zIndex: 100,
-          margin: isDesktop ? '24px 24px 0' : '12px 12px 0',
-          padding: isDesktop ? '10px 24px' : '8px 16px',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          borderRadius: 'var(--radius-xl)',
-          background: 'rgba(4, 4, 4, 0.7)',
-          backdropFilter: 'blur(20px)',
-          WebkitBackdropFilter: 'blur(20px)',
-          border: '1px solid var(--border-2)',
+          width: '100%',
         }}
       >
-        {/* Logo */}
-        <div style={{ display: 'flex', alignItems: 'center' }}>
-          <svg viewBox="0 0 200 60" width={isDesktop ? "148" : "124"} height={isDesktop ? "44" : "37"} xmlns="http://www.w3.org/2000/svg">
-            <defs>
-              <mask id="headerLogoMask">
-                <rect x="0" y="0" width="200" height="60" fill="white" />
-                <circle cx="20.5" cy="34.5" r="2.8" fill="black" />
-              </mask>
-            </defs>
-            <circle cx="16" cy="30" r="10" fill="#ffffff" mask="url(#headerLogoMask)" />
-            <line x1="32" y1="42" x2="44" y2="18" stroke="#525252" strokeWidth="2" strokeLinecap="round" />
-            <text x="54" y="38" fontFamily="system-ui, sans-serif" fontSize="26" fontWeight="800" fill="#ffffff" letterSpacing="-1">dot</text>
-            <text x="95" y="38" fontFamily="system-ui, sans-serif" fontSize="26" fontWeight="300" fill="#737373" letterSpacing="-1">Market</text>
-          </svg>
+        <div
+          style={{
+            maxWidth: 1200,
+            margin: isDesktop ? '24px auto 0' : '12px 12px 0',
+            padding: isDesktop ? '10px 24px' : '8px 16px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            borderRadius: 'var(--radius-xl)',
+            background: 'rgba(4, 4, 4, 0.7)',
+            backdropFilter: 'blur(20px)',
+            WebkitBackdropFilter: 'blur(20px)',
+            border: '1px solid var(--border-2)',
+          }}
+        >
+          {/* Logo */}
+          <div style={{ display: 'flex', alignItems: 'center' }}>
+            <svg viewBox="0 0 200 60" width={isDesktop ? "148" : "124"} height={isDesktop ? "44" : "37"} xmlns="http://www.w3.org/2000/svg">
+              <defs>
+                <mask id="headerLogoMask">
+                  <rect x="0" y="0" width="200" height="60" fill="white" />
+                  <circle cx="20.5" cy="34.5" r="2.8" fill="black" />
+                </mask>
+              </defs>
+              <circle cx="16" cy="30" r="10" fill="#ffffff" mask="url(#headerLogoMask)" />
+              <line x1="32" y1="42" x2="44" y2="18" stroke="#525252" strokeWidth="2" strokeLinecap="round" />
+              <text x="54" y="38" fontFamily="system-ui, sans-serif" fontSize="26" fontWeight="800" fill="#ffffff" letterSpacing="-1">dot</text>
+              <text x="95" y="38" fontFamily="system-ui, sans-serif" fontSize="26" fontWeight="300" fill="#737373" letterSpacing="-1">Market</text>
+            </svg>
+          </div>
+
+          {/* Center Nav Link capsule */}
+          {isDesktop && (
+            <nav
+              style={{
+                display: 'flex',
+                gap: 24,
+                background: 'rgba(255, 255, 255, 0.02)',
+                border: '1px solid rgba(255, 255, 255, 0.05)',
+                borderRadius: 24,
+                padding: '6px 24px',
+                alignItems: 'center',
+              }}
+            >
+              {['Markets', 'How It Works', 'FAQ', 'Docs', 'Guardian'].map((tab) => (
+                <Link
+                  key={tab}
+                  href={
+                    tab === 'Docs'
+                      ? '/docs/user-guide/introduction'
+                      : tab === 'Guardian'
+                      ? '/guardian'
+                      : `#${tab.toLowerCase().replace(/\s+/g, '-')}`
+                  }
+                  className="premium-text-link"
+                >
+                  {tab}
+                </Link>
+              ))}
+            </nav>
+          )}
+
+          {/* Right Actions */}
+          {isDesktop ? (
+            <Link href="/trade" style={{ textDecoration: 'none' }}>
+              <Button variant="secondary" size="sm">
+                Start Trading
+              </Button>
+            </Link>
+          ) : (
+            <button
+              onClick={() => setMenuOpen(!menuOpen)}
+              style={{
+                background: 'transparent',
+                border: 'none',
+                cursor: 'pointer',
+                color: '#ffffff',
+                padding: 4,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}
+              aria-label="Toggle menu"
+            >
+              {menuOpen ? (
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <line x1="18" y1="6" x2="6" y2="18"></line>
+                  <line x1="6" y1="6" x2="18" y2="18"></line>
+                </svg>
+              ) : (
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <line x1="3" y1="12" x2="21" y2="12"></line>
+                  <line x1="3" y1="6" x2="21" y2="6"></line>
+                  <line x1="3" y1="18" x2="21" y2="18"></line>
+                </svg>
+              )}
+            </button>
+          )}
         </div>
-
-        {/* Center Nav Link capsule */}
-        {isDesktop && (
-          <nav
-            style={{
-              display: 'flex',
-              gap: 24,
-              background: 'rgba(255, 255, 255, 0.02)',
-              border: '1px solid rgba(255, 255, 255, 0.05)',
-              borderRadius: 24,
-              padding: '6px 24px',
-              alignItems: 'center',
-            }}
-          >
-            {['Markets', 'How It Works', 'FAQ', 'Docs'].map((tab) => (
-              <Link
-                key={tab}
-                href={tab === 'Docs' ? '/docs/user-guide/introduction' : `#${tab.toLowerCase().replace(/\s+/g, '-')}`}
-                className="premium-text-link"
-              >
-                {tab}
-              </Link>
-            ))}
-          </nav>
-        )}
-
-        {/* Right Actions */}
-        {isDesktop ? (
-          <Link href="/trade" style={{ textDecoration: 'none' }}>
-            <Button variant="secondary" size="sm">
-              Start Trading
-            </Button>
-          </Link>
-        ) : (
-          <button
-            onClick={() => setMenuOpen(!menuOpen)}
-            style={{
-              background: 'transparent',
-              border: 'none',
-              cursor: 'pointer',
-              color: '#ffffff',
-              padding: 4,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-            }}
-            aria-label="Toggle menu"
-          >
-            {menuOpen ? (
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <line x1="18" y1="6" x2="6" y2="18"></line>
-                <line x1="6" y1="6" x2="18" y2="18"></line>
-              </svg>
-            ) : (
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <line x1="3" y1="12" x2="21" y2="12"></line>
-                <line x1="3" y1="6" x2="21" y2="6"></line>
-                <line x1="3" y1="18" x2="21" y2="18"></line>
-              </svg>
-            )}
-          </button>
-        )}
 
         {/* Mobile Navigation Drawer */}
         {!isDesktop && menuOpen && (
@@ -497,10 +510,16 @@ export default function LandingPage() {
               boxShadow: '0 20px 40px rgba(0,0,0,0.8)',
             }}
           >
-            {['Markets', 'How It Works', 'FAQ', 'Docs'].map((tab) => (
+            {['Markets', 'How It Works', 'FAQ', 'Docs', 'Guardian'].map((tab) => (
               <Link
                 key={tab}
-                href={tab === 'Docs' ? '/docs/user-guide/introduction' : `#${tab.toLowerCase().replace(/\s+/g, '-')}`}
+                href={
+                  tab === 'Docs'
+                    ? '/docs/user-guide/introduction'
+                    : tab === 'Guardian'
+                    ? '/guardian'
+                    : `#${tab.toLowerCase().replace(/\s+/g, '-')}`
+                }
                 className="premium-text-link"
                 style={{ fontSize: 18, borderBottom: '1px solid rgba(255,255,255,0.05)', paddingBottom: 16 }}
                 onClick={() => setMenuOpen(false)}
@@ -549,6 +568,36 @@ export default function LandingPage() {
         >
           <motion.div variants={fadeIn}>
             <AnimatedLogo />
+          </motion.div>
+
+          {/* DotShield Active Status Indicator */}
+          <motion.div
+            variants={fadeIn}
+            style={{
+              marginTop: 24,
+              marginBottom: 12,
+              display: 'flex',
+              alignItems: 'center',
+              gap: 8,
+              fontSize: 10,
+              fontFamily: 'var(--font-mono)',
+              color: 'var(--text-secondary)',
+              border: '1px solid var(--border-2)',
+              borderRadius: 'var(--radius-full)',
+              padding: '4px 12px',
+              background: 'rgba(255,255,255,0.02)',
+              letterSpacing: '0.08em',
+              textTransform: 'uppercase',
+            }}
+          >
+            <span style={{
+              width: 6,
+              height: 6,
+              borderRadius: '50%',
+              background: '#ffffff',
+              boxShadow: 'var(--up-glow)',
+            }} className="animate-pulse-live" />
+            <span>DotShield AI Active</span>
           </motion.div>
 
           {/* Redesigned Serif Headline */}

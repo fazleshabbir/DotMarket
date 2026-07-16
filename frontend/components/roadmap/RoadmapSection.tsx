@@ -7,6 +7,8 @@ import { useMotionSystem } from '@/hooks/useMotionSystem';
 import { useMediaQuery } from '@/hooks/useMediaQuery';
 import { PageHeader } from '@/components/ui/PageHeader';
 
+import { Card } from '@/components/ui/Card';
+
 interface Milestone {
   phase: string;
   title: string;
@@ -124,24 +126,20 @@ function TiltCard({ children, isActive, shouldReduceMotion }: TiltCardProps) {
         height: '100%',
       }}
     >
-      <div
-        className="glass-card-container"
+      <Card
+        hoverEffect={false}
         style={{
           position: 'relative',
-          background: isActive ? 'rgba(255,255,255,0.04)' : 'rgba(255,255,255,0.02)',
-          border: '1px solid rgba(255,255,255,0.08)',
-          borderColor: isActive ? 'rgba(255,255,255,0.22)' : 'rgba(255,255,255,0.08)',
-          borderRadius: '20px',
-          backdropFilter: 'blur(8px)',
-          WebkitBackdropFilter: 'blur(8px)',
           padding: '40px 32px',
           height: '100%',
           display: 'flex',
           flexDirection: 'column',
           justifyContent: 'space-between',
+          background: isActive ? 'rgba(255,255,255,0.04)' : undefined,
+          borderColor: isActive ? 'rgba(255,255,255,0.22)' : undefined,
           boxShadow: isActive 
             ? '0 30px 60px -20px rgba(0,0,0,0.8), inset 0 1px 0 rgba(255,255,255,0.08)' 
-            : '0 15px 30px -15px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.03)',
+            : undefined,
           transition: 'border-color 250ms ease, background 250ms ease, box-shadow 250ms ease',
           overflow: 'hidden',
         }}
@@ -161,7 +159,7 @@ function TiltCard({ children, isActive, shouldReduceMotion }: TiltCardProps) {
         <div style={{ transform: 'translateZ(20px)', transformStyle: 'preserve-3d', height: '100%', display: 'flex', flexDirection: 'column' }}>
           {children}
         </div>
-      </div>
+      </Card>
     </motion.div>
   );
 }
