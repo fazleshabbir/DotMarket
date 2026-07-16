@@ -172,7 +172,7 @@ export function RoadmapSection() {
   const [activeIdx, setActiveIdx] = useState(2); // Default to current: Q3
   const [mounted, setMounted] = useState(false);
 
-  const isMobileQuery = useMediaQuery('(max-width: 768px)');
+  const isMobileQuery = useMediaQuery('(max-width: 1023px)');
   const isTabletQuery = useMediaQuery('(max-width: 1024px)');
 
   const isMobile = mounted ? isMobileQuery : false;
@@ -365,8 +365,52 @@ export function RoadmapSection() {
         subtitle="Building the future of high-frequency prediction markets."
       />
 
+      {/* ── Segmented Tabs Selector (Mobile Only) ── */}
+      {isMobile && (
+        <div style={{
+          display: 'flex',
+          gap: 6,
+          marginBottom: 32,
+          background: 'rgba(255, 255, 255, 0.015)',
+          border: '1px solid rgba(255, 255, 255, 0.05)',
+          borderRadius: '16px',
+          padding: '4px',
+          position: 'relative',
+          zIndex: 10,
+          maxWidth: '640px',
+          margin: '0 auto 40px auto',
+          width: '100%',
+          overflowX: 'auto',
+          scrollbarWidth: 'none',
+          msOverflowStyle: 'none',
+        }} className="roadmap-mobile-tabs">
+          {milestones.map((milestone, idx) => (
+            <button
+              key={milestone.phase}
+              onClick={() => setActiveIdx(idx)}
+              style={{
+                flex: '0 0 auto',
+                padding: '8px 12px',
+                borderRadius: '12px',
+                background: activeIdx === idx ? '#ffffff' : 'transparent',
+                border: 'none',
+                color: activeIdx === idx ? '#000000' : 'var(--text-secondary)',
+                fontSize: '10px',
+                fontFamily: 'var(--font-mono)',
+                fontWeight: 700,
+                cursor: 'pointer',
+                transition: 'all 250ms var(--ease-out)',
+                letterSpacing: '0.5px',
+              }}
+            >
+              {milestone.phase}
+            </button>
+          ))}
+        </div>
+      )}
+
       {/* ── INTERACTIVE TIMELINE HEADER NAVIGATION ── */}
-      {mounted && (
+      {mounted && !isMobile && (
         <div style={{ position: 'relative', zIndex: 10, maxWidth: 840, margin: '0 auto 64px auto', padding: '0 16px' }}>
           {/* Connector Line Base */}
           <div
@@ -443,61 +487,63 @@ export function RoadmapSection() {
       )}
 
       {/* ── NAVIGATION ARROWS ── */}
-      <div
-        style={{
-          display: 'flex',
-          justifyContent: 'flex-end',
-          gap: 12,
-          maxWidth: 840,
-          margin: '0 auto 24px auto',
-          padding: '0 16px',
-        }}
-      >
-        <button
-          onClick={scrollBackward}
-          disabled={activeIdx === 0}
+      {!isMobile && (
+        <div
           style={{
-            width: '36px',
-            height: '36px',
-            borderRadius: '50%',
-            background: 'rgba(255,255,255,0.02)',
-            border: '1px solid rgba(255,255,255,0.08)',
-            color: '#ffffff',
             display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            cursor: activeIdx === 0 ? 'not-allowed' : 'pointer',
-            opacity: activeIdx === 0 ? 0.3 : 1,
-            transition: 'all 200ms ease',
+            justifyContent: 'flex-end',
+            gap: 12,
+            maxWidth: 840,
+            margin: '0 auto 24px auto',
+            padding: '0 16px',
           }}
-          className="nav-arrow-btn"
-          aria-label="Previous milestone"
         >
-          <ArrowLeft size={15} />
-        </button>
-        <button
-          onClick={scrollForward}
-          disabled={activeIdx === milestones.length - 1}
-          style={{
-            width: '36px',
-            height: '36px',
-            borderRadius: '50%',
-            background: 'rgba(255,255,255,0.02)',
-            border: '1px solid rgba(255,255,255,0.08)',
-            color: '#ffffff',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            cursor: activeIdx === milestones.length - 1 ? 'not-allowed' : 'pointer',
-            opacity: activeIdx === milestones.length - 1 ? 0.3 : 1,
-            transition: 'all 200ms ease',
-          }}
-          className="nav-arrow-btn"
-          aria-label="Next milestone"
-        >
-          <ArrowRight size={15} />
-        </button>
-      </div>
+          <button
+            onClick={scrollBackward}
+            disabled={activeIdx === 0}
+            style={{
+              width: '36px',
+              height: '36px',
+              borderRadius: '50%',
+              background: 'rgba(255,255,255,0.02)',
+              border: '1px solid rgba(255,255,255,0.08)',
+              color: '#ffffff',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              cursor: activeIdx === 0 ? 'not-allowed' : 'pointer',
+              opacity: activeIdx === 0 ? 0.3 : 1,
+              transition: 'all 200ms ease',
+            }}
+            className="nav-arrow-btn"
+            aria-label="Previous milestone"
+          >
+            <ArrowLeft size={15} />
+          </button>
+          <button
+            onClick={scrollForward}
+            disabled={activeIdx === milestones.length - 1}
+            style={{
+              width: '36px',
+              height: '36px',
+              borderRadius: '50%',
+              background: 'rgba(255,255,255,0.02)',
+              border: '1px solid rgba(255,255,255,0.08)',
+              color: '#ffffff',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              cursor: activeIdx === milestones.length - 1 ? 'not-allowed' : 'pointer',
+              opacity: activeIdx === milestones.length - 1 ? 0.3 : 1,
+              transition: 'all 200ms ease',
+            }}
+            className="nav-arrow-btn"
+            aria-label="Next milestone"
+          >
+            <ArrowRight size={15} />
+          </button>
+        </div>
+      )}
 
       {/* ── TIMELINE CARDS TRACK CONTAINER ── */}
       <motion.div
@@ -511,27 +557,28 @@ export function RoadmapSection() {
           display: 'flex',
           flexDirection: 'row',
           gap: 24,
-          padding: isMobile ? '8px 16px' : '8px',
-          overflowX: 'auto',
-          scrollSnapType: 'x mandatory',
+          padding: isMobile ? '8px' : '8px',
+          overflowX: isMobile ? 'hidden' : 'auto',
+          scrollSnapType: isMobile ? 'none' : 'x mandatory',
           scrollbarWidth: 'none',
           msOverflowStyle: 'none',
           position: 'relative',
           zIndex: 3,
-          touchAction: 'pan-y',
-          WebkitOverflowScrolling: 'touch',
+          justifyContent: isMobile ? 'center' : 'flex-start',
         }}
       >
-        {milestones.map((m, idx) => {
-          const isActive = activeIdx === idx;
+        {(isMobile ? [milestones[activeIdx]] : milestones).map((m, idx) => {
+          const stepIdx = isMobile ? activeIdx : idx;
+          const isActive = isMobile ? true : (activeIdx === stepIdx);
           const MilestoneIcon = m.icon;
 
           return (
             <motion.div
-              key={idx}
+              key={m.phase}
               variants={revealCard}
               style={{
-                flex: isMobile ? '0 0 85vw' : isTablet ? '0 0 320px' : '0 0 350px',
+                flex: isMobile ? '1 1 100%' : isTablet ? '0 0 320px' : '0 0 350px',
+                maxWidth: isMobile ? '450px' : 'none',
                 scrollSnapAlign: 'center',
                 opacity: isActive ? 1 : 0.5,
                 transition: 'opacity 300ms ease',
@@ -712,26 +759,28 @@ export function RoadmapSection() {
       </motion.div>
 
       {/* Apple-Style Slide Indicator Dots Track */}
-      <div style={{ display: 'flex', justifyContent: 'center', gap: 8, marginTop: 32 }}>
-        {milestones.map((_, idx) => {
-          const isActive = activeIdx === idx;
-          return (
-            <div
-              key={idx}
-              onClick={() => scrollToMilestone(idx)}
-              style={{
-                width: isActive ? 24 : 6,
-                height: 6,
-                borderRadius: 3,
-                background: isActive ? '#ffffff' : 'rgba(255,255,255,0.1)',
-                cursor: 'pointer',
-                transition: 'all 350ms cubic-bezier(0.16, 1, 0.3, 1)',
-              }}
-              title={`Go to Phase ${idx + 1}`}
-            />
-          );
-        })}
-      </div>
+      {!isMobile && (
+        <div style={{ display: 'flex', justifyContent: 'center', gap: 8, marginTop: 32 }}>
+          {milestones.map((_, idx) => {
+            const isActive = activeIdx === idx;
+            return (
+              <div
+                key={idx}
+                onClick={() => scrollToMilestone(idx)}
+                style={{
+                  width: isActive ? 24 : 6,
+                  height: 6,
+                  borderRadius: 3,
+                  background: isActive ? '#ffffff' : 'rgba(255,255,255,0.1)',
+                  cursor: 'pointer',
+                  transition: 'all 350ms cubic-bezier(0.16, 1, 0.3, 1)',
+                }}
+                title={`Go to Phase ${idx + 1}`}
+              />
+            );
+          })}
+        </div>
+      )}
 
       {/* Hide scrollbars style */}
       <style jsx global>{`
