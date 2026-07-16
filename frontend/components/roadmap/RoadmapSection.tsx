@@ -151,31 +151,21 @@ function CardFeatures({ m, isCompleted, isInProgress }: {
 
 // ── DESKTOP: Scroll-driven progressive reveal ─────────────────────────────────
 function DesktopScrollReveal({ milestones }: { milestones: Milestone[] }) {
-  // Set of indices that have been revealed — only ever grows (never shrinks on scroll)
-  const [expandedSet, setExpandedSet] = useState<Set<number>>(new Set([0]));
+  // Only one card open at a time — scroll drives which one
+  const [activeIdx, setActiveIdx] = useState<number>(0);
   const cardRefs = useRef<(HTMLDivElement | null)[]>([]);
 
   useEffect(() => {
     const observers: IntersectionObserver[] = [];
 
     milestones.forEach((_, idx) => {
-      // Index 0 starts expanded, skip it
-      if (idx === 0) return;
-
       const el = cardRefs.current[idx];
       if (!el) return;
 
       const observer = new IntersectionObserver(
         ([entry]) => {
           if (entry.isIntersecting) {
-            setExpandedSet(prev => {
-              if (prev.has(idx)) return prev; // Already expanded, no rerender
-              const next = new Set(prev);
-              next.add(idx);
-              return next;
-            });
-            // Trigger once — disconnect after first fire
-            observer.disconnect();
+            setActiveIdx(idx);
           }
         },
         {
@@ -216,7 +206,7 @@ function DesktopScrollReveal({ milestones }: { milestones: Milestone[] }) {
           const Icon = m.icon;
           const isCompleted = m.status === 'Completed';
           const isInProgress = m.status === 'In Progress';
-          const isExpanded = expandedSet.has(idx);
+          const isExpanded = activeIdx === idx;
 
           return (
             <motion.div
