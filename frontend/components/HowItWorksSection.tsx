@@ -234,7 +234,7 @@ export function HowItWorksSection() {
               top: '40px',
               bottom: '40px',
               width: '2px',
-              background: 'linear-gradient(to bottom, rgba(255,255,255,0.02), rgba(255,255,255,0.1) 20%, rgba(0, 255, 136, 0.2) 80%, rgba(255,255,255,0.02))',
+              background: 'linear-gradient(to bottom, rgba(255,255,255,0.02), rgba(255,255,255,0.1) 20%, rgba(255, 255, 255, 0.12) 80%, rgba(255,255,255,0.02))',
               transform: 'translateX(-50%)',
               zIndex: 1,
             }}
