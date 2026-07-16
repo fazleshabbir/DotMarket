@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { motion, type Variants } from 'framer-motion';
 import { Wallet, CandlestickChart, Target, Trophy, Shield, Cpu, Activity, HardDrive } from 'lucide-react';
-import { useMotionSystem } from '@/hooks/useMotionSystem';
+import { useMotionSystem, VIEWPORT_SETTINGS } from '@/hooks/useMotionSystem';
 import { Card } from '@/components/ui/Card';
 import { Section } from '@/components/ui/Section';
 import { PageHeader } from '@/components/ui/PageHeader';
@@ -93,7 +93,7 @@ function MobileScrollReveal({ steps }: { steps: Step[] }) {
               key={idx}
               initial="hidden"
               whileInView="visible"
-              viewport={{ once: true, amount: 0.25 }}
+              viewport={VIEWPORT_SETTINGS}
               variants={cardVariants}
               style={{ display: 'flex', gap: 20, paddingBottom: idx < steps.length - 1 ? 28 : 0 }}
             >
@@ -230,7 +230,7 @@ function MobileScrollReveal({ steps }: { steps: Step[] }) {
 }
 
 // ── Desktop Dual-Column Layout ────────────────────────────────────────────────
-function DesktopDualLayout({ steps, shouldReduceMotion }: { steps: Step[]; shouldReduceMotion: boolean }) {
+function DesktopDualLayout({ steps, shouldReduceMotion, revealCardVariant }: { steps: Step[]; shouldReduceMotion: boolean; revealCardVariant: any }) {
   return (
     <div style={{ position: 'relative', display: 'flex', flexDirection: 'column', gap: 48 }}>
       {/* Centre line */}
@@ -245,13 +245,13 @@ function DesktopDualLayout({ steps, shouldReduceMotion }: { steps: Step[]; shoul
       }} />
 
       {steps.map((step, idx) => (
-        <DesktopStepRow key={step.num} step={step} idx={idx} />
+        <DesktopStepRow key={step.num} step={step} idx={idx} revealCardVariant={revealCardVariant} />
       ))}
     </div>
   );
 }
 
-function DesktopStepRow({ step, idx }: { step: Step; idx: number }) {
+function DesktopStepRow({ step, idx, revealCardVariant }: { step: Step; idx: number; revealCardVariant: any }) {
   const [isHovered, setIsHovered] = useState(false);
   const TraderIcon = step.traderIcon;
   const ShieldIcon = step.shieldIcon;
@@ -270,10 +270,10 @@ function DesktopStepRow({ step, idx }: { step: Step; idx: number }) {
     >
             {/* Left: Trader card */}
             <motion.div
-              initial={{ opacity: 0, x: -30 }}
-              whileInView={{ opacity: 1, x: 0 }}
-              viewport={{ once: true, amount: 0.3 }}
-              transition={{ duration: 0.4, ease: 'easeOut' }}
+              initial="hidden"
+              whileInView="visible"
+              viewport={VIEWPORT_SETTINGS}
+              variants={revealCardVariant}
               style={{ height: '100%' }}
             >
               <Card
@@ -328,10 +328,10 @@ function DesktopStepRow({ step, idx }: { step: Step; idx: number }) {
 
             {/* Right: DotShield card */}
             <motion.div
-              initial={{ opacity: 0, x: 30 }}
-              whileInView={{ opacity: 1, x: 0 }}
-              viewport={{ once: true, amount: 0.3 }}
-              transition={{ duration: 0.4, ease: 'easeOut' }}
+              initial="hidden"
+              whileInView="visible"
+              viewport={VIEWPORT_SETTINGS}
+              variants={revealCardVariant}
               style={{ height: '100%' }}
             >
               <Card
@@ -403,7 +403,7 @@ export function HowItWorksSection() {
   const isMobileQuery = useMediaQuery('(max-width: 1023px)');
   const isMobile = isMounted ? isMobileQuery : false;
 
-  const { shouldReduceMotion } = useMotionSystem();
+  const { shouldReduceMotion, revealCard } = useMotionSystem();
 
   useEffect(() => {
     setIsMounted(true);
@@ -418,9 +418,8 @@ export function HowItWorksSection() {
 
       {isMobile
         ? <MobileScrollReveal steps={steps} />
-        : <DesktopDualLayout steps={steps} shouldReduceMotion={shouldReduceMotion} />
+        : <DesktopDualLayout steps={steps} shouldReduceMotion={shouldReduceMotion} revealCardVariant={revealCard} />
       }
     </Section>
   );
 }
-

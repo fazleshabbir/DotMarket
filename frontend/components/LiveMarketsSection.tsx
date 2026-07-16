@@ -10,7 +10,7 @@ import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 import { Section } from '@/components/ui/Section';
 import { PageHeader } from '@/components/ui/PageHeader';
-import { useMotionSystem } from '@/hooks/useMotionSystem';
+import { useMotionSystem, VIEWPORT_SETTINGS } from '@/hooks/useMotionSystem';
 
 interface MarketCardProps {
   pair: string;
@@ -167,7 +167,7 @@ export function LiveMarketsSection() {
       <motion.div
         initial="hidden"
         whileInView="visible"
-        viewport={{ once: true, amount: 0.2 }}
+        viewport={VIEWPORT_SETTINGS}
         variants={staggerContainer(0.08)}
         style={{ 
           display: 'grid', 

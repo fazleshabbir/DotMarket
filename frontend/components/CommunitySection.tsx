@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { useMediaQuery } from '@/hooks/useMediaQuery';
-import { useMotionSystem } from '@/hooks/useMotionSystem';
+import { useMotionSystem, VIEWPORT_SETTINGS } from '@/hooks/useMotionSystem';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 import { Section } from '@/components/ui/Section';
@@ -90,7 +90,7 @@ export function CommunitySection() {
       <motion.div
         initial="hidden"
         whileInView="visible"
-        viewport={{ once: true, amount: 0.15 }}
+        viewport={VIEWPORT_SETTINGS}
         variants={staggerContainer(0.08)}
         style={{
           display: 'grid',

@@ -3,7 +3,7 @@
 import React, { useRef, useState, useEffect } from 'react';
 import { motion, AnimatePresence, type Variants } from 'framer-motion';
 import { Hammer, Rocket, CandlestickChart, Smartphone, PlusCircle, Users, Check } from 'lucide-react';
-import { useMotionSystem } from '@/hooks/useMotionSystem';
+import { useMotionSystem, VIEWPORT_SETTINGS } from '@/hooks/useMotionSystem';
 import { useMediaQuery } from '@/hooks/useMediaQuery';
 import { Section } from '@/components/ui/Section';
 import { PageHeader } from '@/components/ui/PageHeader';
@@ -198,7 +198,7 @@ function DesktopScrollReveal({ milestones }: { milestones: Milestone[] }) {
       <motion.div
         initial="hidden"
         whileInView="visible"
-        viewport={{ once: true, amount: 0.05 }}
+        viewport={VIEWPORT_SETTINGS}
         variants={{ visible: { transition: { staggerChildren: 0.08 } } }}
         style={{ display: 'flex', flexDirection: 'column', gap: 0 }}
       >
@@ -348,7 +348,7 @@ function MobileScrollReveal({ milestones }: { milestones: Milestone[] }) {
       <motion.div
         initial="hidden"
         whileInView="visible"
-        viewport={{ once: true, amount: 0.05 }}
+        viewport={VIEWPORT_SETTINGS}
         variants={{ visible: { transition: { staggerChildren: 0.08 } } }}
         style={{ display: 'flex', flexDirection: 'column', gap: 0 }}
       >

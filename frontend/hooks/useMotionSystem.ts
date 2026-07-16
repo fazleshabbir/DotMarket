@@ -1,5 +1,12 @@
 import { useReducedMotion, Variants } from 'framer-motion';
 
+// Premium Apple/Linear-style easing curve
+const CUBIC_BEZIER: [number, number, number, number] = [0.16, 1, 0.3, 1];
+const BASE_DURATION = 0.6;
+
+// Standardized viewport config to prevent scroll-jank and repeated calculations
+export const VIEWPORT_SETTINGS = { once: true, margin: '-10%' };
+
 export function useMotionSystem() {
   const shouldReduceMotion = !!useReducedMotion();
 
@@ -13,8 +20,8 @@ export function useMotionSystem() {
       opacity: 1,
       y: 0,
       transition: {
-        duration: 0.7,
-        ease: 'easeOut',
+        duration: BASE_DURATION,
+        ease: CUBIC_BEZIER,
       },
     },
   };
@@ -23,15 +30,15 @@ export function useMotionSystem() {
   const revealSubtitle: Variants = {
     hidden: {
       opacity: 0,
-      y: shouldReduceMotion ? 0 : 18,
+      y: shouldReduceMotion ? 0 : 16,
     },
     visible: {
       opacity: 1,
       y: 0,
       transition: {
-        duration: 0.5,
-        delay: 0.1,
-        ease: 'easeOut',
+        duration: BASE_DURATION,
+        delay: 0.05, // Snappier delay
+        ease: CUBIC_BEZIER,
       },
     },
   };
@@ -40,16 +47,16 @@ export function useMotionSystem() {
   const revealCard: Variants = {
     hidden: {
       opacity: 0,
-      y: shouldReduceMotion ? 0 : 40,
-      scale: shouldReduceMotion ? 1 : 0.96,
+      y: shouldReduceMotion ? 0 : 30,
+      scale: shouldReduceMotion ? 1 : 0.98,
     },
     visible: {
       opacity: 1,
       y: 0,
       scale: 1,
       transition: {
-        duration: 0.5,
-        ease: 'easeOut',
+        duration: BASE_DURATION,
+        ease: CUBIC_BEZIER,
       },
     },
   };
@@ -58,7 +65,7 @@ export function useMotionSystem() {
   const revealButton: Variants = {
     hidden: {
       opacity: 0,
-      y: shouldReduceMotion ? 0 : 20,
+      y: shouldReduceMotion ? 0 : 10,
       scale: shouldReduceMotion ? 1 : 0.98,
     },
     visible: {
@@ -66,8 +73,8 @@ export function useMotionSystem() {
       y: 0,
       scale: 1,
       transition: {
-        duration: 0.35,
-        ease: 'easeOut',
+        duration: 0.4,
+        ease: CUBIC_BEZIER,
       },
     },
   };
@@ -76,14 +83,14 @@ export function useMotionSystem() {
   const fadeUp: Variants = {
     hidden: {
       opacity: 0,
-      y: shouldReduceMotion ? 0 : 24,
+      y: shouldReduceMotion ? 0 : 20,
     },
     visible: {
       opacity: 1,
       y: 0,
       transition: {
-        duration: 0.5,
-        ease: 'easeOut',
+        duration: BASE_DURATION,
+        ease: CUBIC_BEZIER,
       },
     },
   };
@@ -94,13 +101,14 @@ export function useMotionSystem() {
     visible: {
       opacity: 1,
       transition: {
-        duration: 0.35,
+        duration: 0.4,
+        ease: 'linear', // Pure fades are best linear or easeOut
       },
     },
   };
 
-  // STAGGER CONTAINER
-  const staggerContainer = (staggerDelay = 0.08): Variants => ({
+  // STAGGER CONTAINER (Strict, unified stagger delays)
+  const staggerContainer = (staggerDelay = 0.06): Variants => ({
     hidden: {},
     visible: {
       transition: {
@@ -118,24 +126,10 @@ export function useMotionSystem() {
       opacity: 1,
       y: 0,
       transition: {
-        duration: 0.4,
-        ease: 'easeOut',
+        duration: BASE_DURATION,
+        ease: CUBIC_BEZIER,
       },
     },
-  };
-
-  // FLOATING ICON KEYFRAMES (returns animation object or static based on reduced motion)
-  const getFloatingAnimation = (baseDelay = 0): any => {
-    if (shouldReduceMotion) return {};
-    return {
-      y: [0, -4, 0],
-      transition: {
-        duration: 4 + Math.random() * 2, // 4-6s
-        repeat: Infinity,
-        ease: 'easeInOut' as const,
-        delay: baseDelay + Math.random() * 0.5,
-      },
-    };
   };
 
   return {
@@ -147,7 +141,6 @@ export function useMotionSystem() {
     fadeIn,
     staggerContainer,
     staggerItem,
-    getFloatingAnimation,
     shouldReduceMotion,
   };
 }
