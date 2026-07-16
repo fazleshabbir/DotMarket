@@ -2,40 +2,78 @@
 
 import React, { useRef, useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Wallet, CandlestickChart, Target, Trophy } from 'lucide-react';
+import { Wallet, CandlestickChart, Target, Trophy, Shield, Cpu, Activity, HardDrive } from 'lucide-react';
 import { useMotionSystem } from '@/hooks/useMotionSystem';
 
 interface Step {
   num: string;
-  title: string;
-  desc: string;
-  icon: React.ComponentType<{ size: number; className?: string }>;
+  // Trader action side
+  traderTitle: string;
+  traderDesc: string;
+  traderIcon: React.ComponentType<{ size: number; className?: string }>;
+  // DotShield AI side
+  shieldTitle: string;
+  shieldDesc: string;
+  shieldMetrics: string[];
+  shieldIcon: React.ComponentType<{ size: number; className?: string }>;
 }
 
 const steps: Step[] = [
   {
     num: '01',
-    title: 'Connect Wallet',
-    desc: 'Connect your Web3 wallet in seconds. Trade directly with USDC without sign-ups or KYC.',
-    icon: Wallet,
+    traderTitle: 'Connect Wallet',
+    traderDesc: 'Connect your Web3 wallet in seconds. Trade directly with USDC without sign-ups or KYC.',
+    traderIcon: Wallet,
+    shieldTitle: 'Tx Queue Sentinel',
+    shieldDesc: 'DotShield continuously monitors the RPC mempool, preventing transaction failures and cleaning pending queues.',
+    shieldMetrics: [
+      'STATUS: ACTIVE',
+      'LATENCY: OPTIMAL',
+      'FAILOVER: STANDBY',
+    ],
+    shieldIcon: Shield,
   },
   {
     num: '02',
-    title: 'Choose a Market',
-    desc: 'Select a live 1-minute or 5-minute crypto market (BTC, ETH, SOL) tracked by real-time oracle prices.',
-    icon: CandlestickChart,
+    traderTitle: 'Choose a Market',
+    traderDesc: 'Select a live 1-minute or 5-minute crypto market (BTC, ETH, SOL) tracked by real-time oracle prices.',
+    traderIcon: CandlestickChart,
+    shieldTitle: 'Oracle Freshness Guard',
+    shieldDesc: 'Audits Pyth prices every 3 seconds. Instantly hot-swaps to backup nodes if a price stream stalls.',
+    shieldMetrics: [
+      'STATUS: ACTIVE',
+      'DRIFT: <3s LIMIT',
+      'MONITORS: 3 PAIRS',
+    ],
+    shieldIcon: Cpu,
   },
   {
     num: '03',
-    title: 'Predict UP or DOWN',
-    desc: 'Choose where the price will settle before the round locks. Payout multipliers scale dynamically with pool volume.',
-    icon: Target,
+    traderTitle: 'Predict UP or DOWN',
+    traderDesc: 'Choose where the price will settle before the round locks. Payout multipliers scale dynamically with pool volume.',
+    traderIcon: Target,
+    shieldTitle: 'Time Synchronization Watchdog',
+    shieldDesc: 'Enforces sub-second round transitions and defends the lock-window, blocking front-running attempts.',
+    shieldMetrics: [
+      'STATUS: SYNCED',
+      'TOLERANCE: <500ms',
+      'MEMPOOL: SHIELDED',
+    ],
+    shieldIcon: Activity,
   },
   {
     num: '04',
-    title: 'Collect Instant Payouts',
-    desc: 'When the round ends, oracle prices settle the market automatically. Claim your winnings directly to your wallet.',
-    icon: Trophy,
+    traderTitle: 'Collect Instant Payouts',
+    traderDesc: 'When the round ends, oracle prices settle the market automatically. Claim your winnings directly to your wallet.',
+    traderIcon: Trophy,
+    shieldTitle: 'Self-Healing Keeper Failover',
+    shieldDesc: 'If the primary keeper bot drops offline, DotShield automatically resolves stuck rounds under 3 seconds.',
+    shieldMetrics: [
+      'STATUS: ONLINE',
+      'HEARTBEAT: <5s',
+      'AUTO-RESOLVE: STANDBY',
+    ],
+    shieldIcon: HardDrive,
   },
 ];
 
@@ -48,8 +86,6 @@ export function HowItWorksSection() {
   const {
     revealHeading,
     revealSubtitle,
-    revealCard,
-    getFloatingAnimation,
     shouldReduceMotion,
   } = useMotionSystem();
 
@@ -65,28 +101,6 @@ export function HowItWorksSection() {
     const y = e.clientY - rect.top;
     sectionRef.current.style.setProperty('--spotlight-x', `${x}px`);
     sectionRef.current.style.setProperty('--spotlight-y', `${y}px`);
-  };
-
-  // Timeline Connector Line Animation
-  const lineVariants = {
-    hidden: { scaleX: 0 },
-    visible: {
-      scaleX: 1,
-      transition: {
-        duration: 0.8,
-        ease: 'easeOut' as const,
-      },
-    },
-  };
-
-  // Timeline Container holding both connector line and nodes
-  const timelineContainerVariants = {
-    hidden: {},
-    visible: {
-      transition: {
-        staggerChildren: shouldReduceMotion ? 0 : 0.15,
-      },
-    },
   };
 
   return (
@@ -145,7 +159,6 @@ export function HowItWorksSection() {
                 background: 'rgba(255, 255, 255, 0.15)',
                 top: `${20 + i * 12}%`,
                 left: `${15 + i * 15}%`,
-                // Pass custom animation parameters via custom properties
                 animationDuration: `${6 + i * 2}s`,
                 animationDelay: `${i * -0.8}s`,
               }}
@@ -187,7 +200,7 @@ export function HowItWorksSection() {
             letterSpacing: '-0.5px',
           }}
         >
-          How DotMarket Works
+          AI-Secured Infrastructure
         </motion.h2>
         <motion.p
           initial="hidden"
@@ -197,233 +210,248 @@ export function HowItWorksSection() {
           style={{
             color: 'var(--text-secondary)',
             fontSize: '16px',
-            maxWidth: '480px',
+            maxWidth: '560px',
             margin: '0 auto',
             fontWeight: 400,
             lineHeight: 1.6,
           }}
         >
-          Trade crypto price movements in four simple, non-custodial steps.
+          The dual-core architecture driving execution and autonomous stability.
         </motion.p>
       </div>
 
-      {/* ── Timeline Section ── */}
-      <motion.div 
-        initial="hidden"
-        whileInView="visible"
-        viewport={{ once: true, amount: 0.2 }}
-        variants={timelineContainerVariants}
-        style={{ position: 'relative', zIndex: 3 }}
-      >
-        {/* Horizontal timeline connector line (desktop only) */}
+      {/* ── Dual-Grid Timeline Section ── */}
+      <div style={{ position: 'relative', zIndex: 3, display: 'flex', flexDirection: 'column', gap: '64px' }}>
+        
+        {/* Timeline connector line (desktop only) */}
         {isMounted && (
           <div
             className="hidden-mobile-tablet"
             style={{
               position: 'absolute',
-              top: '80px',
-              left: '12.5%',
-              right: '12.5%',
-              height: '2px',
-              background: 'rgba(255, 255, 255, 0.04)',
+              left: '50%',
+              top: '40px',
+              bottom: '40px',
+              width: '2px',
+              background: 'linear-gradient(to bottom, rgba(255,255,255,0.02), rgba(255,255,255,0.1) 20%, rgba(0, 255, 136, 0.2) 80%, rgba(255,255,255,0.02))',
+              transform: 'translateX(-50%)',
               zIndex: 1,
             }}
-          >
-            <motion.div
-              variants={lineVariants}
-              style={{
-                height: '100%',
-                background: 'linear-gradient(to right, rgba(255,255,255,0.05), rgba(255,255,255,0.3) 50%, rgba(255,255,255,0.05))',
-                transformOrigin: 'left',
-              }}
-            />
-
-          </div>
+          />
         )}
 
-        {/* Steps Cards Grid */}
-        <div
-          style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))',
-            gap: '32px',
-            position: 'relative',
-            zIndex: 2,
-          }}
-        >
-          {steps.map((step, idx) => {
-            const isHovered = hoveredCard === idx;
-            const StepIcon = step.icon;
+        {steps.map((step, idx) => {
+          const isHovered = hoveredCard === idx;
+          const TraderIcon = step.traderIcon;
+          const ShieldIcon = step.shieldIcon;
 
-            return (
-              <div
-                key={idx}
-                onMouseEnter={() => setHoveredCard(idx)}
-                onMouseLeave={() => setHoveredCard(null)}
-                style={{ position: 'relative', display: 'flex', flexDirection: 'column', height: '100%' }}
+          return (
+            <div
+              key={idx}
+              onMouseEnter={() => setHoveredCard(idx)}
+              onMouseLeave={() => setHoveredCard(null)}
+              className="dual-row-layout"
+              style={{
+                display: 'grid',
+                gridTemplateColumns: '1fr 80px 1fr',
+                alignItems: 'center',
+                position: 'relative',
+                zIndex: 2,
+              }}
+            >
+              {/* Left Column: Trader Action Card */}
+              <motion.div
+                initial={{ opacity: 0, x: -30 }}
+                whileInView={{ opacity: 1, x: 0 }}
+                viewport={{ once: true, amount: 0.3 }}
+                transition={{ duration: 0.5, ease: 'easeOut' }}
+                style={{
+                  background: isHovered ? 'rgba(255, 255, 255, 0.025)' : 'rgba(10, 10, 10, 0.3)',
+                  backdropFilter: 'blur(16px)',
+                  WebkitBackdropFilter: 'blur(16px)',
+                  border: '1px solid rgba(255, 255, 255, 0.06)',
+                  borderColor: isHovered ? 'rgba(255, 255, 255, 0.15)' : 'rgba(255, 255, 255, 0.06)',
+                  borderRadius: '16px',
+                  padding: '28px 24px',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '16px',
+                  boxShadow: isHovered ? '0 10px 30px rgba(0,0,0,0.5)' : 'none',
+                  transition: 'all 300ms ease',
+                }}
               >
-                {/* Mobile/Tablet vertical connector lines */}
-                {idx < 3 && (
-                  <div
-                    className="visible-mobile-tablet"
-                    style={{
-                      position: 'absolute',
-                      bottom: '-32px',
-                      left: '50%',
-                      transform: 'translateX(-50%)',
-                      width: '2px',
-                      height: '32px',
-                      background: 'linear-gradient(to bottom, rgba(255,255,255,0.1), rgba(255,255,255,0.02))',
-                      zIndex: 1,
-                    }}
-                  />
-                )}
-
-                <motion.div
-                  variants={revealCard}
-                  whileHover={shouldReduceMotion ? {} : { y: -6, scale: 1.02, rotateX: 2 }}
-                  transition={{ duration: 0.25, ease: 'easeOut' }}
-                  style={{
-                    background: isHovered ? 'rgba(255, 255, 255, 0.025)' : 'rgba(15, 15, 15, 0.4)',
-                    backdropFilter: 'blur(16px)',
-                    WebkitBackdropFilter: 'blur(16px)',
-                    border: '1px solid rgba(255, 255, 255, 0.08)',
-                    borderColor: isHovered ? 'rgba(255, 255, 255, 0.2)' : 'rgba(255, 255, 255, 0.08)',
-                    borderRadius: '20px',
-                    padding: '36px 28px',
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                  <div style={{
+                    width: '32px',
+                    height: '32px',
+                    borderRadius: '50%',
+                    background: 'rgba(255,255,255,0.03)',
+                    border: '1px solid rgba(255,255,255,0.08)',
                     display: 'flex',
-                    flexDirection: 'column',
                     alignItems: 'center',
-                    textAlign: 'center',
-                    cursor: 'pointer',
-                    transformStyle: 'preserve-3d',
-                    perspective: 1000,
-                    boxShadow: isHovered
-                      ? '0 20px 40px -15px rgba(0,0,0,0.7), inset 0 1px 0 rgba(255,255,255,0.1)'
-                      : '0 10px 30px -20px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.03)',
-                    transition: 'border-color 250ms ease, background 250ms ease, box-shadow 250ms ease',
-                    height: '100%',
-                    flex: 1,
-                  }}
-                >
-                  {/* Circular Icon Container */}
-                  <div
-                    style={{
-                      width: '80px',
-                      height: '80px',
-                      borderRadius: '50%',
-                      background: 'rgba(255, 255, 255, 0.02)',
-                      border: '1px solid rgba(255, 255, 255, 0.06)',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      marginBottom: '24px',
-                      position: 'relative',
-                      boxShadow: 'inset 0 1px 0 rgba(255, 255, 255, 0.05)',
-                      transition: 'border-color 250ms ease',
-                      borderColor: isHovered ? 'rgba(255, 255, 255, 0.15)' : 'rgba(255, 255, 255, 0.06)',
-                    }}
-                  >
-                    {/* Slow floating motion for icon */}
-                    <div
-                      className={shouldReduceMotion ? "" : "floating-icon-css"}
-                      style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        color: '#ffffff',
-                        transition: 'transform 250ms ease',
-                        transform: isHovered ? 'scale(1.1)' : 'scale(1)',
-                        animationDelay: `${idx * 0.4}s`,
-                      }}
-                    >
-                      <StepIcon size={30} />
-                    </div>
-                  </div>
-
-                  {/* Circular Step Badge */}
-                  <div
-                    className={`pulse-badge-css-${idx}`}
-                    style={{
-                      width: '32px',
-                      height: '32px',
-                      borderRadius: '50%',
-                      background: 'linear-gradient(135deg, rgba(82, 82, 82, 0.1) 0%, rgba(20, 20, 20, 0.3) 100%)',
-                      border: '1px solid rgba(255, 255, 255, 0.05)',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      fontSize: '11px',
-                      fontFamily: 'var(--font-mono)',
-                      fontWeight: 600,
-                      marginBottom: '16px',
-                      boxShadow: isHovered && !shouldReduceMotion
-                        ? '0 0 12px rgba(255, 255, 255, 0.2), inset 0 1px 0 rgba(255,255,255,0.1)'
-                        : undefined,
-                      borderColor: isHovered ? 'rgba(255,255,255,0.2)' : undefined,
-                      color: isHovered ? '#ffffff' : undefined,
-                      transition: 'all 250ms ease',
-                    }}
-                  >
+                    justifyContent: 'center',
+                    fontFamily: 'var(--font-mono)',
+                    fontSize: '11px',
+                    fontWeight: 600,
+                    color: isHovered ? '#ffffff' : 'var(--text-secondary)',
+                  }}>
                     {step.num}
                   </div>
-
-                  <h3
-                    style={{
-                      fontSize: '16px',
-                      fontWeight: 700,
-                      color: '#ffffff',
-                      marginBottom: '10px',
-                      letterSpacing: '-0.2px',
-                    }}
-                  >
-                    {step.title}
+                  <span style={{ color: '#ffffff', opacity: isHovered ? 1 : 0.7, display: 'flex', alignItems: 'center' }}>
+                    <TraderIcon size={18} />
+                  </span>
+                  <h3 style={{
+                    fontSize: '15px',
+                    fontWeight: 700,
+                    color: '#ffffff',
+                    letterSpacing: '-0.3px',
+                    margin: 0,
+                  }}>
+                    {step.traderTitle}
                   </h3>
-                  <p
-                    style={{
-                      fontSize: '13px',
-                      color: 'var(--text-secondary)',
-                      lineHeight: 1.6,
-                      maxWidth: '260px',
-                      margin: '0 auto',
-                    }}
-                  >
-                    {step.desc}
-                  </p>
-                </motion.div>
+                </div>
+                <p style={{
+                  fontSize: '13px',
+                  color: 'var(--text-secondary)',
+                  lineHeight: 1.6,
+                  margin: 0,
+                }}>
+                  {step.traderDesc}
+                </p>
+              </motion.div>
+
+              {/* Middle Timeline Node */}
+              <div style={{
+                display: 'flex',
+                justifyContent: 'center',
+                alignItems: 'center',
+                height: '100%',
+                position: 'relative',
+              }}>
+                <div
+                  className={isHovered ? "radar-pulse-active" : ""}
+                  style={{
+                    width: '12px',
+                    height: '12px',
+                    borderRadius: '50%',
+                    background: isHovered ? '#00ff88' : 'rgba(255, 255, 255, 0.2)',
+                    border: isHovered ? '2px solid #ffffff' : '2px solid transparent',
+                    boxShadow: isHovered ? '0 0 15px #00ff88' : 'none',
+                    zIndex: 2,
+                    transition: 'all 300ms ease',
+                    position: 'relative',
+                  }}
+                />
               </div>
-            );
-          })}
-        </div>
-      </motion.div>
+
+              {/* Right Column: DotShield AI Status Card */}
+              <motion.div
+                initial={{ opacity: 0, x: 30 }}
+                whileInView={{ opacity: 1, x: 0 }}
+                viewport={{ once: true, amount: 0.3 }}
+                transition={{ duration: 0.5, ease: 'easeOut' }}
+                style={{
+                  background: isHovered ? 'rgba(0, 255, 136, 0.04)' : 'rgba(10, 10, 10, 0.3)',
+                  backdropFilter: 'blur(16px)',
+                  WebkitBackdropFilter: 'blur(16px)',
+                  border: '1px solid rgba(255, 255, 255, 0.04)',
+                  borderColor: isHovered ? 'rgba(0, 255, 136, 0.3)' : 'rgba(255, 255, 255, 0.04)',
+                  borderRadius: '16px',
+                  padding: '24px',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '16px',
+                  boxShadow: isHovered ? '0 10px 30px rgba(0,255,136,0.06)' : 'none',
+                  transition: 'all 300ms ease',
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                  <div style={{
+                    width: '32px',
+                    height: '32px',
+                    borderRadius: '8px',
+                    background: isHovered ? 'rgba(0, 255, 136, 0.1)' : 'rgba(255,255,255,0.02)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    border: isHovered ? '1px solid rgba(0, 255, 136, 0.2)' : '1px solid rgba(255,255,255,0.05)',
+                    transition: 'all 300ms ease',
+                  }}>
+                     <span style={{ color: isHovered ? '#00ff88' : '#ffffff', opacity: 0.8, display: 'flex', alignItems: 'center' }}>
+                       <ShieldIcon size={16} />
+                     </span>
+                  </div>
+                  <div>
+                    <h4 style={{
+                      fontSize: '14px',
+                      fontWeight: 700,
+                      color: isHovered ? '#00ff88' : '#ffffff',
+                      margin: 0,
+                    }}>
+                      {step.shieldTitle}
+                    </h4>
+                    <span style={{
+                      fontSize: '9px',
+                      fontFamily: 'var(--font-mono)',
+                      color: 'rgba(255,255,255,0.3)',
+                      textTransform: 'uppercase',
+                      letterSpacing: '1px',
+                    }}>
+                      DotShield AI Agent
+                    </span>
+                  </div>
+                </div>
+
+                <p style={{
+                  fontSize: '12.5px',
+                  color: 'rgba(255,255,255,0.6)',
+                  lineHeight: 1.55,
+                  margin: 0,
+                }}>
+                  {step.shieldDesc}
+                </p>
+
+                {/* Micro-Terminal Metrics Panel */}
+                <div style={{
+                  background: 'rgba(0,0,0,0.4)',
+                  borderRadius: '8px',
+                  padding: '10px 14px',
+                  fontFamily: 'var(--font-mono)',
+                  fontSize: '10.5px',
+                  border: '1px solid rgba(255, 255, 255, 0.03)',
+                  borderColor: isHovered ? 'rgba(0, 255, 136, 0.1)' : 'rgba(255, 255, 255, 0.03)',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '4px',
+                  transition: 'all 300ms ease',
+                }}>
+                  {step.shieldMetrics.map((metric, mIdx) => (
+                    <div key={mIdx} style={{ display: 'flex', justifyContent: 'space-between', color: isHovered ? '#00ff88' : 'rgba(255,255,255,0.4)' }}>
+                      <span>{metric.split(': ')[0]}</span>
+                      <span style={{ fontWeight: 600, color: isHovered ? '#ffffff' : 'rgba(255,255,255,0.6)' }}>
+                        {metric.split(': ')[1]}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </motion.div>
+            </div>
+          );
+        })}
+      </div>
 
       <style jsx global>{`
         @media (max-width: 1023px) {
+          .dual-row-layout {
+            grid-template-columns: 1fr !important;
+            gap: 20px !important;
+          }
           .hidden-mobile-tablet {
             display: none !important;
           }
-          .visible-mobile-tablet {
-            display: block !important;
-          }
-        }
-        @media (min-width: 1024px) {
-          .hidden-mobile-tablet {
-            display: block !important;
-          }
-          .visible-mobile-tablet {
+          .radar-pulse-active {
             display: none !important;
           }
-        }
-        @keyframes floatIcon {
-          0%, 100% {
-            transform: translateY(0);
-          }
-          50% {
-            transform: translateY(-4px);
-          }
-        }
-        .floating-icon-css {
-          animation: floatIcon 5s ease-in-out infinite;
         }
         @keyframes floatParticle {
           0%, 100% {
@@ -440,22 +468,24 @@ export function HowItWorksSection() {
           animation-duration: inherit;
           animation-delay: inherit;
         }
-        @keyframes badgePulse {
-          0%, 100% {
-            box-shadow: none;
-            border-color: rgba(255,255,255,0.05);
-            color: var(--text-secondary);
+        @keyframes radarRipple {
+          0% {
+            transform: scale(1);
+            opacity: 0.8;
           }
-          30%, 70% {
-            box-shadow: 0 0 12px rgba(255, 255, 255, 0.2), inset 0 1px 0 rgba(255,255,255,0.1);
-            border-color: rgba(255,255,255,0.2);
-            color: #ffffff;
+          100% {
+            transform: scale(2.5);
+            opacity: 0;
           }
         }
-        .pulse-badge-css-0 { animation: badgePulse 10s ease-in-out infinite; }
-        .pulse-badge-css-1 { animation: badgePulse 10s ease-in-out infinite 2.5s; }
-        .pulse-badge-css-2 { animation: badgePulse 10s ease-in-out infinite 5s; }
-        .pulse-badge-css-3 { animation: badgePulse 10s ease-in-out infinite 7.5s; }
+        .radar-pulse-active::after {
+          content: '';
+          position: absolute;
+          inset: -6px;
+          border-radius: 50%;
+          border: 1px solid #00ff88;
+          animation: radarRipple 1.2s cubic-bezier(0.16, 1, 0.3, 1) infinite;
+        }
       `}</style>
     </section>
   );
