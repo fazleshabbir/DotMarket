@@ -179,8 +179,8 @@ function DesktopScrollReveal({ milestones }: { milestones: Milestone[] }) {
           }
         },
         {
-          threshold: 0.35,
-          rootMargin: '0px 0px -20% 0px',
+          threshold: 0.55,
+          rootMargin: '0px 0px -30% 0px',
         }
       );
 
