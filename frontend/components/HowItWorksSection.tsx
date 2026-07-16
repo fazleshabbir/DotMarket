@@ -4,6 +4,7 @@ import React, { useRef, useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Wallet, CandlestickChart, Target, Trophy, Shield, Cpu, Activity, HardDrive } from 'lucide-react';
 import { useMotionSystem } from '@/hooks/useMotionSystem';
+import { Card } from '@/components/ui/Card';
 
 interface Step {
   num: string;
@@ -265,59 +266,60 @@ export function HowItWorksSection() {
                 whileInView={{ opacity: 1, x: 0 }}
                 viewport={{ once: true, amount: 0.3 }}
                 transition={{ duration: 0.5, ease: 'easeOut' }}
-                style={{
-                  background: isHovered ? 'rgba(255, 255, 255, 0.025)' : 'rgba(10, 10, 10, 0.3)',
-                  backdropFilter: 'blur(16px)',
-                  WebkitBackdropFilter: 'blur(16px)',
-                  border: '1px solid rgba(255, 255, 255, 0.06)',
-                  borderColor: isHovered ? 'rgba(255, 255, 255, 0.15)' : 'rgba(255, 255, 255, 0.06)',
-                  borderRadius: '16px',
-                  padding: '28px 24px',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  gap: '16px',
-                  boxShadow: isHovered ? '0 10px 30px rgba(0,0,0,0.5)' : 'none',
-                  transition: 'all 300ms ease',
-                }}
+                style={{ height: '100%' }}
               >
-                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                  <div style={{
-                    width: '32px',
-                    height: '32px',
-                    borderRadius: '50%',
-                    background: 'rgba(255,255,255,0.03)',
-                    border: '1px solid rgba(255,255,255,0.08)',
+                <Card
+                  hoverEffect={true}
+                  style={{
+                    height: '100%',
+                    padding: '28px 24px',
                     display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    fontFamily: 'var(--font-mono)',
-                    fontSize: '11px',
-                    fontWeight: 600,
-                    color: isHovered ? '#ffffff' : 'var(--text-secondary)',
-                  }}>
-                    {step.num}
+                    flexDirection: 'column',
+                    gap: '16px',
+                    background: isHovered ? 'rgba(255, 255, 255, 0.025)' : undefined,
+                    borderColor: isHovered ? 'rgba(255, 255, 255, 0.15)' : undefined,
+                    transition: 'all 300ms ease',
+                  }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                    <div style={{
+                      width: '32px',
+                      height: '32px',
+                      borderRadius: '50%',
+                      background: 'rgba(255,255,255,0.03)',
+                      border: '1px solid rgba(255,255,255,0.08)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      fontFamily: 'var(--font-mono)',
+                      fontSize: '11px',
+                      fontWeight: 600,
+                      color: isHovered ? '#ffffff' : 'var(--text-secondary)',
+                    }}>
+                      {step.num}
+                    </div>
+                    <span style={{ color: '#ffffff', opacity: isHovered ? 1 : 0.7, display: 'flex', alignItems: 'center' }}>
+                      <TraderIcon size={18} />
+                    </span>
+                    <h3 style={{
+                      fontSize: '15px',
+                      fontWeight: 700,
+                      color: '#ffffff',
+                      letterSpacing: '-0.3px',
+                      margin: 0,
+                    }}>
+                      {step.traderTitle}
+                    </h3>
                   </div>
-                  <span style={{ color: '#ffffff', opacity: isHovered ? 1 : 0.7, display: 'flex', alignItems: 'center' }}>
-                    <TraderIcon size={18} />
-                  </span>
-                  <h3 style={{
-                    fontSize: '15px',
-                    fontWeight: 700,
-                    color: '#ffffff',
-                    letterSpacing: '-0.3px',
+                  <p style={{
+                    fontSize: '13px',
+                    color: 'var(--text-secondary)',
+                    lineHeight: 1.6,
                     margin: 0,
                   }}>
-                    {step.traderTitle}
-                  </h3>
-                </div>
-                <p style={{
-                  fontSize: '13px',
-                  color: 'var(--text-secondary)',
-                  lineHeight: 1.6,
-                  margin: 0,
-                }}>
-                  {step.traderDesc}
-                </p>
+                    {step.traderDesc}
+                  </p>
+                </Card>
               </motion.div>
 
               {/* Middle Timeline Node */}
@@ -350,90 +352,91 @@ export function HowItWorksSection() {
                 whileInView={{ opacity: 1, x: 0 }}
                 viewport={{ once: true, amount: 0.3 }}
                 transition={{ duration: 0.5, ease: 'easeOut' }}
-                style={{
-                  background: isHovered ? 'rgba(0, 255, 136, 0.04)' : 'rgba(10, 10, 10, 0.3)',
-                  backdropFilter: 'blur(16px)',
-                  WebkitBackdropFilter: 'blur(16px)',
-                  border: '1px solid rgba(255, 255, 255, 0.04)',
-                  borderColor: isHovered ? 'rgba(0, 255, 136, 0.3)' : 'rgba(255, 255, 255, 0.04)',
-                  borderRadius: '16px',
-                  padding: '24px',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  gap: '16px',
-                  boxShadow: isHovered ? '0 10px 30px rgba(0,255,136,0.06)' : 'none',
-                  transition: 'all 300ms ease',
-                }}
+                style={{ height: '100%' }}
               >
-                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                  <div style={{
-                    width: '32px',
-                    height: '32px',
-                    borderRadius: '8px',
-                    background: isHovered ? 'rgba(0, 255, 136, 0.1)' : 'rgba(255,255,255,0.02)',
+                <Card
+                  hoverEffect={true}
+                  style={{
+                    height: '100%',
+                    padding: '24px',
                     display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    border: isHovered ? '1px solid rgba(0, 255, 136, 0.2)' : '1px solid rgba(255,255,255,0.05)',
+                    flexDirection: 'column',
+                    gap: '16px',
+                    background: isHovered ? 'rgba(0, 255, 136, 0.04)' : undefined,
+                    borderColor: isHovered ? 'rgba(0, 255, 136, 0.3)' : undefined,
                     transition: 'all 300ms ease',
-                  }}>
-                     <span style={{ color: isHovered ? '#00ff88' : '#ffffff', opacity: 0.8, display: 'flex', alignItems: 'center' }}>
-                       <ShieldIcon size={16} />
-                     </span>
-                  </div>
-                  <div>
-                    <h4 style={{
-                      fontSize: '14px',
-                      fontWeight: 700,
-                      color: isHovered ? '#00ff88' : '#ffffff',
-                      margin: 0,
+                  }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                    <div style={{
+                      width: '32px',
+                      height: '32px',
+                      borderRadius: '8px',
+                      background: isHovered ? 'rgba(0, 255, 136, 0.1)' : 'rgba(255,255,255,0.02)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      border: isHovered ? '1px solid rgba(0, 255, 136, 0.2)' : '1px solid rgba(255,255,255,0.05)',
+                      transition: 'all 300ms ease',
                     }}>
-                      {step.shieldTitle}
-                    </h4>
-                    <span style={{
-                      fontSize: '9px',
-                      fontFamily: 'var(--font-mono)',
-                      color: 'rgba(255,255,255,0.3)',
-                      textTransform: 'uppercase',
-                      letterSpacing: '1px',
-                    }}>
-                      DotShield AI Agent
-                    </span>
-                  </div>
-                </div>
-
-                <p style={{
-                  fontSize: '12.5px',
-                  color: 'rgba(255,255,255,0.6)',
-                  lineHeight: 1.55,
-                  margin: 0,
-                }}>
-                  {step.shieldDesc}
-                </p>
-
-                {/* Micro-Terminal Metrics Panel */}
-                <div style={{
-                  background: 'rgba(0,0,0,0.4)',
-                  borderRadius: '8px',
-                  padding: '10px 14px',
-                  fontFamily: 'var(--font-mono)',
-                  fontSize: '10.5px',
-                  border: '1px solid rgba(255, 255, 255, 0.03)',
-                  borderColor: isHovered ? 'rgba(0, 255, 136, 0.1)' : 'rgba(255, 255, 255, 0.03)',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  gap: '4px',
-                  transition: 'all 300ms ease',
-                }}>
-                  {step.shieldMetrics.map((metric, mIdx) => (
-                    <div key={mIdx} style={{ display: 'flex', justifyContent: 'space-between', color: isHovered ? '#00ff88' : 'rgba(255,255,255,0.4)' }}>
-                      <span>{metric.split(': ')[0]}</span>
-                      <span style={{ fontWeight: 600, color: isHovered ? '#ffffff' : 'rgba(255,255,255,0.6)' }}>
-                        {metric.split(': ')[1]}
+                      <span style={{ color: isHovered ? '#00ff88' : '#ffffff', opacity: 0.8, display: 'flex', alignItems: 'center' }}>
+                        <ShieldIcon size={16} />
                       </span>
                     </div>
-                  ))}
-                </div>
+                    <div>
+                      <h4 style={{
+                        fontSize: '14px',
+                        fontWeight: 700,
+                        color: isHovered ? '#00ff88' : '#ffffff',
+                        margin: 0,
+                      }}>
+                        {step.shieldTitle}
+                      </h4>
+                      <span style={{
+                        fontSize: '9px',
+                        fontFamily: 'var(--font-mono)',
+                        color: 'rgba(255,255,255,0.3)',
+                        textTransform: 'uppercase',
+                        letterSpacing: '1px',
+                      }}>
+                        DotShield AI Agent
+                      </span>
+                    </div>
+                  </div>
+
+                  <p style={{
+                    fontSize: '12.5px',
+                    color: 'rgba(255,255,255,0.6)',
+                    lineHeight: 1.55,
+                    margin: 0,
+                  }}>
+                    {step.shieldDesc}
+                  </p>
+
+                  {/* Micro-Terminal Metrics Panel */}
+                  <div style={{
+                    background: 'rgba(0,0,0,0.4)',
+                    borderRadius: '8px',
+                    padding: '10px 14px',
+                    fontFamily: 'var(--font-mono)',
+                    fontSize: '10.5px',
+                    border: '1px solid rgba(255, 255, 255, 0.03)',
+                    borderColor: isHovered ? 'rgba(0, 255, 136, 0.1)' : 'rgba(255, 255, 255, 0.03)',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '4px',
+                    transition: 'all 300ms ease',
+                  }}>
+                    {step.shieldMetrics.map((metric, mIdx) => (
+                      <div key={mIdx} style={{ display: 'flex', justifyContent: 'space-between', color: isHovered ? '#00ff88' : 'rgba(255,255,255,0.4)' }}>
+                        <span>{metric.split(': ')[0]}</span>
+                        <span style={{ fontWeight: 600, color: isHovered ? '#ffffff' : 'rgba(255,255,255,0.6)' }}>
+                          {metric.split(': ')[1]}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </Card>
               </motion.div>
             </div>
           );
