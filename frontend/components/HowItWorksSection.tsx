@@ -5,6 +5,7 @@ import { motion } from 'framer-motion';
 import { Wallet, CandlestickChart, Target, Trophy, Shield, Cpu, Activity, HardDrive } from 'lucide-react';
 import { useMotionSystem } from '@/hooks/useMotionSystem';
 import { Card } from '@/components/ui/Card';
+import { useMediaQuery } from '@/hooks/useMediaQuery';
 
 interface Step {
   num: string;
@@ -81,8 +82,12 @@ const steps: Step[] = [
 export function HowItWorksSection() {
   const sectionRef = useRef<HTMLDivElement>(null);
   const [hoveredCard, setHoveredCard] = useState<number | null>(null);
+  const [selectedMobileStep, setSelectedMobileStep] = useState(0);
   const [isMounted, setIsMounted] = useState(false);
   const [hasHover, setHasHover] = useState(false);
+
+  const isMobileQuery = useMediaQuery('(max-width: 1023px)');
+  const isMobile = isMounted ? isMobileQuery : false;
 
   const {
     revealHeading,
@@ -221,11 +226,53 @@ export function HowItWorksSection() {
         </motion.p>
       </div>
 
+      {/* ── Segmented Tabs Selector (Mobile Only) ── */}
+      {isMobile && (
+        <div style={{
+          display: 'flex',
+          justifyContent: 'center',
+          gap: 8,
+          marginBottom: 32,
+          background: 'rgba(255, 255, 255, 0.015)',
+          border: '1px solid rgba(255, 255, 255, 0.05)',
+          borderRadius: '24px',
+          padding: '6px',
+          position: 'relative',
+          zIndex: 10,
+          maxWidth: '560px',
+          margin: '0 auto 40px auto',
+          width: '100%',
+        }}>
+          {steps.map((step, idx) => (
+            <button
+              key={step.num}
+              onClick={() => setSelectedMobileStep(idx)}
+              style={{
+                flex: 1,
+                padding: '10px 12px',
+                borderRadius: '18px',
+                background: selectedMobileStep === idx ? '#ffffff' : 'transparent',
+                border: 'none',
+                color: selectedMobileStep === idx ? '#000000' : 'var(--text-secondary)',
+                fontSize: '11px',
+                fontFamily: 'var(--font-mono)',
+                fontWeight: 700,
+                cursor: 'pointer',
+                transition: 'all 250ms var(--ease-out)',
+                letterSpacing: '0.5px',
+              }}
+            >
+              STEP {step.num}
+            </button>
+          ))}
+        </div>
+      )}
+
       {/* ── Dual-Grid Timeline Section ── */}
-      <div style={{ position: 'relative', zIndex: 3, display: 'flex', flexDirection: 'column', gap: '64px' }}>
+      <div style={{ position: 'relative', zIndex: 3, display: 'flex', flexDirection: 'column', gap: isMobile ? '24px' : '64px' }}>
         
         {/* Timeline connector line (desktop only) */}
-        {isMounted && (
+        {isMounted && !isMobile && (
           <div
             className="hidden-mobile-tablet"
             style={{
@@ -241,37 +288,36 @@ export function HowItWorksSection() {
           />
         )}
 
-        {steps.map((step, idx) => {
-          const isHovered = hoveredCard === idx;
+        {(isMobile ? [steps[selectedMobileStep]] : steps).map((step, idx) => {
+          const stepIdx = isMobile ? selectedMobileStep : idx;
+          const isHovered = isMobile ? true : (hoveredCard === stepIdx);
           const TraderIcon = step.traderIcon;
           const ShieldIcon = step.shieldIcon;
 
           return (
             <div
-              key={idx}
-              onMouseEnter={() => setHoveredCard(idx)}
-              onMouseLeave={() => setHoveredCard(null)}
-              onClick={() => setHoveredCard(hoveredCard === idx ? null : idx)}
+              key={step.num}
+              onMouseEnter={() => !isMobile && setHoveredCard(stepIdx)}
+              onMouseLeave={() => !isMobile && setHoveredCard(null)}
               className="dual-row-layout"
               style={{
                 display: 'grid',
-                gridTemplateColumns: '1fr 80px 1fr',
-                alignItems: 'center',
+                gridTemplateColumns: isMobile ? '1fr' : '1fr 80px 1fr',
+                alignItems: 'stretch',
                 position: 'relative',
                 zIndex: 2,
-                cursor: 'pointer',
+                gap: isMobile ? '16px' : '0px',
               }}
             >
               {/* Left Column: Trader Action Card */}
               <motion.div
-                initial={{ opacity: 0, x: -30 }}
-                whileInView={{ opacity: 1, x: 0 }}
-                viewport={{ once: true, amount: 0.3 }}
-                transition={{ duration: 0.5, ease: 'easeOut' }}
+                initial={isMobile ? { opacity: 0, y: 15 } : { opacity: 0, x: -30 }}
+                animate={{ opacity: 1, x: 0, y: 0 }}
+                transition={{ duration: 0.4, ease: 'easeOut' }}
                 style={{ height: '100%' }}
               >
                 <Card
-                  hoverEffect={true}
+                  hoverEffect={!isMobile}
                   style={{
                     height: '100%',
                     padding: '28px 24px',
@@ -350,14 +396,13 @@ export function HowItWorksSection() {
 
               {/* Right Column: DotShield AI Status Card */}
               <motion.div
-                initial={{ opacity: 0, x: 30 }}
-                whileInView={{ opacity: 1, x: 0 }}
-                viewport={{ once: true, amount: 0.3 }}
-                transition={{ duration: 0.5, ease: 'easeOut' }}
+                initial={isMobile ? { opacity: 0, y: 15 } : { opacity: 0, x: 30 }}
+                animate={{ opacity: 1, x: 0, y: 0 }}
+                transition={{ duration: 0.4, ease: 'easeOut', delay: isMobile ? 0.1 : 0 }}
                 style={{ height: '100%' }}
               >
                 <Card
-                  hoverEffect={true}
+                  hoverEffect={!isMobile}
                   style={{
                     height: '100%',
                     padding: '24px',
