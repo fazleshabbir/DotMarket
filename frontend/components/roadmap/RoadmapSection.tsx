@@ -76,6 +76,69 @@ const milestones: Milestone[] = [
   },
 ];
 
+// ── MOCK DOTSHIELD SIMULATOR TERMINAL ──
+function TerminalSimulator() {
+  const [logs, setLogs] = useState<string[]>([
+    '[DotShield] Guard active',
+    '[DotShield] Latency check: 140ms',
+  ]);
+
+  useEffect(() => {
+    const sequences = [
+      '[DotShield] auditing Pyth latency...',
+      '[DotShield] OK (Pyth delta: 1s)',
+      '[DotShield] RPC Ping spike: 1800ms ⚠️',
+      '[DotShield] Initiating rotative failover...',
+      '[DotShield] Swapped -> fallback RPC',
+      '[DotShield] Ping latency: 120ms (Restored)',
+      '[DotShield] Heartbeat status: Active 🟢',
+    ];
+    let currentIdx = 0;
+    const interval = setInterval(() => {
+      setLogs((prev) => {
+        const nextLogs = [...prev, sequences[currentIdx]];
+        if (nextLogs.length > 3) {
+          nextLogs.shift();
+        }
+        return nextLogs;
+      });
+      currentIdx = (currentIdx + 1) % sequences.length;
+    }, 2800);
+
+    return () => clearInterval(interval);
+  }, []);
+
+  return (
+    <div
+      style={{
+        background: 'rgba(0, 0, 0, 0.45)',
+        border: '1px solid rgba(255, 255, 255, 0.08)',
+        borderRadius: '8px',
+        padding: '12px',
+        fontFamily: 'var(--font-mono)',
+        fontSize: '11px',
+        color: '#ffffff',
+        display: 'flex',
+        flexDirection: 'column',
+        gap: '4px',
+        minHeight: '94px',
+        boxShadow: 'inset 0 1px 0 rgba(0,0,0,0.5)',
+        marginTop: '16px',
+      }}
+    >
+      <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '4px', borderBottom: '1px solid rgba(255,255,255,0.05)', paddingBottom: '4px' }}>
+        <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#ffffff' }} className="animate-pulse-live" />
+        <span style={{ fontSize: '9px', textTransform: 'uppercase', letterSpacing: '0.5px', color: 'var(--text-muted)' }}>DotShield Monitor Console</span>
+      </div>
+      {logs.map((log, lidx) => (
+        <div key={lidx} style={{ opacity: lidx === logs.length - 1 ? 1 : 0.5, transition: 'opacity 0.2s ease', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+          {log}
+        </div>
+      ))}
+    </div>
+  );
+}
+
 // 3D Tilt Wrapper with Mouse Spotlight
 interface TiltCardProps {
   children: React.ReactNode;
@@ -700,11 +763,12 @@ export function RoadmapSection() {
                     </ul>
                   </div>
 
-                  {/* Expected Outcome */}
-                  <div style={{ borderTop: '1px solid rgba(255,255,255,0.05)', paddingTop: '16px', fontSize: '12px' }}>
-                    <span style={{ color: 'var(--text-muted)' }}>DELIVERABLE:</span>{' '}
-                    <strong style={{ color: '#ffffff', fontWeight: 500 }}>{m.outcome}</strong>
-                  </div>
+                  {/* DotShield Active Console (Phase 2 Card Only) */}
+                  {m.phase === 'Q3' && (
+                    <TerminalSimulator />
+                  )}
+
+
 
                 </div>
               </TiltCard>
