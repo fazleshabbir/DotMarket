@@ -263,7 +263,6 @@ export function RoadmapSection() {
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            boxShadow: isActive ? '0 0 15px rgba(255,255,255,0.4)' : 'none',
             transition: 'all 0.3s ease',
           }}
         >
@@ -283,24 +282,14 @@ export function RoadmapSection() {
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            boxShadow: isActive ? '0 0 15px rgba(255,255,255,0.4)' : 'none',
             transition: 'all 0.3s ease',
             position: 'relative',
           }}
         >
-          <motion.div
-            animate={shouldReduceMotion ? {} : {
-              scale: [1, 1.35, 1],
-              opacity: [0.6, 1, 0.6],
-            }}
-            transition={{
-              duration: 2,
-              repeat: Infinity,
-              ease: 'easeInOut',
-            }}
+          <div
             style={{
-              width: 8,
-              height: 8,
+              width: 6,
+              height: 6,
               borderRadius: '50%',
               background: '#ffffff',
             }}
@@ -320,7 +309,6 @@ export function RoadmapSection() {
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          boxShadow: isActive ? '0 0 15px rgba(255,255,255,0.4)' : 'none',
           transition: 'all 0.3s ease',
         }}
       />
@@ -417,13 +405,12 @@ export function RoadmapSection() {
             }}
           >
             {/* Live Progress Bar drawing */}
-            <div
+             <div
               style={{
                 width: `${(activeIdx / (milestones.length - 1)) * 100}%`,
                 height: '100%',
                 background: 'linear-gradient(to right, rgba(255,255,255,0.2), #ffffff)',
                 transition: 'width 600ms cubic-bezier(0.16, 1, 0.3, 1)',
-                boxShadow: '0 0 10px rgba(255,255,255,0.5)',
               }}
             />
           </div>
