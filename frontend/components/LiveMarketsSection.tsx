@@ -87,15 +87,12 @@ const MarketCard = memo(({ pair, id, vol, upPct, time, target, revealCardVariant
 });
 MarketCard.displayName = 'MarketCard';
 
-export function LiveMarketsSection() {
-  const { revealCard, staggerContainer } = useMotionSystem();
-  
-  // Use authoritative global clock from marketStore
+// ── Isolated Connected Components to Prevent Section Re-renders ──
+function ConnectedBtcMarketCard({ revealCardVariant }: { revealCardVariant: any }) {
   const market = useMarket();
-  const { activeRound, timeLeftToLock, now } = market || {};
+  const { activeRound, timeLeftToLock } = market || {};
 
-  // Compute purely from global state
-  const btcTimeLeft = !market || !activeRound || timeLeftToLock === undefined
+  const time = !market || !activeRound || timeLeftToLock === undefined
     ? '0:00'
     : timeLeftToLock <= 0
       ? 'LOCKED'
@@ -104,53 +101,61 @@ export function LiveMarketsSection() {
   const btcVolume = activeRound 
     ? parseFloat(formatEther(activeRound.totalUpAmount + activeRound.totalDownAmount)).toFixed(2)
     : '0.00';
+  const volStr = `${parseFloat(btcVolume).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})} USDC`;
 
   const btcTotalPool = activeRound ? activeRound.totalUpAmount + activeRound.totalDownAmount : 0n;
-  const btcUpPercent = btcTotalPool > 0n && activeRound
+  const upPct = btcTotalPool > 0n && activeRound
     ? Math.round(Number((activeRound.totalUpAmount * 100n) / btcTotalPool))
     : 50;
 
-  // Fake ETH/SOL simulation derived from central `now` to keep them animated
-  // without needing their own rogue setIntervals
-  const ethTimeLeft = now ? 240 - (now % 240) : 240;
-  const solTimeLeft = now ? 240 - ((now + 120) % 240) : 120;
-  
-  // Deterministic fake volume/percentages based on current time
-  const ethVol = 7800 + (now ? (now % 1000) * 3 : 0);
-  const solVol = 4900 + (now ? (now % 800) * 2 : 0);
-  const ethPct = 40 + (now ? (now % 20) : 0);
-  const solPct = 50 + (now ? (now % 30) : 0);
+  const id = activeRound ? `BTC-USD-${activeRound.roundId.toString()}` : 'BTC-USD-0';
 
-  const formatMinsSecs = (seconds: number) => {
-    return `${Math.floor(seconds / 60)}:${(seconds % 60).toString().padStart(2, '0')}`;
-  };
+  return (
+    <ScrollFade style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
+      <MarketCard 
+        pair="BTC/USD"
+        id={id}
+        vol={volStr}
+        upPct={upPct}
+        time={time}
+        target="BTC/USD 1m Forecast"
+        revealCardVariant={revealCardVariant}
+      />
+    </ScrollFade>
+  );
+}
 
-  const marketsList = [
-    { 
-      pair: 'BTC/USD', 
-      id: activeRound ? `BTC-USD-${activeRound.roundId.toString()}` : 'BTC-USD-0', 
-      vol: `${parseFloat(btcVolume).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})} USDC`, 
-      upPct: btcUpPercent, 
-      time: btcTimeLeft, 
-      target: 'BTC/USD 1m Forecast' 
-    },
-    { 
-      pair: 'ETH/USD', 
-      id: 'ETH-USD-26', 
-      vol: `${ethVol.toLocaleString()} USDC`, 
-      upPct: ethPct, 
-      time: formatMinsSecs(ethTimeLeft), 
-      target: 'ETH/USD 1m Forecast' 
-    },
-    { 
-      pair: 'SOL/USD', 
-      id: 'SOL-USD-26', 
-      vol: `${solVol.toLocaleString()} USDC`, 
-      upPct: solPct, 
-      time: formatMinsSecs(solTimeLeft), 
-      target: 'SOL/USD 1m Forecast' 
-    }
-  ];
+function SimulatedMarketCard({ 
+  pair, idPrefix, baseTime, baseVol, volMult, basePct, pctMod, revealCardVariant 
+}: { 
+  pair: string, idPrefix: string, baseTime: number, baseVol: number, volMult: number, basePct: number, pctMod: number, revealCardVariant: any 
+}) {
+  const market = useMarket();
+  const now = market?.now || 0;
+
+  const timeLeft = baseTime === 240 ? 240 - (now % 240) : 240 - ((now + 120) % 240);
+  const vol = baseVol + (now ? (now % (volMult * 333)) * volMult : 0);
+  const pct = basePct + (now ? (now % pctMod) : 0);
+
+  const timeStr = `${Math.floor(timeLeft / 60)}:${(timeLeft % 60).toString().padStart(2, '0')}`;
+
+  return (
+    <ScrollFade style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
+      <MarketCard 
+        pair={pair}
+        id={`${idPrefix}-26`}
+        vol={`${vol.toLocaleString()} USDC`}
+        upPct={pct}
+        time={timeStr}
+        target={`${pair} 1m Forecast`}
+        revealCardVariant={revealCardVariant}
+      />
+    </ScrollFade>
+  );
+}
+
+export function LiveMarketsSection() {
+  const { revealCard, staggerContainer } = useMotionSystem();
 
   return (
     <Section id="markets">
@@ -170,19 +175,15 @@ export function LiveMarketsSection() {
           gap: 24,
         }}
       >
-        {marketsList.map((m, idx) => (
-          <ScrollFade key={idx} style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
-            <MarketCard 
-              pair={m.pair}
-              id={m.id}
-              vol={m.vol}
-              upPct={m.upPct}
-              time={m.time}
-              target={m.target}
-              revealCardVariant={revealCard}
-            />
-          </ScrollFade>
-        ))}
+        <ConnectedBtcMarketCard revealCardVariant={revealCard} />
+        <SimulatedMarketCard 
+          pair="ETH/USD" idPrefix="ETH-USD" baseTime={240} baseVol={7800} 
+          volMult={3} basePct={40} pctMod={20} revealCardVariant={revealCard} 
+        />
+        <SimulatedMarketCard 
+          pair="SOL/USD" idPrefix="SOL-USD" baseTime={120} baseVol={4900} 
+          volMult={2} basePct={50} pctMod={30} revealCardVariant={revealCard} 
+        />
       </motion.div>
     </Section>
   );

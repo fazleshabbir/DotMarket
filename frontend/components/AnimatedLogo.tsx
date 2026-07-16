@@ -3,25 +3,6 @@
 import React, { useEffect, useState } from 'react';
 
 export function AnimatedLogo() {
-  const [angle, setAngle] = useState(45); // starts at bottom-right (45 deg)
-
-  useEffect(() => {
-    let animationFrameId: number;
-    const animate = () => {
-      // Orbit the inner cutout dot slowly like a clock hand
-      setAngle((prev) => (prev + 0.75) % 360);
-      animationFrameId = requestAnimationFrame(animate);
-    };
-    animate();
-    return () => cancelAnimationFrame(animationFrameId);
-  }, []);
-
-  const rad = (angle * Math.PI) / 180;
-  // Offset of the cutout (45 units when base circle is 100 units)
-  const offset = 45;
-  const cx = offset * Math.cos(rad);
-  const cy = offset * Math.sin(rad);
-
   return (
     <div 
       style={{ 
@@ -34,6 +15,13 @@ export function AnimatedLogo() {
         justifyContent: 'center',
       }}
     >
+      <style>{`
+        @keyframes logoOrbit {
+          from { transform: rotate(45deg); }
+          to { transform: rotate(405deg); }
+        }
+      `}</style>
+      
       {/* Premium background radial glow */}
       <div
         className="animate-glow-pulse"
@@ -59,7 +47,9 @@ export function AnimatedLogo() {
           {/* Mask for true transparency of the inner dot cutout */}
           <mask id="centerLogoMask">
             <rect x="0" y="0" width="400" height="400" fill="white" />
-            <circle cx={200 + cx} cy={200 + cy} r="28" fill="black" />
+            <g style={{ transformOrigin: '200px 200px', animation: 'logoOrbit 8s linear infinite' }}>
+              <circle cx="245" cy="200" r="28" fill="black" />
+            </g>
           </mask>
         </defs>
 

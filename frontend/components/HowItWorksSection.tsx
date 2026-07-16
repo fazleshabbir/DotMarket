@@ -231,8 +231,6 @@ function MobileScrollReveal({ steps }: { steps: Step[] }) {
 
 // ── Desktop Dual-Column Layout ────────────────────────────────────────────────
 function DesktopDualLayout({ steps, shouldReduceMotion }: { steps: Step[]; shouldReduceMotion: boolean }) {
-  const [hoveredCard, setHoveredCard] = useState<number | null>(null);
-
   return (
     <div style={{ position: 'relative', display: 'flex', flexDirection: 'column', gap: 48 }}>
       {/* Centre line */}
@@ -246,24 +244,30 @@ function DesktopDualLayout({ steps, shouldReduceMotion }: { steps: Step[]; shoul
         transform: 'translateX(-50%)',
       }} />
 
-      {steps.map((step, idx) => {
-        const isHovered = hoveredCard === idx;
-        const TraderIcon = step.traderIcon;
-        const ShieldIcon = step.shieldIcon;
+      {steps.map((step, idx) => (
+        <DesktopStepRow key={step.num} step={step} idx={idx} />
+      ))}
+    </div>
+  );
+}
 
-        return (
-          <div
-            key={step.num}
-            onMouseEnter={() => setHoveredCard(idx)}
-            onMouseLeave={() => setHoveredCard(null)}
-            style={{
-              display: 'grid',
-              gridTemplateColumns: '1fr 80px 1fr',
-              alignItems: 'stretch',
-              position: 'relative',
-              zIndex: 2,
-            }}
-          >
+function DesktopStepRow({ step, idx }: { step: Step; idx: number }) {
+  const [isHovered, setIsHovered] = useState(false);
+  const TraderIcon = step.traderIcon;
+  const ShieldIcon = step.shieldIcon;
+
+  return (
+    <div
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => setIsHovered(false)}
+      style={{
+        display: 'grid',
+        gridTemplateColumns: '1fr 80px 1fr',
+        alignItems: 'stretch',
+        position: 'relative',
+        zIndex: 2,
+      }}
+    >
             {/* Left: Trader card */}
             <motion.div
               initial={{ opacity: 0, x: -30 }}
@@ -389,9 +393,6 @@ function DesktopDualLayout({ steps, shouldReduceMotion }: { steps: Step[]; shoul
                 </div>
               </Card>
             </motion.div>
-          </div>
-        );
-      })}
     </div>
   );
 }

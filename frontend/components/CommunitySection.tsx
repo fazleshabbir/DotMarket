@@ -70,7 +70,6 @@ const socialCards: SocialCard[] = [
 
 export function CommunitySection() {
   const [mounted, setMounted] = useState(false);
-  const [hoveredIdx, setHoveredIdx] = useState<number | null>(null);
 
   const { revealCard, staggerContainer } = useMotionSystem();
 
@@ -99,99 +98,101 @@ export function CommunitySection() {
           gap: 24,
         }}
       >
-        {socialCards.map((social, idx) => {
-          const isHovered = hoveredIdx === idx;
-          const Icon = social.icon;
-
-          return (
-            <div
-              key={idx}
-              onMouseEnter={() => setHoveredIdx(idx)}
-              onMouseLeave={() => setHoveredIdx(null)}
-              style={{ height: '100%' }}
-            >
-              <Card
-                hoverEffect={true}
-                style={{
-                  height: '100%',
-                  padding: '32px 24px',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  justifyContent: 'space-between',
-                  gap: '24px',
-                  background: isHovered ? 'rgba(255, 255, 255, 0.025)' : undefined,
-                  borderColor: isHovered ? 'rgba(255, 255, 255, 0.15)' : undefined,
-                  transition: 'all 250ms var(--ease-out)',
-                }}
-              >
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <div style={{
-                      width: '40px',
-                      height: '40px',
-                      borderRadius: '8px',
-                      background: 'rgba(255, 255, 255, 0.02)',
-                      border: '1px solid rgba(255, 255, 255, 0.05)',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      color: '#ffffff',
-                      transition: 'all 250ms ease',
-                      borderColor: isHovered ? 'rgba(255, 255, 255, 0.2)' : undefined,
-                    }}>
-                      <Icon />
-                    </div>
-                    <span style={{
-                      fontSize: '10px',
-                      fontFamily: 'var(--font-mono)',
-                      color: 'var(--text-secondary)',
-                      letterSpacing: '1px',
-                    }}>
-                      {social.label}
-                    </span>
-                  </div>
-
-                  <div>
-                    <h3 style={{
-                      fontSize: '16px',
-                      fontWeight: 700,
-                      color: '#ffffff',
-                      letterSpacing: '-0.2px',
-                      marginBottom: '8px',
-                    }}>
-                      {social.title}
-                    </h3>
-                    <p style={{
-                      fontSize: '13px',
-                      color: 'var(--text-secondary)',
-                      lineHeight: 1.6,
-                      margin: 0,
-                    }}>
-                      {social.desc}
-                    </p>
-                  </div>
-                </div>
-
-                <a
-                  href={social.href}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  style={{ textDecoration: 'none', width: '100%' }}
-                >
-                  <Button
-                    variant="secondary"
-                    showArrow={true}
-                    arrowDirection="up-right"
-                    style={{ width: '100%' }}
-                  >
-                    {social.btnText}
-                  </Button>
-                </a>
-              </Card>
-            </div>
-          );
-        })}
+        {socialCards.map((social, idx) => (
+          <SocialCardItem key={idx} social={social} />
+        ))}
       </motion.div>
     </Section>
+  );
+}
+function SocialCardItem({ social }: { social: SocialCard }) {
+  const [isHovered, setIsHovered] = useState(false);
+  const Icon = social.icon;
+
+  return (
+    <div
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => setIsHovered(false)}
+      style={{ height: '100%' }}
+    >
+      <Card
+        hoverEffect={true}
+        style={{
+          height: '100%',
+          padding: '32px 24px',
+          display: 'flex',
+          flexDirection: 'column',
+          justifyContent: 'space-between',
+          gap: '24px',
+          background: isHovered ? 'rgba(255, 255, 255, 0.025)' : undefined,
+          borderColor: isHovered ? 'rgba(255, 255, 255, 0.15)' : undefined,
+          transition: 'all 250ms var(--ease-out)',
+        }}
+      >
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <div style={{
+              width: '40px',
+              height: '40px',
+              borderRadius: '8px',
+              background: 'rgba(255, 255, 255, 0.02)',
+              border: '1px solid rgba(255, 255, 255, 0.05)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              color: '#ffffff',
+              transition: 'all 250ms ease',
+              borderColor: isHovered ? 'rgba(255, 255, 255, 0.2)' : undefined,
+            }}>
+              <Icon />
+            </div>
+            <span style={{
+              fontSize: '10px',
+              fontFamily: 'var(--font-mono)',
+              color: 'var(--text-secondary)',
+              letterSpacing: '1px',
+            }}>
+              {social.label}
+            </span>
+          </div>
+
+          <div>
+            <h3 style={{
+              fontSize: '16px',
+              fontWeight: 700,
+              color: '#ffffff',
+              letterSpacing: '-0.2px',
+              marginBottom: '8px',
+            }}>
+              {social.title}
+            </h3>
+            <p style={{
+              fontSize: '13px',
+              color: 'var(--text-secondary)',
+              lineHeight: 1.6,
+              margin: 0,
+            }}>
+              {social.desc}
+            </p>
+          </div>
+        </div>
+
+        <a
+          href={social.href}
+          target="_blank"
+          rel="noopener noreferrer"
+          style={{ textDecoration: 'none', width: '100%' }}
+        >
+          <Button
+            variant="secondary"
+            showArrow={true}
+            arrowDirection="up-right"
+            style={{ width: '100%' }}
+          >
+            {social.btnText}
+          </Button>
+        </a>
+      </Card>
+    </div>
   );
 }

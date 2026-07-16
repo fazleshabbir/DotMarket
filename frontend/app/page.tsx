@@ -291,6 +291,50 @@ function FAQItem({ question, answer }: FAQItemProps) {
   );
 }
 
+// ── ISOLATED COMPONENTS ───────────────────────────────────────
+function SentimentIndicator({ staggerItem }: { staggerItem: any }) {
+  const [sentiment, setSentiment] = useState(54);
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setSentiment((prev) => {
+        const delta = Math.random() > 0.5 ? 1 : -1;
+        return Math.max(35, Math.min(65, prev + delta));
+      });
+    }, 4000);
+    return () => clearInterval(interval);
+  }, []);
+
+  return (
+    <motion.div
+      variants={staggerItem}
+      style={{
+        fontSize: 11,
+        fontFamily: 'var(--font-mono)',
+        color: 'var(--text-3)',
+        letterSpacing: '0.08em',
+        textTransform: 'uppercase',
+        marginBottom: 56,
+        display: 'flex',
+        alignItems: 'center',
+        flexWrap: 'wrap',
+        justifyContent: 'center',
+        gap: 10,
+        background: 'rgba(255, 255, 255, 0.025)',
+        padding: 'var(--space-2) var(--space-5)',
+        borderRadius: 'var(--radius-sm)',
+        border: '1px solid var(--border-2)',
+      }}
+    >
+      <span style={{ color: 'var(--text-3)' }}>BTC SENTIMENT</span>
+      <span style={{ color: 'var(--text-2)', opacity: 0.25 }}>·</span>
+      <span style={{ color: 'var(--text-1)', fontWeight: 600 }}>⚪ {sentiment}% UP</span>
+      <span style={{ color: 'var(--text-3)', opacity: 0.35 }}>|</span>
+      <span style={{ color: 'var(--text-2)', fontWeight: 500 }}>⚫ {100 - sentiment}% DOWN</span>
+    </motion.div>
+  );
+}
+
 export default function LandingPage() {
   const {
     revealHeading,
@@ -304,7 +348,6 @@ export default function LandingPage() {
     shouldReduceMotion,
   } = useMotionSystem();
 
-  const [sentiment, setSentiment] = useState(54);
   const [isMounted, setIsMounted] = useState(false);
   const [windowWidth, setWindowWidth] = useState(1200); // Default to desktop layout
   const [menuOpen, setMenuOpen] = useState(false);
@@ -315,16 +358,6 @@ export default function LandingPage() {
     const handleResize = () => setWindowWidth(window.innerWidth);
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
-  }, []);
-
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setSentiment((prev) => {
-        const delta = Math.random() > 0.5 ? 1 : -1;
-        return Math.max(35, Math.min(65, prev + delta));
-      });
-    }, 4000);
-    return () => clearInterval(interval);
   }, []);
 
   const isMobile = isMounted && windowWidth < 768;
@@ -650,32 +683,7 @@ export default function LandingPage() {
           </motion.div>
 
           {/* Minimal Sentiment Bar */}
-          <motion.div
-            variants={staggerItem}
-            style={{
-              fontSize: 11,
-              fontFamily: 'var(--font-mono)',
-              color: 'var(--text-3)',
-              letterSpacing: '0.08em',
-              textTransform: 'uppercase',
-              marginBottom: 56,
-              display: 'flex',
-              alignItems: 'center',
-              flexWrap: 'wrap',
-              justifyContent: 'center',
-              gap: 10,
-              background: 'rgba(255, 255, 255, 0.025)',
-              padding: 'var(--space-2) var(--space-5)',
-              borderRadius: 'var(--radius-sm)',
-              border: '1px solid var(--border-2)',
-            }}
-          >
-            <span style={{ color: 'var(--text-3)' }}>BTC SENTIMENT</span>
-            <span style={{ color: 'var(--text-2)', opacity: 0.25 }}>·</span>
-            <span style={{ color: 'var(--text-1)', fontWeight: 600 }}>⚪ {sentiment}% UP</span>
-            <span style={{ color: 'var(--text-3)', opacity: 0.35 }}>|</span>
-            <span style={{ color: 'var(--text-2)', fontWeight: 500 }}>⚫ {100 - sentiment}% DOWN</span>
-          </motion.div>
+          <SentimentIndicator staggerItem={staggerItem} />
 
           {/* Trust Badges Row */}
           <motion.div 
