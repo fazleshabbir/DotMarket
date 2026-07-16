@@ -1,6 +1,10 @@
 'use client';
 
 import React, { useState, useEffect, useCallback } from 'react';
+import { useAccount, useReadContract } from 'wagmi';
+import { ROUND_MARKET_ABI } from '@/lib/abi';
+import { useContracts } from '@/hooks/useNetworkConfig';
+import { ConnectButton } from '@/components/ConnectButton';
 
 // ── Types ──────────────────────────────────────────────────────────────────
 
@@ -380,6 +384,25 @@ function EventLog({ logs }: { logs: LogEvent[] }) {
 // ── Main Page ──────────────────────────────────────────────────────────────
 
 export default function GuardianPage() {
+  const { address, isConnected } = useAccount();
+  const { predictionMarket } = useContracts();
+
+  // Read owner from contract
+  const { data: ownerAddress, isLoading: isOwnerLoading } = useReadContract({
+    address: predictionMarket,
+    abi: ROUND_MARKET_ABI,
+    functionName: 'owner',
+  });
+
+  const ADMIN_ADDRESSES = [
+    '0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266', // Deployer / Default Owner
+  ];
+
+  const isAdmin = isConnected && address && (
+    address.toLowerCase() === ownerAddress?.toLowerCase() ||
+    ADMIN_ADDRESSES.map(a => a.toLowerCase()).includes(address.toLowerCase())
+  );
+
   const [status, setStatus] = useState<GuardianStatus | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
@@ -404,10 +427,11 @@ export default function GuardianPage() {
 
   // Poll for updates
   useEffect(() => {
+    if (!isAdmin) return;
     fetchStatus();
     const interval = setInterval(fetchStatus, POLL_INTERVAL);
     return () => clearInterval(interval);
-  }, [fetchStatus]);
+  }, [fetchStatus, isAdmin]);
 
   // Trigger manual AI analysis
   const triggerAnalysis = async () => {
@@ -447,6 +471,51 @@ export default function GuardianPage() {
 
   const health = status?.health;
   const overallHealth = health?.overallHealth || 'healthy';
+
+  if (!isConnected) {
+    return (
+      <div style={{ minHeight: '100vh', background: '#000000', color: '#ffffff', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', fontFamily: "'Inter', sans-serif" }}>
+        <div style={{ background: 'rgba(255, 255, 255, 0.02)', border: '1px solid rgba(255, 255, 255, 0.08)', borderRadius: 24, padding: '48px 32px', maxWidth: 440, width: '90%', textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 24 }}>
+          <span style={{ fontSize: 48 }}>🛡️</span>
+          <div>
+            <h1 style={{ fontSize: 20, fontWeight: 700, margin: '0 0 8px' }}>Protocol Guardian Locked</h1>
+            <p style={{ fontSize: 13, color: 'rgba(255, 255, 255, 0.5)', lineHeight: 1.5, margin: 0 }}>
+              Access to this dashboard is restricted to authorized platform administrators. Please connect your administrator wallet.
+            </p>
+          </div>
+          <ConnectButton />
+        </div>
+      </div>
+    );
+  }
+
+  if (isOwnerLoading) {
+    return (
+      <div style={{ minHeight: '100vh', background: '#000000', color: '#ffffff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: "'Inter', sans-serif" }}>
+        <div style={{ fontSize: 14, color: 'rgba(255, 255, 255, 0.5)' }}>Verifying credentials...</div>
+      </div>
+    );
+  }
+
+  if (!isAdmin) {
+    return (
+      <div style={{ minHeight: '100vh', background: '#000000', color: '#ffffff', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', fontFamily: "'Inter', sans-serif" }}>
+        <div style={{ background: 'rgba(255, 255, 255, 0.02)', border: '1px solid rgba(255, 255, 255, 0.08)', borderRadius: 24, padding: '48px 32px', maxWidth: 440, width: '90%', textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 24 }}>
+          <span style={{ fontSize: 48 }}>🚫</span>
+          <div>
+            <h1 style={{ fontSize: 20, fontWeight: 700, margin: '0 0 8px' }}>Access Denied</h1>
+            <p style={{ fontSize: 13, color: 'rgba(255, 255, 255, 0.5)', lineHeight: 1.5, margin: 0 }}>
+              Your wallet address is not authorized to access this dashboard.
+            </p>
+            <p style={{ fontSize: 11, fontFamily: "'JetBrains Mono', monospace", color: 'rgba(255, 255, 255, 0.3)', marginTop: 12, wordBreak: 'break-all' }}>
+              {address}
+            </p>
+          </div>
+          <ConnectButton />
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div style={{

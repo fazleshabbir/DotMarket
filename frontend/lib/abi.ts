@@ -1,5 +1,6 @@
 export const ROUND_MARKET_ABI = [
   { type: 'function', name: 'currentRoundId', inputs: [], outputs: [{ type: 'uint256' }], stateMutability: 'view' },
+  { type: 'function', name: 'owner', inputs: [], outputs: [{ type: 'address' }], stateMutability: 'view' },
   { type: 'function', name: 'roundDuration', inputs: [], outputs: [{ type: 'uint256' }], stateMutability: 'view' },
   { type: 'function', name: 'lockBuffer', inputs: [], outputs: [{ type: 'uint256' }], stateMutability: 'view' },
   { type: 'function', name: 'minBetAmount', inputs: [], outputs: [{ type: 'uint256' }], stateMutability: 'view' },

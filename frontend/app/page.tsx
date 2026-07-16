@@ -465,14 +465,12 @@ export default function LandingPage() {
                 alignItems: 'center',
               }}
             >
-              {['Markets', 'How It Works', 'FAQ', 'Docs', 'Guardian'].map((tab) => (
+              {['Markets', 'How It Works', 'FAQ', 'Docs'].map((tab) => (
                 <Link
                   key={tab}
                   href={
                     tab === 'Docs'
                       ? '/docs/user-guide/introduction'
-                      : tab === 'Guardian'
-                      ? '/guardian'
                       : `#${tab.toLowerCase().replace(/\s+/g, '-')}`
                   }
                   className="premium-text-link"
@@ -543,14 +541,12 @@ export default function LandingPage() {
               boxShadow: '0 20px 40px rgba(0,0,0,0.8)',
             }}
           >
-            {['Markets', 'How It Works', 'FAQ', 'Docs', 'Guardian'].map((tab) => (
+            {['Markets', 'How It Works', 'FAQ', 'Docs'].map((tab) => (
               <Link
                 key={tab}
                 href={
                   tab === 'Docs'
                     ? '/docs/user-guide/introduction'
-                    : tab === 'Guardian'
-                    ? '/guardian'
                     : `#${tab.toLowerCase().replace(/\s+/g, '-')}`
                 }
                 className="premium-text-link"
