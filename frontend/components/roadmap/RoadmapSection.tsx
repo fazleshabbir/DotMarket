@@ -40,11 +40,11 @@ const milestones: Milestone[] = [
   },
   {
     phase: 'Q3',
-    title: 'Prediction Markets',
+    title: 'DotShield Protocols',
     status: 'In Progress',
-    desc: 'Launch multi-collateral and advanced metrics forecast pools.',
+    desc: 'Launch AI-secured prediction pools and self-healing keeper monitors.',
     icon: CandlestickChart,
-    features: ['Multi-collateral pools', 'Dynamic Hermes feeds', 'Advanced charts & stats', 'Custom slip protection'],
+    features: ['Multi-collateral pools', 'DotShield AI Monitor', 'Self-Healing Keepers', 'Dynamic Hermes feeds'],
     outcome: 'Active institutional hedging interface.',
   },
   {
@@ -739,9 +739,7 @@ export function RoadmapSection() {
                         return (
                           <li key={fidx} style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: '12px' }}>
                             {isCompleted ? (
-                              <span style={{ color: '#ffffff', display: 'inline-flex', opacity: 0.9 }}>
-                                <Check size={10} strokeWidth={3.5} />
-                              </span>
+                              <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#ffffff', display: 'inline-flex', opacity: 0.9 }} />
                             ) : isInProgress ? (
                               <span style={{ display: 'inline-flex', position: 'relative', width: 6, height: 6 }}>
                                 <span className="animate-ping" style={{ position: 'absolute', inset: 0, borderRadius: '50%', background: '#ffffff', opacity: 0.75 }} />
