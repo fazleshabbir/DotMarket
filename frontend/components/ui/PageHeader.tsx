@@ -1,6 +1,6 @@
 import React, { memo } from 'react';
 import { motion } from 'framer-motion';
-import { useMotionSystem } from '@/hooks/useMotionSystem';
+import { useMotionSystem, VIEWPORT_SETTINGS } from '@/hooks/useMotionSystem';
 
 interface PageHeaderProps {
   title: string;
@@ -9,7 +9,7 @@ interface PageHeaderProps {
 }
 
 export const PageHeader = memo(function PageHeader({ title, subtitle, align = 'center' }: PageHeaderProps) {
-  const { revealHeading, revealSubtitle, viewport } = useMotionSystem();
+  const { revealHeading, revealSubtitle } = useMotionSystem();
 
   return (
     <div
@@ -41,7 +41,7 @@ export const PageHeader = memo(function PageHeader({ title, subtitle, align = 'c
       <motion.h2
         initial="hidden"
         whileInView="visible"
-        viewport={viewport}
+        viewport={VIEWPORT_SETTINGS}
         variants={revealHeading}
         style={{
           fontFamily: "'Cormorant Garamond', serif",
@@ -61,7 +61,7 @@ export const PageHeader = memo(function PageHeader({ title, subtitle, align = 'c
         <motion.p
           initial="hidden"
           whileInView="visible"
-          viewport={viewport}
+          viewport={VIEWPORT_SETTINGS}
           variants={revealSubtitle}
           style={{
             color: 'var(--text-secondary)',

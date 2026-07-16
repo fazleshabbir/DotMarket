@@ -1,9 +1,8 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { motion } from 'framer-motion';
-import { useMediaQuery } from '@/hooks/useMediaQuery';
-import { useMotionSystem } from '@/hooks/useMotionSystem';
+import { useMotionSystem, VIEWPORT_SETTINGS } from '@/hooks/useMotionSystem';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 import { Section } from '@/components/ui/Section';
@@ -66,17 +65,6 @@ const socialCards: SocialCard[] = [
 ];
 
 export function CommunitySection() {
-  const [mounted, setMounted] = useState(false);
-
-  const { revealCard, staggerContainer } = useMotionSystem();
-
-  useEffect(() => {
-    setMounted(true);
-  }, []);
-
-  const isMobileQuery = useMediaQuery('(max-width: 768px)');
-  const isMobile = mounted ? isMobileQuery : false;
-
   return (
     <Section id="community">
       <PageHeader
@@ -84,19 +72,24 @@ export function CommunitySection() {
         subtitle="Trade together. Build together. Shape the future of decentralized prediction markets."
       />
 
-      {isMobile ? <MobileCommunityLayout /> : <DesktopCommunityLayout />}
+      <div className="block md:hidden">
+        <MobileCommunityLayout />
+      </div>
+      <div className="hidden md:block">
+        <DesktopCommunityLayout />
+      </div>
     </Section>
   );
 }
 
 function DesktopCommunityLayout() {
-  const { staggerContainer, viewport } = useMotionSystem();
+  const { staggerContainer } = useMotionSystem();
   
   return (
     <motion.div
       initial="hidden"
       whileInView="visible"
-      viewport={viewport}
+      viewport={VIEWPORT_SETTINGS}
       variants={staggerContainer(0.08)}
       style={{
         display: 'grid',
@@ -112,15 +105,15 @@ function DesktopCommunityLayout() {
 }
 
 function MobileCommunityLayout() {
-  const { revealCard, staggerContainer, staggerItem, viewport } = useMotionSystem();
+  const { revealCard, staggerContainer, staggerItem } = useMotionSystem();
 
   return (
     <motion.div 
       initial="hidden"
       whileInView="visible"
-      viewport={viewport}
+      viewport={VIEWPORT_SETTINGS}
       variants={staggerContainer(0.1)}
-      style={{ display: 'flex', flexDirection: 'column', gap: 32, marginTop: 12, position: 'relative', willChange: 'transform, opacity' }}
+      style={{ display: 'flex', flexDirection: 'column', gap: 32, marginTop: 12, position: 'relative' }}
     >
       {/* Animated Background Glow for Premium feel */}
       <div style={{

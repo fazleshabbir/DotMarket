@@ -1,34 +1,26 @@
 import { useReducedMotion, Variants } from 'framer-motion';
-import { useMediaQuery } from '@/hooks/useMediaQuery';
 
 // Premium Apple/Linear-style easing curve
 const CUBIC_BEZIER: [number, number, number, number] = [0.16, 1, 0.3, 1];
 const BASE_DURATION = 0.6;
 
-// Keep static fallback config, but we will primary use the dynamic hook config
-export const VIEWPORT_SETTINGS = { once: true, margin: '-5%' };
+// Standardized viewport config to prevent scroll-jank and repeated calculations
+export const VIEWPORT_SETTINGS = { once: true, margin: '0px', amount: 0.1 };
 
 export function useMotionSystem() {
   const shouldReduceMotion = !!useReducedMotion();
-  const isMobile = useMediaQuery('(max-width: 768px)');
 
-  // Device-aware dynamic viewport settings to prevent visual pop-in or delays on mobile
-  const viewport = {
-    once: true,
-    margin: isMobile ? '-4%' : '-10%',
-  };
-
-  // HEADING REVEAL (reduced translation on mobile)
+  // HEADING REVEAL
   const revealHeading: Variants = {
     hidden: {
       opacity: 0,
-      y: shouldReduceMotion ? 0 : isMobile ? 12 : 24,
+      y: shouldReduceMotion ? 0 : 24,
     },
     visible: {
       opacity: 1,
       y: 0,
       transition: {
-        duration: isMobile ? 0.45 : BASE_DURATION,
+        duration: BASE_DURATION,
         ease: CUBIC_BEZIER,
       },
     },
@@ -38,32 +30,32 @@ export function useMotionSystem() {
   const revealSubtitle: Variants = {
     hidden: {
       opacity: 0,
-      y: shouldReduceMotion ? 0 : isMobile ? 8 : 16,
+      y: shouldReduceMotion ? 0 : 16,
     },
     visible: {
       opacity: 1,
       y: 0,
       transition: {
-        duration: isMobile ? 0.45 : BASE_DURATION,
-        delay: isMobile ? 0.03 : 0.05,
+        duration: BASE_DURATION,
+        delay: 0.05, // Snappier delay
         ease: CUBIC_BEZIER,
       },
     },
   };
 
-  // CARD REVEAL (No scaling on mobile to optimize GPU composite and texture redraw)
+  // CARD REVEAL (intended for staggered children)
   const revealCard: Variants = {
     hidden: {
       opacity: 0,
-      y: shouldReduceMotion ? 0 : isMobile ? 12 : 30,
-      scale: shouldReduceMotion || isMobile ? 1 : 0.98,
+      y: shouldReduceMotion ? 0 : 30,
+      scale: shouldReduceMotion ? 1 : 0.98,
     },
     visible: {
       opacity: 1,
       y: 0,
       scale: 1,
       transition: {
-        duration: isMobile ? 0.45 : BASE_DURATION,
+        duration: BASE_DURATION,
         ease: CUBIC_BEZIER,
       },
     },
@@ -73,15 +65,15 @@ export function useMotionSystem() {
   const revealButton: Variants = {
     hidden: {
       opacity: 0,
-      y: shouldReduceMotion ? 0 : isMobile ? 6 : 10,
-      scale: shouldReduceMotion || isMobile ? 1 : 0.98,
+      y: shouldReduceMotion ? 0 : 10,
+      scale: shouldReduceMotion ? 1 : 0.98,
     },
     visible: {
       opacity: 1,
       y: 0,
       scale: 1,
       transition: {
-        duration: isMobile ? 0.3 : 0.4,
+        duration: 0.4,
         ease: CUBIC_BEZIER,
       },
     },
@@ -91,13 +83,13 @@ export function useMotionSystem() {
   const fadeUp: Variants = {
     hidden: {
       opacity: 0,
-      y: shouldReduceMotion ? 0 : isMobile ? 10 : 20,
+      y: shouldReduceMotion ? 0 : 20,
     },
     visible: {
       opacity: 1,
       y: 0,
       transition: {
-        duration: isMobile ? 0.45 : BASE_DURATION,
+        duration: BASE_DURATION,
         ease: CUBIC_BEZIER,
       },
     },
@@ -109,18 +101,18 @@ export function useMotionSystem() {
     visible: {
       opacity: 1,
       transition: {
-        duration: isMobile ? 0.3 : 0.4,
-        ease: 'linear',
+        duration: 0.4,
+        ease: 'linear', // Pure fades are best linear or easeOut
       },
     },
   };
 
-  // STAGGER CONTAINER (Halve delays on mobile to ensure fast rendering)
+  // STAGGER CONTAINER (Strict, unified stagger delays)
   const staggerContainer = (staggerDelay = 0.06): Variants => ({
     hidden: {},
     visible: {
       transition: {
-        staggerChildren: shouldReduceMotion ? 0 : isMobile ? staggerDelay * 0.5 : staggerDelay,
+        staggerChildren: shouldReduceMotion ? 0 : staggerDelay,
       },
     },
   });
@@ -128,13 +120,13 @@ export function useMotionSystem() {
   const staggerItem: Variants = {
     hidden: {
       opacity: 0,
-      y: shouldReduceMotion ? 0 : isMobile ? 8 : 15,
+      y: shouldReduceMotion ? 0 : 15,
     },
     visible: {
       opacity: 1,
       y: 0,
       transition: {
-        duration: isMobile ? 0.45 : BASE_DURATION,
+        duration: BASE_DURATION,
         ease: CUBIC_BEZIER,
       },
     },
@@ -150,6 +142,5 @@ export function useMotionSystem() {
     staggerContainer,
     staggerItem,
     shouldReduceMotion,
-    viewport,
   };
 }

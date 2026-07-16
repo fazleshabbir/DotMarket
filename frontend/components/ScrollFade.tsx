@@ -2,7 +2,7 @@
 
 import React from 'react';
 import { motion } from 'framer-motion';
-import { useMotionSystem } from '@/hooks/useMotionSystem';
+import { useMotionSystem, VIEWPORT_SETTINGS } from '@/hooks/useMotionSystem';
 
 interface ScrollFadeProps {
   children: React.ReactNode;
@@ -11,13 +11,13 @@ interface ScrollFadeProps {
 }
 
 export function ScrollFade({ children, style = {} }: ScrollFadeProps) {
-  const { revealCard, viewport } = useMotionSystem();
+  const { revealCard } = useMotionSystem();
 
   return (
     <motion.div
       initial="hidden"
       whileInView="visible"
-      viewport={viewport}
+      viewport={VIEWPORT_SETTINGS}
       variants={revealCard}
       style={style}
     >

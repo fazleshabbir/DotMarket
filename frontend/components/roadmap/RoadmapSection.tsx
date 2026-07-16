@@ -3,8 +3,7 @@
 import React, { useRef, useState, useEffect } from 'react';
 import { motion, AnimatePresence, type Variants } from 'framer-motion';
 import { Hammer, Rocket, CandlestickChart, Smartphone, PlusCircle, Users, Check } from 'lucide-react';
-import { useMotionSystem } from '@/hooks/useMotionSystem';
-import { useMediaQuery } from '@/hooks/useMediaQuery';
+import { useMotionSystem, VIEWPORT_SETTINGS } from '@/hooks/useMotionSystem';
 import { Section } from '@/components/ui/Section';
 import { PageHeader } from '@/components/ui/PageHeader';
 import { Card } from '@/components/ui/Card';
@@ -151,7 +150,6 @@ function CardFeatures({ m, isCompleted, isInProgress }: {
 
 // ── DESKTOP: Scroll-driven progressive reveal ─────────────────────────────────
 function DesktopScrollReveal({ milestones }: { milestones: Milestone[] }) {
-  const { revealCard, viewport } = useMotionSystem();
   // Only one card open at a time — scroll drives which one
   const [activeIdx, setActiveIdx] = useState<number>(0);
   const cardRefs = useRef<(HTMLDivElement | null)[]>([]);
@@ -182,6 +180,11 @@ function DesktopScrollReveal({ milestones }: { milestones: Milestone[] }) {
     return () => observers.forEach(o => o.disconnect());
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
+  const cardVariants: Variants = {
+    hidden: { opacity: 0, y: 20 },
+    visible: { opacity: 1, y: 0, transition: { duration: 0.45, ease: [0.16, 1, 0.3, 1] } },
+  };
+
   return (
     <div style={{ position: 'relative', maxWidth: 720, margin: '0 auto' }}>
       {/* Vertical connector line */}
@@ -194,7 +197,7 @@ function DesktopScrollReveal({ milestones }: { milestones: Milestone[] }) {
       <motion.div
         initial="hidden"
         whileInView="visible"
-        viewport={viewport}
+        viewport={VIEWPORT_SETTINGS}
         variants={{ visible: { transition: { staggerChildren: 0.08 } } }}
         style={{ display: 'flex', flexDirection: 'column', gap: 0 }}
       >
@@ -207,9 +210,9 @@ function DesktopScrollReveal({ milestones }: { milestones: Milestone[] }) {
           return (
             <motion.div
               key={idx}
-              variants={revealCard}
+              variants={cardVariants}
               ref={el => { cardRefs.current[idx] = el; }}
-              style={{ display: 'flex', gap: 24, paddingBottom: idx < milestones.length - 1 ? 32 : 0, willChange: 'transform, opacity' }}
+              style={{ display: 'flex', gap: 24, paddingBottom: idx < milestones.length - 1 ? 32 : 0 }}
             >
               {/* Left: Timeline node — glows softly when just expanded */}
               <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', flexShrink: 0, paddingTop: 4 }}>
@@ -298,7 +301,6 @@ function DesktopScrollReveal({ milestones }: { milestones: Milestone[] }) {
 
 // ── MOBILE: Scroll-driven, one card open at a time (mirrors desktop) ──────────
 function MobileScrollReveal({ milestones }: { milestones: Milestone[] }) {
-  const { revealCard, viewport } = useMotionSystem();
   const [activeIdx, setActiveIdx] = useState<number>(0);
   const cardRefs = useRef<(HTMLDivElement | null)[]>([]);
 
@@ -328,6 +330,11 @@ function MobileScrollReveal({ milestones }: { milestones: Milestone[] }) {
     return () => observers.forEach(o => o.disconnect());
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
+  const cardVariants: Variants = {
+    hidden: { opacity: 0, y: 20 },
+    visible: { opacity: 1, y: 0, transition: { duration: 0.45, ease: [0.16, 1, 0.3, 1] } },
+  };
+
   return (
     <div style={{ position: 'relative', maxWidth: 720, margin: '0 auto' }}>
       {/* Vertical connector line */}
@@ -340,7 +347,7 @@ function MobileScrollReveal({ milestones }: { milestones: Milestone[] }) {
       <motion.div
         initial="hidden"
         whileInView="visible"
-        viewport={viewport}
+        viewport={VIEWPORT_SETTINGS}
         variants={{ visible: { transition: { staggerChildren: 0.08 } } }}
         style={{ display: 'flex', flexDirection: 'column', gap: 0 }}
       >
@@ -353,9 +360,9 @@ function MobileScrollReveal({ milestones }: { milestones: Milestone[] }) {
           return (
             <motion.div
               key={idx}
-              variants={revealCard}
+              variants={cardVariants}
               ref={el => { cardRefs.current[idx] = el; }}
-              style={{ display: 'flex', gap: 24, paddingBottom: idx < milestones.length - 1 ? 32 : 0, willChange: 'transform, opacity' }}
+              style={{ display: 'flex', gap: 24, paddingBottom: idx < milestones.length - 1 ? 32 : 0 }}
             >
               {/* Left: Timeline node */}
               <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', flexShrink: 0, paddingTop: 4 }}>
@@ -433,22 +440,18 @@ function MobileScrollReveal({ milestones }: { milestones: Milestone[] }) {
 
 // ── Main Export ───────────────────────────────────────────────────────────────
 export function RoadmapSection() {
-  const [isMounted, setIsMounted] = useState(false);
-  const isMobileQuery = useMediaQuery('(max-width: 1023px)');
-  const isMobile = isMounted ? isMobileQuery : false;
-
-  useEffect(() => { setIsMounted(true); }, []);
-
   return (
     <Section id="roadmap">
       <PageHeader
         title="Roadmap"
         subtitle="Building the future of high-frequency prediction markets."
       />
-      {isMobile
-        ? <MobileScrollReveal milestones={milestones} />
-        : <DesktopScrollReveal milestones={milestones} />
-      }
+      <div className="block lg:hidden">
+        <MobileScrollReveal milestones={milestones} />
+      </div>
+      <div className="hidden lg:block">
+        <DesktopScrollReveal milestones={milestones} />
+      </div>
     </Section>
   );
 }

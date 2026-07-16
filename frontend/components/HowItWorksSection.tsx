@@ -1,13 +1,12 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { motion, type Variants } from 'framer-motion';
 import { Wallet, CandlestickChart, Target, Trophy, Shield, Cpu, Activity, HardDrive } from 'lucide-react';
-import { useMotionSystem } from '@/hooks/useMotionSystem';
+import { useMotionSystem, VIEWPORT_SETTINGS } from '@/hooks/useMotionSystem';
 import { Card } from '@/components/ui/Card';
 import { Section } from '@/components/ui/Section';
 import { PageHeader } from '@/components/ui/PageHeader';
-import { useMediaQuery } from '@/hooks/useMediaQuery';
 
 interface Step {
   num: string;
@@ -63,11 +62,10 @@ const steps: Step[] = [
   },
 ];
 
+// ── Mobile Scroll-Reveal Layout ───────────────────────────────────────────────
 function MobileScrollReveal({ steps }: { steps: Step[] }) {
-  const { viewport } = useMotionSystem();
-
   const cardVariants: Variants = {
-    hidden: { opacity: 0, y: 15 },
+    hidden: { opacity: 0, y: 28 },
     visible: { opacity: 1, y: 0, transition: { duration: 0.45, ease: [0.16, 1, 0.3, 1] } },
   };
 
@@ -94,9 +92,9 @@ function MobileScrollReveal({ steps }: { steps: Step[] }) {
               key={idx}
               initial="hidden"
               whileInView="visible"
-              viewport={viewport}
+              viewport={VIEWPORT_SETTINGS}
               variants={cardVariants}
-              style={{ display: 'flex', gap: 20, paddingBottom: idx < steps.length - 1 ? 28 : 0, willChange: 'transform, opacity' }}
+              style={{ display: 'flex', gap: 20, paddingBottom: idx < steps.length - 1 ? 28 : 0 }}
             >
               {/* Timeline node */}
               <div style={{ flexShrink: 0, paddingTop: 10 }}>
@@ -254,7 +252,6 @@ function DesktopDualLayout({ steps, shouldReduceMotion, revealCardVariant }: { s
 
 function DesktopStepRow({ step, idx, revealCardVariant }: { step: Step; idx: number; revealCardVariant: any }) {
   const [isHovered, setIsHovered] = useState(false);
-  const { viewport } = useMotionSystem();
   const TraderIcon = step.traderIcon;
   const ShieldIcon = step.shieldIcon;
 
@@ -274,9 +271,9 @@ function DesktopStepRow({ step, idx, revealCardVariant }: { step: Step; idx: num
             <motion.div
               initial="hidden"
               whileInView="visible"
-              viewport={viewport}
+              viewport={VIEWPORT_SETTINGS}
               variants={revealCardVariant}
-              style={{ height: '100%', willChange: 'transform, opacity' }}
+              style={{ height: '100%' }}
             >
               <Card
                 hoverEffect={false}
@@ -332,9 +329,9 @@ function DesktopStepRow({ step, idx, revealCardVariant }: { step: Step; idx: num
             <motion.div
               initial="hidden"
               whileInView="visible"
-              viewport={viewport}
+              viewport={VIEWPORT_SETTINGS}
               variants={revealCardVariant}
-              style={{ height: '100%', willChange: 'transform, opacity' }}
+              style={{ height: '100%' }}
             >
               <Card
                 hoverEffect={false}
@@ -401,15 +398,7 @@ function DesktopStepRow({ step, idx, revealCardVariant }: { step: Step; idx: num
 
 // ── Main Export ───────────────────────────────────────────────────────────────
 export function HowItWorksSection() {
-  const [isMounted, setIsMounted] = useState(false);
-  const isMobileQuery = useMediaQuery('(max-width: 1023px)');
-  const isMobile = isMounted ? isMobileQuery : false;
-
   const { shouldReduceMotion, revealCard } = useMotionSystem();
-
-  useEffect(() => {
-    setIsMounted(true);
-  }, []);
 
   return (
     <Section id="how-it-works" aria-labelledby="how-it-works-title">
@@ -418,10 +407,12 @@ export function HowItWorksSection() {
         subtitle="The dual-core architecture driving execution and autonomous stability."
       />
 
-      {isMobile
-        ? <MobileScrollReveal steps={steps} />
-        : <DesktopDualLayout steps={steps} shouldReduceMotion={shouldReduceMotion} revealCardVariant={revealCard} />
-      }
+      <div className="block lg:hidden">
+        <MobileScrollReveal steps={steps} />
+      </div>
+      <div className="hidden lg:block">
+        <DesktopDualLayout steps={steps} shouldReduceMotion={shouldReduceMotion} revealCardVariant={revealCard} />
+      </div>
     </Section>
   );
 }
