@@ -36,6 +36,20 @@ export function AnimatedLogo() {
         }}
       />
 
+      {/* Hardware-accelerated CSS glow replacing slow SVG drop-shadow filter */}
+      <div
+        style={{
+          position: 'absolute',
+          width: 100,
+          height: 100,
+          borderRadius: '50%',
+          background: 'rgba(255, 255, 255, 0.22)',
+          filter: 'blur(10px)',
+          zIndex: 1,
+          pointerEvents: 'none',
+        }}
+      />
+
       <svg 
         viewBox="0 0 400 400" 
         width="200" 
@@ -44,24 +58,23 @@ export function AnimatedLogo() {
         style={{ zIndex: 2 }}
       >
         <defs>
-          {/* Mask for true transparency of the inner dot cutout */}
+          {/* Static mask (highly optimized in Safari since it does not re-render every frame) */}
           <mask id="centerLogoMask">
             <rect x="0" y="0" width="400" height="400" fill="white" />
-            <g style={{ transformOrigin: '200px 200px', animation: 'logoOrbit 8s linear infinite' }}>
-              <circle cx="245" cy="200" r="28" fill="black" />
-            </g>
+            <circle cx="245" cy="200" r="28" fill="black" />
           </mask>
         </defs>
 
-        {/* White Base Circle masked with the cutout */}
-        <circle 
-          cx="200" 
-          cy="200" 
-          r="100" 
-          fill="#ffffff" 
-          mask="url(#centerLogoMask)" 
-          style={{ filter: 'drop-shadow(0 0 20px rgba(255, 255, 255, 0.25))' }}
-        />
+        {/* Rotate the entire masked circle group with native GPU transform (60 FPS on iOS) */}
+        <g style={{ transformOrigin: '200px 200px', animation: 'logoOrbit 8s linear infinite', willChange: 'transform' }}>
+          <circle 
+            cx="200" 
+            cy="200" 
+            r="100" 
+            fill="#ffffff" 
+            mask="url(#centerLogoMask)" 
+          />
+        </g>
 
         {/* Minimal high-frequency ticking clock dial indicators */}
         {[0, 30, 60, 90, 120, 150, 180, 210, 240, 270, 300, 330].map((deg) => {

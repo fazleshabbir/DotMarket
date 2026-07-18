@@ -2,4 +2,5 @@
 - [x] Optimize window resize logic in StarryBackground.tsx to prevent star re-initialization on scroll
 - [x] Wrap SocialCardItem in a motion.div with staggerItem variants in CommunitySection.tsx
 - [x] Optimize CSS blur filters and will-change layers for iOS/iPad resolutions in globals.css
+- [x] Optimize AnimatedLogo.tsx to use static mask and GPU-accelerated rotation
 - [x] Verify build and compile walkthrough.md
