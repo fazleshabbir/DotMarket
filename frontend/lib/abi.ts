@@ -49,7 +49,6 @@ export const ROUND_MARKET_ABI = [
   },
   { type: 'function', name: 'openRound', inputs: [], outputs: [], stateMutability: 'nonpayable' },
   { type: 'function', name: 'lockRound', inputs: [{ name: 'roundId', type: 'uint256' }, { name: 'lockPrice', type: 'int256' }], outputs: [], stateMutability: 'nonpayable' },
-  { type: 'function', name: 'lockAndOpenRound', inputs: [{ name: 'roundToLock', type: 'uint256' }, { name: 'lockPrice', type: 'int256' }], outputs: [], stateMutability: 'nonpayable' },
   { type: 'function', name: 'placeBet', inputs: [{ name: 'roundId', type: 'uint256' }, { name: 'position', type: 'uint8' }], outputs: [], stateMutability: 'payable' },
   { type: 'function', name: 'claim', inputs: [{ name: 'roundId', type: 'uint256' }], outputs: [], stateMutability: 'nonpayable' },
   // Events

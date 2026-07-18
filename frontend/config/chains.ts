@@ -38,7 +38,7 @@ export const arcTestnetChain: Chain = {
 export const arcTestnetConfig: ChainConfig = {
   chain: arcTestnetChain,
   contracts: {
-    predictionMarket: (process.env.NEXT_PUBLIC_ARC_MARKET_ADDRESS as `0x${string}`) || '0x31Aeb323aEE44e3EE5036F14bBD0D7f1429B4938',
+    predictionMarket: (process.env.NEXT_PUBLIC_ARC_MARKET_ADDRESS as `0x${string}`) || '0x1Ee2282eB59cf4F8829EBCDB17fb8Ca176D3Ba0D',
   },
   nativeToken: { symbol: 'USDC', decimals: 18 },
   bettingToken: { symbol: 'USDC', decimals: 18, isNative: true },

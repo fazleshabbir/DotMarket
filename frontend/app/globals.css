@@ -150,8 +150,8 @@ body::before {
   z-index: 0;
 }
 
-/* ── Mobile performance ───────────────────────────────────────────────────── */
-@media (max-width: 768px) {
+/* ── Mobile & Tablet performance ─────────────────────────────────────────── */
+@media (max-width: 1024px) {
   .glass-card,
   .premium-card,
   .glass-glow-panel,
@@ -321,7 +321,6 @@ body::before {
     border-color var(--duration-base) var(--ease-out),
     box-shadow var(--duration-base) var(--ease-out),
     transform var(--duration-base) var(--ease-out);
-  will-change: transform;
 }
 
 .premium-card.hover-effect:hover {
@@ -560,7 +559,6 @@ body::before {
     transform var(--duration-base) var(--ease-out),
     box-shadow var(--duration-base) var(--ease-out);
   transform-style: preserve-3d;
-  will-change: transform;
 }
 
 .tilt-card:hover {

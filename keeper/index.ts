@@ -68,16 +68,6 @@ const ROUND_MARKET_ABI = [
   },
   {
     type: "function",
-    name: "lockAndOpenRound",
-    inputs: [
-      { name: "roundToLock", type: "uint256" },
-      { name: "lockPrice", type: "int256" },
-    ],
-    outputs: [],
-    stateMutability: "nonpayable",
-  },
-  {
-    type: "function",
     name: "resolveRound",
     inputs: [
       { name: "roundId", type: "uint256" },
@@ -444,15 +434,43 @@ async function main() {
         continue;
       }
 
-      // ── STEP A: End time passed → resolve + open next ─────────────────────
+      // ── STEP A: Open round -> Lock round ──────────────────────────────────
       if (
+        currentRound.startPrice === 0n &&
+        nowSec >= currentRound.lockTimestamp + 4n
+      ) {
+        log("🔒", `Round #${currentRoundId} at lock time. Locking round...`);
+        const lockPrice = await fetchPrice(pair);
+        await withRetry(`lockRound #${currentRoundId}`, async () => {
+          const hash = await walletClient.writeContract({
+            address: config.marketAddress,
+            abi: ROUND_MARKET_ABI,
+            functionName: "lockRound",
+            args: [currentRoundId, lockPrice],
+            gas: 1_000_000n,
+          });
+          log("📤", `lockRound tx: ${hash}`);
+          const receipt = await publicClient.waitForTransactionReceipt({ hash, timeout: 60_000 });
+          log("✅", `Round #${currentRoundId} locked! Gas: ${receipt.gasUsed}`);
+          recordTxSuccess();
+          logEvent('BET_CLOSED', `Round #${currentRoundId} locked`, 'healthy');
+        });
+        nowSec = BigInt(Math.floor(Date.now() / 1000));
+        await sleep(POLL_INTERVAL_MS);
+        continue;
+      }
+
+      // ── STEP B: Locked round -> Resolve + Open next ───────────────────────
+      if (
+        currentRound.startPrice > 0n &&
         !currentRound.resolved &&
         !currentRound.canceled &&
-        currentRound.startPrice > 0n &&
         nowSec >= currentRound.endTimestamp + BigInt(END_BUFFER_MS / 1000)
       ) {
-        log("⏰", `Round #${currentRoundId} ended. Resolving...`);
+        log("⏰", `Round #${currentRoundId} ended. Resolving and opening next round...`);
         const resolvePrice = await fetchPrice(pair);
+        
+        // 1. Resolve current round
         await withRetry(`resolveRound #${currentRoundId}`, async () => {
           const hash = await walletClient.writeContract({
             address: config.marketAddress,
@@ -470,8 +488,10 @@ async function main() {
         });
         resolvedRoundCache.add(currentRoundId.toString());
         nowSec = BigInt(Math.floor(Date.now() / 1000));
+        
         await sleep(RESOLVE_TO_OPEN_DELAY_MS);
 
+        // 2. Open the next round sequentially
         await withRetry("openRound (after resolve)", async () => {
           const hash = await walletClient.writeContract({
             address: config.marketAddress,
@@ -489,108 +509,13 @@ async function main() {
         continue;
       }
 
-      // ── STEP B: Lock time passed → lockAndOpen ────────────────────────────
-      if (
-        !currentRound.resolved &&
-        !currentRound.canceled &&
-        currentRound.startPrice === 0n &&
-        nowSec >= currentRound.lockTimestamp + 4n
-      ) {
-        log("🔒", `Round #${currentRoundId} at lock time. Locking and opening next...`);
-        const lockPrice = await fetchPrice(pair);
-        await withRetry(`lockAndOpenRound #${currentRoundId}`, async () => {
-          const hash = await walletClient.writeContract({
-            address: config.marketAddress,
-            abi: ROUND_MARKET_ABI,
-            functionName: "lockAndOpenRound",
-            args: [currentRoundId, lockPrice],
-            gas: 1_000_000n,
-          });
-          log("📤", `lockAndOpenRound tx: ${hash}`);
-          const receipt = await publicClient.waitForTransactionReceipt({ hash, timeout: 60_000 });
-          log("✅", `Round #${currentRoundId} locked & next opened! Gas: ${receipt.gasUsed}`);
-          recordTxSuccess();
-          logEvent('BET_CLOSED', `Round #${currentRoundId} locked & next opened`, 'healthy');
-        });
-        await sleep(POLL_INTERVAL_MS);
-        continue;
-      }
-
-      // ── STEP C: Check ONLY the immediately previous round (not 10!) ───────
-      // If it's not already in our resolved cache, check it once.
-      // This uses exactly 1 extra RPC call only when needed.
-      const prevId = currentRoundId - 1n;
-      if (prevId > 0n && !resolvedRoundCache.has(prevId.toString())) {
-        nowSec = BigInt(Math.floor(Date.now() / 1000));
-        let prevRound = await withRetry(`Fetch prevRound #${prevId}`, () =>
-          publicClient.readContract({
-            address: config.marketAddress,
-            abi: ROUND_MARKET_ABI,
-            functionName: "getRound",
-            args: [prevId],
-          })
-        ) as unknown as RoundData;
-
-        if (prevRound.resolved || prevRound.canceled) {
-          // Cache it so we never fetch it again
-          resolvedRoundCache.add(prevId.toString());
-          log("💾", `Round #${prevId} already settled (cached).`);
-        } else if (nowSec >= prevRound.endTimestamp + BigInt(END_BUFFER_MS / 1000)) {
-          // Prev round ended but not resolved — handle it
-          if (prevRound.startPrice === 0n) {
-            log("🔒", `Prev Round #${prevId} was never locked. Locking now...`);
-            const prevLockPrice = await fetchPrice(pair);
-            await withRetry(`lockRound #${prevId}`, async () => {
-              const hash = await walletClient.writeContract({
-                address: config.marketAddress,
-                abi: ROUND_MARKET_ABI,
-                functionName: "lockRound",
-                args: [prevId, prevLockPrice],
-                gas: 1_000_000n,
-              });
-              log("📤", `lockRound tx: ${hash}`);
-              const receipt = await publicClient.waitForTransactionReceipt({ hash, timeout: 60_000 });
-              log("✅", `Round #${prevId} locked! Gas: ${receipt.gasUsed}`);
-            });
-            prevRound = await withRetry(`Refetch prevRound #${prevId}`, () =>
-              publicClient.readContract({
-                address: config.marketAddress,
-                abi: ROUND_MARKET_ABI,
-                functionName: "getRound",
-                args: [prevId],
-              })
-            ) as unknown as RoundData;
-          }
-
-          log("⏰", `Prev Round #${prevId} ended. Resolving...`);
-          const prevResolvePrice = await fetchPrice(pair);
-          await withRetry(`resolveRound #${prevId}`, async () => {
-            const hash = await walletClient.writeContract({
-              address: config.marketAddress,
-              abi: ROUND_MARKET_ABI,
-              functionName: "resolveRound",
-              args: [prevId, prevResolvePrice],
-              gas: 1_000_000n,
-            });
-            log("📤", `resolveRound tx: ${hash}`);
-            const receipt = await publicClient.waitForTransactionReceipt({ hash, timeout: 60_000 });
-            log("✅", `Round #${prevId} resolved! Gas: ${receipt.gasUsed}`);
-          });
-          resolvedRoundCache.add(prevId.toString());
-        } else {
-          // Prev round still live (not ended) — don't need to do anything
-          const secsUntilEnd = Number(prevRound.endTimestamp) - Number(nowSec);
-          log("ℹ️", `Round #${prevId} still settling. ${secsUntilEnd}s until end.`);
-        }
-      }
-
-      // ── STEP D: Nothing to do. Calculate smart sleep until next event. ────
+      // ── STEP C: Calculate smart sleep until next event ────────────────────
       nowSec = BigInt(Math.floor(Date.now() / 1000));
       const secsToLock = Number(currentRound.lockTimestamp) - Number(nowSec);
       const secsToEnd = Number(currentRound.endTimestamp) - Number(nowSec);
       const msToLock = secsToLock > 0 ? secsToLock * 1000 : Infinity;
       const msToEnd = secsToEnd > 0 ? secsToEnd * 1000 : Infinity;
-      // Wake up 2s before the next event, but minimum 5s and maximum POLL_INTERVAL_MS
+      
       const nextEventMs = Math.min(msToLock, msToEnd);
       const sleepMs = Math.max(5_000, Math.min(POLL_INTERVAL_MS, nextEventMs - 2_000));
 

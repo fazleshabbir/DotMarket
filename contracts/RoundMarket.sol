@@ -133,12 +133,12 @@ contract RoundMarket is ReentrancyGuard, Ownable {
      * @notice Opens a new round (without setting start price immediately).
      */
     function openRound() public onlyKeeper whenNotPaused {
-        // Ensure the previous round is locked or canceled before starting a new one
+        // Ensure the previous round is resolved or canceled before starting a new one
         if (currentRoundId > 0) {
             Round storage prev = rounds[currentRoundId];
             require(
-                prev.startPrice > 0 || prev.canceled,
-                "RM: previous round not locked"
+                prev.resolved || prev.canceled,
+                "RM: previous round not resolved"
             );
         }
 
@@ -180,41 +180,6 @@ contract RoundMarket is ReentrancyGuard, Ownable {
 
         round.startPrice = lockPrice;
         emit RoundLocked(roundId, lockPrice);
-    }
-
-    /**
-     * @notice Lock current round and open the next round in a single atomic transaction.
-     * @param  roundToLock  The round ID to lock
-     * @param  lockPrice    The price of the asset at lock time
-     */
-    function lockAndOpenRound(uint256 roundToLock, int256 lockPrice) external onlyKeeper whenNotPaused {
-        require(roundToLock == currentRoundId, "RM: lock target must be current round");
-
-        // 1. Lock the specified round
-        lockRound(roundToLock, lockPrice);
-
-        // 2. Open the next round
-        currentRoundId++;
-        uint256 startTs = block.timestamp;
-        uint256 lockTs  = startTs + roundDuration - lockBuffer;
-        uint256 endTs   = startTs + roundDuration;
-
-        rounds[currentRoundId] = Round({
-            roundId:             currentRoundId,
-            startPrice:          0,
-            closePrice:          0,
-            totalUpAmount:       0,
-            totalDownAmount:     0,
-            startTimestamp:      startTs,
-            lockTimestamp:       lockTs,
-            endTimestamp:        endTs,
-            rewardBaseCalAmount: 0,
-            rewardAmount:        0,
-            resolved:            false,
-            canceled:            false
-        });
-
-        emit RoundOpened(currentRoundId, startTs, lockTs, endTs, 0);
     }
 
     /**

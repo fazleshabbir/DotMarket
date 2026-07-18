@@ -24,9 +24,9 @@ export const TradingPanel = memo(function TradingPanel() {
   } = useMarket();
 
   const isCurrentRoundClosed = marketStatus === 'LOCKED' || marketStatus === 'SETTLING';
-  const targetRound = isCurrentRoundClosed ? round : prevRound;
-  const targetUserBet = isCurrentRoundClosed ? activeUserBet : prevUserBet;
-  const liveMarketStatusStr = isCurrentRoundClosed ? marketStatus : prevMarketStatus;
+  const targetRound = round;
+  const targetUserBet = activeUserBet;
+  const liveMarketStatusStr = marketStatus;
 
   const lockTimestamp  = targetRound ? Number(targetRound.lockTimestamp)  : 0;
   const endTimestamp   = targetRound ? Number(targetRound.endTimestamp)   : 0;

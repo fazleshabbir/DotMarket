@@ -191,7 +191,7 @@ export function BettingPanel({ currentBtcPrice: _unusedProps }: { currentBtcPric
   } = useMarket();
 
   // ── UI Tab State vs Global Phase ──────────────────────────────────────────
-  const isBettingTab = activeTab === 'betting';
+  const isBettingTab = phase === 'betting' && activeTab === 'betting';
 
   // ── Derive bet/live round correctly from phase ───────────────────────────
   // The 'live' round is always the one currently settling.
@@ -333,56 +333,58 @@ export function BettingPanel({ currentBtcPrice: _unusedProps }: { currentBtcPric
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%', boxSizing: 'border-box', position: 'relative' }}>
       
       {/* ─── TAB HEADER — strictly user-controlled ─────────── */}
-      <div style={{
-        display: 'flex',
-        gap: '3px',
-        marginBottom: 12,
-        background: 'rgba(255, 255, 255, 0.025)',
-        borderRadius: 'var(--radius-full)',
-        padding: '3px',
-        border: '1px solid var(--border-2)',
-      }}>
-        <button
-          onClick={() => setActiveTab('betting')}
-          style={{
-            flex: 1,
-            padding: '8px 0',
-            fontSize: 11,
-            fontWeight: 700,
-            letterSpacing: '0.06em',
-            border: 'none',
-            borderRadius: 'var(--radius-full)',
-            cursor: 'pointer',
-            transition: 'all var(--duration-fast) var(--ease-out)',
-            background: isBettingTab ? '#ffffff' : 'transparent',
-            color: isBettingTab ? '#000000' : 'var(--text-2)',
-            boxShadow: isBettingTab ? '0 2px 8px rgba(255, 255, 255, 0.1)' : 'none',
-          }}
-        >
-          {isBettingTab && <span style={{ marginRight: 4 }}>●</span>}
-          PREDICT
-        </button>
-        <button
-          onClick={() => setActiveTab('live')}
-          style={{
-            flex: 1,
-            padding: '8px 0',
-            fontSize: 11,
-            fontWeight: 700,
-            letterSpacing: '0.06em',
-            border: 'none',
-            borderRadius: 'var(--radius-full)',
-            cursor: 'pointer',
-            transition: 'all var(--duration-fast) var(--ease-out)',
-            background: !isBettingTab ? '#ffffff' : 'transparent',
-            color: !isBettingTab ? '#000000' : 'var(--text-2)',
-            boxShadow: !isBettingTab ? '0 2px 8px rgba(255, 255, 255, 0.1)' : 'none',
-          }}
-        >
-          {!isBettingTab && <span style={{ marginRight: 4 }}>●</span>}
-          LIVE MARKET
-        </button>
-      </div>
+      {phase === 'betting' && (
+        <div style={{
+          display: 'flex',
+          gap: '3px',
+          marginBottom: 12,
+          background: 'rgba(255, 255, 255, 0.025)',
+          borderRadius: 'var(--radius-full)',
+          padding: '3px',
+          border: '1px solid var(--border-2)',
+        }}>
+          <button
+            onClick={() => setActiveTab('betting')}
+            style={{
+              flex: 1,
+              padding: '8px 0',
+              fontSize: 11,
+              fontWeight: 700,
+              letterSpacing: '0.06em',
+              border: 'none',
+              borderRadius: 'var(--radius-full)',
+              cursor: 'pointer',
+              transition: 'all var(--duration-fast) var(--ease-out)',
+              background: isBettingTab ? '#ffffff' : 'transparent',
+              color: isBettingTab ? '#000000' : 'var(--text-2)',
+              boxShadow: isBettingTab ? '0 2px 8px rgba(255, 255, 255, 0.1)' : 'none',
+            }}
+          >
+            {isBettingTab && <span style={{ marginRight: 4 }}>●</span>}
+            PREDICT
+          </button>
+          <button
+            onClick={() => setActiveTab('live')}
+            style={{
+              flex: 1,
+              padding: '8px 0',
+              fontSize: 11,
+              fontWeight: 700,
+              letterSpacing: '0.06em',
+              border: 'none',
+              borderRadius: 'var(--radius-full)',
+              cursor: 'pointer',
+              transition: 'all var(--duration-fast) var(--ease-out)',
+              background: !isBettingTab ? '#ffffff' : 'transparent',
+              color: !isBettingTab ? '#000000' : 'var(--text-2)',
+              boxShadow: !isBettingTab ? '0 2px 8px rgba(255, 255, 255, 0.1)' : 'none',
+            }}
+          >
+            {!isBettingTab && <span style={{ marginRight: 4 }}>●</span>}
+            LIVE MARKET
+          </button>
+        </div>
+      )}
 
       {/* ─── CONTENT AREA (scrollable, animated transitions) ─────────────────── */}
       <div style={{ flex: 1, overflowY: 'auto', paddingRight: 4, minHeight: 0 }}>
