@@ -841,14 +841,55 @@ body::before {
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════
-   GLOW-PULSE (monochrome version — removed the rogue blue)
+   GLOW-PULSE — GPU composited (opacity only, no box-shadow)
    ═══════════════════════════════════════════════════════════════════════════ */
 
+/* Legacy class kept for any other consumers — now opacity-only */
 @keyframes glow-pulse {
-  0%, 100% { box-shadow: 0 0 4px rgba(255, 255, 255, 0.1); }
-  50%       { box-shadow: 0 0 16px rgba(255, 255, 255, 0.2); }
+  0%, 100% { opacity: 0.6; }
+  50%       { opacity: 1;   }
 }
 .animate-glow-pulse { animation: glow-pulse 2.5s ease-in-out infinite; }
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   LOGO ANIMATION — GPU composited, 60 FPS on iOS Safari
+   Only transform and opacity are animated — both run on the compositor thread
+   and never trigger layout or paint.
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/*
+ * Orbit: rotates the <g> around the SVG centre (100px, 100px).
+ * Using translate-based pivot so transform-origin is explicit and
+ * cross-browser reliable on all WebKit/Safari versions.
+ *
+ * The dot is placed at (145px, 100px) — 45px right of centre.
+ * Rotating the group around (100, 100) makes it orbit that point.
+ */
+@keyframes logo-orbit {
+  from { transform: rotate(45deg);  }
+  to   { transform: rotate(405deg); }
+}
+
+.logo-orbit-dot {
+  transform-origin: 100px 100px;        /* SVG centre */
+  transform-box: fill-box;              /* Ensures Safari uses correct origin */
+  animation: logo-orbit 8s linear infinite;
+  will-change: transform;
+}
+
+/*
+ * Glow pulse: only opacity is animated.
+ * The gradient is pre-painted; the compositor just fades it.
+ */
+@keyframes logo-glow-pulse {
+  0%, 100% { opacity: 0.55; }
+  50%       { opacity: 1;    }
+}
+
+.logo-glow-layer {
+  animation: logo-glow-pulse 3s ease-in-out infinite;
+  will-change: opacity;
+}
 
 /* ═══════════════════════════════════════════════════════════════════════════
    SCAN LINE OVERLAY
