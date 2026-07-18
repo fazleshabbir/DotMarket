@@ -3,13 +3,9 @@
 /**
  * PremiumTabs — Shared tab component used by HowItWorksSection and RoadmapSection.
  *
- * Design decisions:
- *  • Entirely CSS-driven styles (no Tailwind) so they can use CSS vars.
- *  • A single AnimatePresence wraps the content panel — the active key
- *    triggers a fade-up exit/enter (200ms) with no layout shift.
- *  • The tab bar uses -webkit-overflow-scrolling: touch for silky iOS scrolling.
- *  • Keyboard: ArrowLeft/ArrowRight wrap-around navigation.
- *  • No accordion, no timeline, no expandable card — tabs only.
+ * Direction-aware animation: forward navigation slides content up; backward
+ * navigation slides content down. This eliminates the collision glitch that
+ * occurs when both the exiting and entering panels move in the same direction.
  */
 
 import React, { useCallback, useId, useRef } from 'react';
@@ -28,28 +24,46 @@ interface PremiumTabsProps {
   onChange: (id: string) => void;
 }
 
-// ─── Animation variants ───────────────────────────────────────────────────────
+// ─── Direction-aware variants ─────────────────────────────────────────────────
+// `custom` receives the direction: +1 (forward) or -1 (backward).
+// Forward  → enter from below  (+y), exit to above  (−y)
+// Backward → enter from above  (−y), exit to below  (+y)
 const panelVariants = {
-  enter: {
+  enter: (dir: number) => ({
     opacity: 0,
-    y: 8,
-  },
+    y: dir * 10,
+  }),
   center: {
     opacity: 1,
     y: 0,
-    transition: { duration: 0.25, ease: [0.16, 1, 0.3, 1] as [number, number, number, number] },
+    transition: {
+      duration: 0.26,
+      ease: [0.16, 1, 0.3, 1] as [number, number, number, number],
+    },
   },
-  exit: {
+  exit: (dir: number) => ({
     opacity: 0,
-    y: -6,
+    y: dir * -8,
     transition: { duration: 0.18, ease: 'easeIn' as const },
-  },
+  }),
 };
 
 // ─── Component ────────────────────────────────────────────────────────────────
 export function PremiumTabs({ tabs, activeId, onChange }: PremiumTabsProps) {
   const uid = useId();
   const tabListRef = useRef<HTMLDivElement>(null);
+  // Persist direction between renders without causing re-renders
+  const directionRef = useRef<number>(1);
+
+  const handleChange = useCallback(
+    (id: string) => {
+      const newIdx = tabs.findIndex(t => t.id === id);
+      const oldIdx = tabs.findIndex(t => t.id === activeId);
+      directionRef.current = newIdx >= oldIdx ? 1 : -1;
+      onChange(id);
+    },
+    [tabs, activeId, onChange]
+  );
 
   // Keyboard arrow-key navigation
   const handleKeyDown = useCallback(
@@ -70,12 +84,11 @@ export function PremiumTabs({ tabs, activeId, onChange }: PremiumTabsProps) {
       } else {
         return;
       }
-      onChange(tabs[next].id);
-      // Focus the new tab button
+      handleChange(tabs[next].id);
       const buttons = tabListRef.current?.querySelectorAll<HTMLButtonElement>('[role="tab"]');
       buttons?.[next]?.focus();
     },
-    [tabs, onChange]
+    [tabs, handleChange]
   );
 
   const activeIdx = tabs.findIndex(t => t.id === activeId);
@@ -100,9 +113,7 @@ export function PremiumTabs({ tabs, activeId, onChange }: PremiumTabsProps) {
           borderRadius: 12,
           border: '1px solid rgba(255,255,255,0.07)',
           marginBottom: 24,
-          // Prevent iOS bounce on the bar itself
           WebkitTapHighlightColor: 'transparent',
-          // Remove scrollbar on webkit
         }}
       >
         {tabs.map((tab, idx) => {
@@ -115,35 +126,27 @@ export function PremiumTabs({ tabs, activeId, onChange }: PremiumTabsProps) {
               aria-selected={isActive}
               aria-controls={`${uid}-panel-${tab.id}`}
               tabIndex={isActive ? 0 : -1}
-              onClick={() => onChange(tab.id)}
+              onClick={() => handleChange(tab.id)}
               onKeyDown={e => handleKeyDown(e, idx)}
               style={{
-                // Layout
                 flexShrink: 0,
                 padding: '8px 16px',
-                // Typography
                 fontSize: 11,
                 fontWeight: 700,
                 fontFamily: 'var(--font-mono)',
                 letterSpacing: '0.05em',
                 whiteSpace: 'nowrap',
                 textTransform: 'uppercase',
-                // Colours
                 color: isActive ? '#000000' : 'rgba(255,255,255,0.45)',
                 background: isActive ? '#ffffff' : 'transparent',
-                // Shape
                 borderRadius: 9,
                 border: 'none',
                 cursor: 'pointer',
-                // Transition
-                transition:
-                  'background 200ms ease, color 200ms ease, box-shadow 200ms ease, transform 150ms ease',
+                transition: 'background 200ms ease, color 200ms ease, box-shadow 200ms ease',
                 boxShadow: isActive ? '0 2px 8px rgba(255,255,255,0.12)' : 'none',
-                // iOS tap fix
                 WebkitTapHighlightColor: 'transparent',
                 touchAction: 'manipulation',
                 outline: 'none',
-                // Prevent minimum height collapse on iOS
                 minHeight: 36,
               }}
               onMouseEnter={e => {
@@ -170,12 +173,12 @@ export function PremiumTabs({ tabs, activeId, onChange }: PremiumTabsProps) {
         role="tabpanel"
         id={`${uid}-panel-${activeId}`}
         aria-labelledby={`${uid}-tab-${activeId}`}
-        // Reserve min-height so the panel doesn't collapse between transitions
-        style={{ minHeight: 200 }}
+        style={{ minHeight: 200, position: 'relative' }}
       >
-        <AnimatePresence mode="wait" initial={false}>
+        <AnimatePresence mode="wait" initial={false} custom={directionRef.current}>
           <motion.div
             key={activeId}
+            custom={directionRef.current}
             variants={panelVariants}
             initial="enter"
             animate="center"
@@ -187,7 +190,7 @@ export function PremiumTabs({ tabs, activeId, onChange }: PremiumTabsProps) {
         </AnimatePresence>
       </div>
 
-      {/* Hide scrollbar on webkit globally for the tab bar */}
+      {/* Hide scrollbar on webkit */}
       <style>{`
         [role="tablist"]::-webkit-scrollbar { display: none; }
       `}</style>
