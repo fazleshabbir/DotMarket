@@ -35,7 +35,12 @@
 
 import React from 'react';
 
-const ORBIT_RADIUS = 45;   // px from centre in the 200×200 SVG viewport
+// Scale from original 400×400 viewBox → 200×200:
+//   orbit radius: 245 - 200 = 45 in 400-space → 22 in 200-space
+//   dot radius  : 28 in 400-space → 14 in 200-space
+//   disc radius : 100 in 400-space → 50 in 200-space
+//   check: 22 + 14 = 36 < 50 ✓ dot fully contained
+const ORBIT_RADIUS = 22;   // px from centre in the 200×200 SVG viewport
 const DOT_RADIUS   = 14;   // px radius of the cutout dot
 
 export function AnimatedLogo() {
@@ -125,6 +130,12 @@ export function AnimatedLogo() {
          * transform-origin is reliable on all WebKit versions.
          *
          * transform-origin is set explicitly via CSS, not inline style.
+         */}
+        {/*
+         * Orbiting cutout dot — solid black circle on top of the white disc.
+         * Rotation is applied by .logo-orbit-dot in globals.css.
+         * transform-origin: 100px 100px (SVG centre) with transform-box: view-box
+         * ensures the pivot point is the viewport centre, not the dot's own bbox.
          */}
         <g className="logo-orbit-dot">
           <circle

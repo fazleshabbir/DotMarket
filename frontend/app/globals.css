@@ -871,8 +871,8 @@ body::before {
 }
 
 .logo-orbit-dot {
-  transform-origin: 100px 100px;        /* SVG centre */
-  transform-box: fill-box;              /* Ensures Safari uses correct origin */
+  transform-origin: 100px 100px;        /* SVG centre (200×200 viewBox) */
+  transform-box: view-box;              /* Origin is relative to SVG viewport, not element bbox */
   animation: logo-orbit 8s linear infinite;
   will-change: transform;
 }
