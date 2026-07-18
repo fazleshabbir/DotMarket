@@ -1,7 +1,6 @@
-- [x] Modify hook/config `VIEWPORT_SETTINGS` in useMotionSystem.ts to add safe margins and thresholds
-- [x] Optimize window resize logic in StarryBackground.tsx to prevent star re-initialization on scroll
-- [x] Wrap SocialCardItem in a motion.div with staggerItem variants in CommunitySection.tsx
-- [x] Optimize CSS blur filters and will-change layers for iOS/iPad resolutions in globals.css
-- [x] Optimize AnimatedLogo.tsx to use static mask and GPU-accelerated rotation
-- [x] Create mobile-only tabbed selector for How It Works and Roadmap in app/page.tsx
-- [x] Verify build and compile walkthrough.md
+- [ ] Create `/trade` route and move the trading application there
+- [ ] Implement starry particle background component for landing page
+- [ ] Implement elegant 8-pointed star and hero section in `app/page.tsx`
+- [ ] Add navigation and links
+- [ ] Add smooth entry animations and hover effects in CSS
+- [ ] Compile and verify the build

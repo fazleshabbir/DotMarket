@@ -25,25 +25,9 @@ export function StarryBackground() {
     let stars: Star[] = [];
     const maxStars = 40; // much cleaner, sparser stars
 
-    let lastWidth = window.innerWidth;
-    let lastHeight = window.innerHeight;
-
     const resizeCanvas = () => {
-      const currentWidth = window.innerWidth;
-      const currentHeight = window.innerHeight;
-
-      // On iOS Safari, scrolling triggers a window resize event due to URL bar collapse/expand.
-      // We prevent star re-initialization if the width remains identical and height change is small (<150px).
-      if (currentWidth === lastWidth && Math.abs(currentHeight - lastHeight) < 150) {
-        canvas.width = currentWidth;
-        canvas.height = currentHeight;
-        return;
-      }
-
-      lastWidth = currentWidth;
-      lastHeight = currentHeight;
-      canvas.width = currentWidth;
-      canvas.height = currentHeight;
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
       initStars();
     };
 

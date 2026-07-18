@@ -5,7 +5,7 @@ const CUBIC_BEZIER: [number, number, number, number] = [0.16, 1, 0.3, 1];
 const BASE_DURATION = 0.6;
 
 // Standardized viewport config to prevent scroll-jank and repeated calculations
-export const VIEWPORT_SETTINGS = { once: true, margin: '0px 0px 200px 0px', amount: 0.01 };
+export const VIEWPORT_SETTINGS = { once: true, margin: '0px', amount: 0.1 };
 
 export function useMotionSystem() {
   const shouldReduceMotion = !!useReducedMotion();

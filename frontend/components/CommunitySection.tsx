@@ -212,13 +212,11 @@ function MobileCommunityLayout() {
   );
 }
 function SocialCardItem({ social }: { social: SocialCard }) {
-  const { staggerItem } = useMotionSystem();
   const [isHovered, setIsHovered] = useState(false);
   const Icon = social.icon;
 
   return (
-    <motion.div
-      variants={staggerItem}
+    <div
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
       style={{ height: '100%' }}
@@ -301,6 +299,6 @@ function SocialCardItem({ social }: { social: SocialCard }) {
           </Button>
         </a>
       </Card>
-    </motion.div>
+    </div>
   );
 }
