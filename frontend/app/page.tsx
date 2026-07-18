@@ -351,6 +351,7 @@ export default function LandingPage() {
   const [isMounted, setIsMounted] = useState(false);
   const [windowWidth, setWindowWidth] = useState(1200); // Default to desktop layout
   const [menuOpen, setMenuOpen] = useState(false);
+  const [mobileTab, setMobileTab] = useState<'how-it-works' | 'roadmap'>('how-it-works');
 
   useEffect(() => {
     setIsMounted(true);
@@ -727,12 +728,74 @@ export default function LandingPage() {
       <LiveMarketsSection />
 
 
-      {/* ── 4. How It Works ──────────────────────────────────────── */}
-      <HowItWorksSection />
+      {/* ── 4. How It Works & 8. Roadmap (Tabbed on Mobile, Stacked on Desktop) ── */}
+      {isMobile ? (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 16, width: '100%' }}>
+          <div style={{ display: 'flex', justifyContent: 'center', margin: '24px 0 12px' }}>
+            <div
+              style={{
+                display: 'inline-flex',
+                background: 'rgba(255, 255, 255, 0.025)',
+                border: '1px solid var(--border-2)',
+                borderRadius: 'var(--radius-full)',
+                padding: '3px',
+                alignItems: 'center',
+                gap: '3px',
+              }}
+            >
+              <button
+                onClick={() => setMobileTab('how-it-works')}
+                style={{
+                  padding: '8px 18px',
+                  borderRadius: 'var(--radius-full)',
+                  fontSize: '11px',
+                  fontWeight: mobileTab === 'how-it-works' ? 700 : 500,
+                  color: mobileTab === 'how-it-works' ? '#000000' : 'var(--text-2)',
+                  background: mobileTab === 'how-it-works' ? '#ffffff' : 'transparent',
+                  border: 'none',
+                  cursor: 'pointer',
+                  letterSpacing: '0.04em',
+                  textTransform: 'uppercase',
+                  boxShadow: mobileTab === 'how-it-works' ? '0 2px 8px rgba(255,255,255,0.1)' : 'none',
+                  transition: 'all var(--duration-fast) var(--ease-out)',
+                }}
+              >
+                How It Works
+              </button>
+              <button
+                onClick={() => setMobileTab('roadmap')}
+                style={{
+                  padding: '8px 18px',
+                  borderRadius: 'var(--radius-full)',
+                  fontSize: '11px',
+                  fontWeight: mobileTab === 'roadmap' ? 700 : 500,
+                  color: mobileTab === 'roadmap' ? '#000000' : 'var(--text-2)',
+                  background: mobileTab === 'roadmap' ? '#ffffff' : 'transparent',
+                  border: 'none',
+                  cursor: 'pointer',
+                  letterSpacing: '0.04em',
+                  textTransform: 'uppercase',
+                  boxShadow: mobileTab === 'roadmap' ? '0 2px 8px rgba(255,255,255,0.1)' : 'none',
+                  transition: 'all var(--duration-fast) var(--ease-out)',
+                }}
+              >
+                Roadmap
+              </button>
+            </div>
+          </div>
+          <div key={mobileTab} style={{ animation: 'fadeIn var(--duration-base) var(--ease-out)' }}>
+            {mobileTab === 'how-it-works' ? <HowItWorksSection /> : <RoadmapSection />}
+          </div>
+        </div>
+      ) : (
+        <>
+          {/* ── 4. How It Works ──────────────────────────────────────── */}
+          <HowItWorksSection />
 
-
-      {/* ── 8. Roadmap ───────────────────────────────────────────── */}
-      <RoadmapSection />
+          {/* ── 8. Roadmap ───────────────────────────────────────────── */}
+          <RoadmapSection />
+        </>
+      )}
 
       {/* ── 10. Community Section ────────────────────────────────────────────── */}
       <CommunitySection />
