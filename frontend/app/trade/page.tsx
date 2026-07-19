@@ -146,21 +146,64 @@ function DesktopTradingOnly() {
   );
 }
 
+// ─── Smooth Tab Panel wrapper ────────────────────────────────────────────────
+//
+// Uses opacity + pointer-events instead of display:none so that:
+//   1. TradingView chart (in TradingPanel) never unmounts → no re-init flicker
+//   2. Portfolio/Leaderboard preserve scroll position across tab switches
+//   3. CSS opacity transition produces a smooth crossfade
+//
+// The Live Market panel uses visibility:hidden when inactive (not just opacity:0)
+// so screen-reader focus does not bleed into the hidden chart.
+
+interface TabPanelProps {
+  active: boolean;
+  flex?: boolean;
+  children: React.ReactNode;
+}
+
+function TabPanel({ active, flex = false, children }: TabPanelProps) {
+  return (
+    <div
+      style={{
+        position:   'absolute',
+        inset:      0,
+        display:    flex ? 'flex' : 'block',
+        flexDirection: flex ? 'column' as const : undefined,
+        opacity:    active ? 1 : 0,
+        // pointer-events:none when hidden — prevents accidental click-through
+        pointerEvents: active ? 'auto' : 'none',
+        // visibility hidden ensures no keyboard focus leak when panel is invisible
+        visibility: active ? 'visible' : 'hidden',
+        transition: 'opacity 200ms cubic-bezier(0.4, 0, 0.2, 1), visibility 200ms',
+        overflow:   'hidden',
+        willChange: 'opacity',
+      }}
+      aria-hidden={!active}
+    >
+      {children}
+    </div>
+  );
+}
+
+// ─── Terminal ─────────────────────────────────────────────────────────────────
+
 function TerminalClient() {
   const [windowWidth, setWindowWidth] = useState(window.innerWidth);
-  const [activeTab, setActiveTab] = useState('Live Market');
-  const contracts = useContracts();
+  const [activeTab, setActiveTab]     = useState('Live Market');
+
+  const contracts      = useContracts();
   const MARKET_ADDRESS = contracts.predictionMarket;
 
   const { writeContract, data: txHash } = useWriteContract();
-  const { isLoading: isConfirming } = useWaitForTransactionReceipt({ hash: txHash });
+  const { isLoading: isConfirming }     = useWaitForTransactionReceipt({ hash: txHash });
 
   const handleClaim = (roundId: bigint) => {
     writeContract({
-      address: MARKET_ADDRESS,
-      abi: ROUND_MARKET_ABI,
+      address:      MARKET_ADDRESS,
+      abi:          ROUND_MARKET_ABI,
       functionName: 'claim',
-      args: [roundId],
+      args:         [roundId],
     });
   };
 
@@ -180,128 +223,117 @@ function TerminalClient() {
 
   return (
     <div style={{
-      position: 'relative',
-      height: '100vh',
-      display: 'flex',
+      position:   'relative',
+      height:     '100vh',
+      display:    'flex',
       flexDirection: 'column',
       background: 'var(--bg-primary)',
-      color: 'var(--text-1)',
-      overflow: 'hidden',
-      width: '100%',
-      maxWidth: '100%',
-      boxSizing: 'border-box',
+      color:      'var(--text-1)',
+      overflow:   'hidden',
+      width:      '100%',
+      maxWidth:   '100%',
+      boxSizing:  'border-box',
     }}>
       <TradeHeader activeTab={activeTab} setActiveTab={setActiveTab} />
 
-      {/* ── Market Info Bar ───────────────────────────────────────────────── */}
+      {/* ── Market Info Bar ─────────────────────────────────────────────────── */}
       <div style={{
-        display: 'flex',
+        display:    'flex',
         alignItems: 'center',
-        gap: 0,
-        padding: '0 20px',
-        margin: '8px 20px 0 20px',
+        gap:        0,
+        padding:    '0 20px',
+        margin:     '8px 20px 0 20px',
         borderRadius: 'var(--radius-md)',
         background: 'rgba(255,255,255,0.015)',
-        border: '1px solid var(--border-2)',
-        height: 36,
-        overflowX: 'auto',
+        border:     '1px solid var(--border-2)',
+        height:     36,
+        overflowX:  'auto',
         whiteSpace: 'nowrap',
         flexShrink: 0,
-        fontSize: 11,
+        fontSize:   11,
         fontFamily: 'var(--font-mono)',
         letterSpacing: '0.04em',
       }}>
-        {/* Pair */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 6, paddingRight: 16 }}>
           <span style={{ color: 'var(--text-1)', fontWeight: 600 }}>BTC/USD</span>
         </div>
-
-        {/* Divider */}
         <div style={{ width: 1, height: 14, background: 'var(--border-2)', marginRight: 16, flexShrink: 0 }} />
-
-        {/* Status */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 5, paddingRight: 16 }}>
           <div className="animate-pulse-live" style={{ width: 5, height: 5, borderRadius: '50%', background: '#ffffff', flexShrink: 0 }} />
           <span style={{ color: 'var(--text-2)', fontWeight: 500 }}>{marketStatus}</span>
         </div>
-
-        {/* Divider */}
         <div style={{ width: 1, height: 14, background: 'var(--border-2)', marginRight: 16, flexShrink: 0 }} />
-
-        {/* Time Left */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 5, paddingRight: 16 }}>
           <span style={{ color: 'var(--text-3)' }}>TIME</span>
           <CountdownText />
         </div>
-
-        {/* Divider */}
         <div style={{ width: 1, height: 14, background: 'var(--border-2)', marginRight: 16, flexShrink: 0 }} />
-
-        {/* Price */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 5, paddingRight: 16 }}>
           <span style={{ color: 'var(--text-3)' }}>PRICE</span>
           <PriceTicker price={btcPrice} />
         </div>
-
-        {/* Divider */}
         <div style={{ width: 1, height: 14, background: 'var(--border-2)', marginRight: 16, flexShrink: 0 }} />
-
-        {/* Pool */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
           <span style={{ color: 'var(--text-3)' }}>POOL</span>
           <strong style={{ color: 'var(--text-1)', fontWeight: 600 }}>{poolSize} {balanceSymbol}</strong>
         </div>
       </div>
 
-      {/* ── Live Market View ──────────────────────────────────────────────── */}
+      {/* ── Content Area — all panels mounted, crossfade between them ───────── */}
       <div style={{
-        display: activeTab === 'Live Market' ? 'flex' : 'none',
-        flex: 1,
-        padding: '10px 20px 16px 20px',
-        gap: 12,
+        flex:     1,
+        position: 'relative',   // ← TabPanel children use position:absolute inset:0
         minHeight: 0,
         boxSizing: 'border-box',
-        overflow: 'hidden',
       }}>
-        {/* Left: Chart + Positions */}
-        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 10, minHeight: 0, overflow: 'hidden' }}>
-          <div style={{ flex: '6 1 0', minHeight: 0 }}>
-            <TradingPanel />
-          </div>
-          <div style={{ flex: '4 1 0', minHeight: 0 }}>
-            <PositionsTable />
-          </div>
-        </div>
 
-        {/* Right: Betting Panel */}
-        <div style={{ width: '364px', flexShrink: 0, display: 'flex', flexDirection: 'column', minHeight: 0, overflowY: 'auto' }}>
-          <BettingPanel currentBtcPrice={btcPrice} />
-        </div>
-      </div>
+        {/* ── Live Market (always mounted — chart never re-initialises) ──────── */}
+        <TabPanel active={activeTab === 'Live Market'} flex>
+          <div style={{
+            flex:    1,
+            display: 'flex',
+            padding: '10px 20px 16px 20px',
+            gap:     12,
+            minHeight: 0,
+            boxSizing: 'border-box',
+            overflow: 'hidden',
+          }}>
+            {/* Left: Chart + Positions */}
+            <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 10, minHeight: 0, overflow: 'hidden' }}>
+              <div style={{ flex: '6 1 0', minHeight: 0 }}>
+                <TradingPanel />
+              </div>
+              <div style={{ flex: '4 1 0', minHeight: 0 }}>
+                <PositionsTable />
+              </div>
+            </div>
 
-      {/* ── Other Views: Portfolio, Leaderboard ───────────────────────────── */}
-      <div style={{
-        display: activeTab !== 'Live Market' ? 'flex' : 'none',
-        flex: 1,
-        flexDirection: 'column',
-        minHeight: 0,
-        boxSizing: 'border-box',
-        overflow: 'hidden',
-      }}>
-        {activeTab === 'Portfolio' && (
-          <div style={{ flex: 1, overflowY: 'auto', padding: '12px 20px 24px 20px' }}>
+            {/* Right: Betting Panel */}
+            <div style={{ width: '364px', flexShrink: 0, display: 'flex', flexDirection: 'column', minHeight: 0, overflowY: 'auto' }}>
+              <BettingPanel currentBtcPrice={btcPrice} />
+            </div>
+          </div>
+        </TabPanel>
+
+        {/* ── Portfolio ──────────────────────────────────────────────────────── */}
+        <TabPanel active={activeTab === 'Portfolio'} flex>
+          <div style={{ flex: 1, overflowY: 'auto', padding: '12px 20px 24px 20px', width: '100%' }}>
             <PortfolioView onClaim={handleClaim} claimPending={isConfirming} />
           </div>
-        )}
-        {activeTab === 'Leaderboard' && (
-          <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', padding: '0 20px 20px 20px' }}>
+        </TabPanel>
+
+        {/* ── Leaderboard ────────────────────────────────────────────────────── */}
+        <TabPanel active={activeTab === 'Leaderboard'} flex>
+          <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', padding: '0 20px 20px 20px', width: '100%' }}>
             <LeaderboardView />
           </div>
-        )}
+        </TabPanel>
+
       </div>
     </div>
   );
 }
+
 
 // Disable SSR for the entire trading terminal to prevent hydration mismatch from Date.now()
 const DynamicTerminalClient = dynamic(() => Promise.resolve(TerminalClient), {
