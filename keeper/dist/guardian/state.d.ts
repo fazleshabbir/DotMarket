@@ -1,4 +1,16 @@
 import type { HealthSnapshot, Alert, AIAnalysis, RecoveryResult, MarketPhase } from './types';
+export interface PhaseSnapshot {
+    roundId: number;
+    phase: 'OPEN' | 'LOCKED' | 'SETTLING' | 'RESOLVED' | 'GENESIS';
+    secondsRemaining: number;
+    lockTimestamp: number;
+    endTimestamp: number;
+    blockTimestamp: number;
+    startPrice: string;
+    upPool: string;
+    downPool: string;
+    updatedAt: number;
+}
 export declare const guardianState: {
     keeperAlive: boolean;
     keeperStartTime: number;
@@ -31,8 +43,13 @@ export declare const guardianState: {
     latestAIAnalysis: AIAnalysis | null;
     lastRecoveries: RecoveryResult[];
     keeperBalance: string;
+    phaseSnapshot: PhaseSnapshot | null;
 };
 export declare function heartbeat(): void;
+/**
+ * Update round state from on-chain data.
+ * Phase derivation uses blockTimestamp (passed in) — NEVER Date.now().
+ */
 export declare function updateRoundState(round: {
     roundId: number;
     startPrice: bigint;
@@ -41,7 +58,13 @@ export declare function updateRoundState(round: {
     startTimestamp: number;
     resolved: boolean;
     canceled: boolean;
+    blockTimestamp?: number;
 }): void;
+/**
+ * Update the phase snapshot that is served to the frontend via /api/market-phase.
+ * Called each keeper loop after deriving phase from block.timestamp.
+ */
+export declare function updatePhaseSnapshot(snap: Omit<PhaseSnapshot, 'updatedAt'>): void;
 export declare function recordError(error: string): void;
 export declare function recordTxSuccess(): void;
 export declare function recordTxFailure(): void;

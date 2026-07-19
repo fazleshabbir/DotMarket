@@ -383,7 +383,15 @@ async function waitUntilEvent(
   if (secsLeft > SMART_SLEEP_THRESHOLD_SECS) {
     const bulkSleepMs = (secsLeft - SMART_SLEEP_THRESHOLD_SECS + 1) * 1000;
     log("💤", `${label} in ~${secsLeft}s. Sleeping ${Math.round(bulkSleepMs / 1000)}s then polling blocks…`);
-    await sleep(bulkSleepMs);
+    
+    // Split bulk sleep into max 5-second chunks to keep the heartbeat fresh
+    let remainingMs = bulkSleepMs;
+    while (remainingMs > 0) {
+      const chunk = Math.min(5000, remainingMs);
+      await sleep(chunk);
+      heartbeat();
+      remainingMs -= chunk;
+    }
   }
 
   // Block-by-block polling for the final window
@@ -391,6 +399,7 @@ async function waitUntilEvent(
   let iterations   = 0;
   while (true) {
     await sleep(BLOCK_POLL_MS);
+    heartbeat(); // Keep heartbeat alive during block polling
     try {
       const block = await publicClient.getBlock({ blockTag: "latest" });
       if (block.number > lastBlockNum) {

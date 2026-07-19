@@ -34,6 +34,20 @@ async function handleGuardianRequest(req, res) {
     const url = req.url || '';
     const method = req.method || 'GET';
     try {
+        // ── GET /api/market-phase — authoritative phase for the frontend ──────
+        // Returns the keeper's last computed phase, derived from block.timestamp.
+        // The frontend polls this every 5s to stay synchronized with chain state.
+        if (url === '/api/market-phase' && method === 'GET') {
+            const snap = state_1.guardianState.phaseSnapshot;
+            if (!snap) {
+                json(res, 503, { error: 'phase not yet computed — keeper may be starting up' });
+                return;
+            }
+            // Include staleness flag so the frontend can detect keeper downtime
+            const staleMs = Date.now() - snap.updatedAt;
+            json(res, 200, { ...snap, staleMs, isStale: staleMs > 30000 });
+            return;
+        }
         // ── GET /guardian/status ──
         if (url === '/guardian/status' && method === 'GET') {
             json(res, 200, {
