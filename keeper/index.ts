@@ -1,5 +1,7 @@
 import "dotenv/config";
 import httpModule from "http";
+import * as fs from "fs";
+import * as path from "path";
 import {
   createPublicClient,
   createWalletClient,
@@ -12,573 +14,819 @@ import {
 import { privateKeyToAccount } from "viem/accounts";
 
 // ── Guardian Integration ────────────────────────────────────────────────────
-import { guardianState, heartbeat, updateRoundState, recordError, recordTxSuccess, recordTxFailure, recordSettlement } from './guardian/state';
-import { startGuardianMonitor } from './guardian/monitor';
-import { handleGuardianRequest } from './guardian/routes';
-import { logEvent } from './guardian/logger';
+import {
+  guardianState,
+  heartbeat,
+  updateRoundState,
+  recordError,
+  recordTxSuccess,
+  recordSettlement,
+  updatePhaseSnapshot,
+} from "./guardian/state";
+import { startGuardianMonitor } from "./guardian/monitor";
+import { handleGuardianRequest } from "./guardian/routes";
+import { logEvent } from "./guardian/logger";
 
-// ─── ABI Definitions ────────────────────────────────────────────────────────
+// ─── ABI ─────────────────────────────────────────────────────────────────────
 
 const ROUND_MARKET_ABI = [
-  { type: "function", name: "pair", inputs: [], outputs: [{ type: "string" }], stateMutability: "view" },
-  { type: "function", name: "currentRoundId", inputs: [], outputs: [{ type: "uint256" }], stateMutability: "view" },
+  { type: "function", name: "pair",          inputs: [], outputs: [{ type: "string" }],  stateMutability: "view" },
+  { type: "function", name: "currentRoundId",inputs: [], outputs: [{ type: "uint256" }], stateMutability: "view" },
   { type: "function", name: "roundDuration", inputs: [], outputs: [{ type: "uint256" }], stateMutability: "view" },
-  { type: "function", name: "lockBuffer", inputs: [], outputs: [{ type: "uint256" }], stateMutability: "view" },
+  { type: "function", name: "lockBuffer",    inputs: [], outputs: [{ type: "uint256" }], stateMutability: "view" },
   {
-    type: "function",
-    name: "getRound",
+    type: "function", name: "getRound",
     inputs: [{ name: "roundId", type: "uint256" }],
-    outputs: [
-      {
-        type: "tuple",
-        components: [
-          { name: "roundId", type: "uint256" },
-          { name: "startPrice", type: "int256" },
-          { name: "closePrice", type: "int256" },
-          { name: "totalUpAmount", type: "uint256" },
-          { name: "totalDownAmount", type: "uint256" },
-          { name: "startTimestamp", type: "uint256" },
-          { name: "lockTimestamp", type: "uint256" },
-          { name: "endTimestamp", type: "uint256" },
-          { name: "rewardBaseCalAmount", type: "uint256" },
-          { name: "rewardAmount", type: "uint256" },
-          { name: "resolved", type: "bool" },
-          { name: "canceled", type: "bool" },
-        ],
-      },
-    ],
+    outputs: [{
+      type: "tuple",
+      components: [
+        { name: "roundId",             type: "uint256" },
+        { name: "startPrice",          type: "int256"  },
+        { name: "closePrice",          type: "int256"  },
+        { name: "totalUpAmount",       type: "uint256" },
+        { name: "totalDownAmount",     type: "uint256" },
+        { name: "startTimestamp",      type: "uint256" },
+        { name: "lockTimestamp",       type: "uint256" },
+        { name: "endTimestamp",        type: "uint256" },
+        { name: "rewardBaseCalAmount", type: "uint256" },
+        { name: "rewardAmount",        type: "uint256" },
+        { name: "resolved",            type: "bool"    },
+        { name: "canceled",            type: "bool"    },
+      ],
+    }],
     stateMutability: "view",
   },
   {
-    type: "function",
-    name: "openRound",
-    inputs: [],
-    outputs: [],
-    stateMutability: "nonpayable",
+    type: "function", name: "openRound",
+    inputs: [], outputs: [], stateMutability: "nonpayable",
   },
   {
-    type: "function",
-    name: "lockRound",
-    inputs: [
-      { name: "roundId", type: "uint256" },
-      { name: "lockPrice", type: "int256" },
-    ],
-    outputs: [],
-    stateMutability: "nonpayable",
+    type: "function", name: "lockRound",
+    inputs: [{ name: "roundId", type: "uint256" }, { name: "lockPrice", type: "int256" }],
+    outputs: [], stateMutability: "nonpayable",
   },
   {
-    type: "function",
-    name: "resolveRound",
-    inputs: [
-      { name: "roundId", type: "uint256" },
-      { name: "closePrice", type: "int256" },
-    ],
-    outputs: [],
-    stateMutability: "nonpayable",
+    type: "function", name: "resolveRound",
+    inputs: [{ name: "roundId", type: "uint256" }, { name: "closePrice", type: "int256" }],
+    outputs: [], stateMutability: "nonpayable",
   },
 ] as const;
 
-// ─── Constants ──────────────────────────────────────────────────────────────
+// ─── Types ───────────────────────────────────────────────────────────────────
+
+interface RoundData {
+  roundId:             bigint;
+  startPrice:          bigint;
+  closePrice:          bigint;
+  totalUpAmount:       bigint;
+  totalDownAmount:     bigint;
+  startTimestamp:      bigint;
+  lockTimestamp:       bigint;
+  endTimestamp:        bigint;
+  rewardBaseCalAmount: bigint;
+  rewardAmount:        bigint;
+  resolved:            boolean;
+  canceled:            boolean;
+}
+
+type KeeperAction =
+  | "OPEN_GENESIS"
+  | "LOCK_ROUND"
+  | "RESOLVE_AND_OPEN"
+  | "OPEN_AFTER_RESOLVE"
+  | "WAIT";
+
+// ─── Constants ────────────────────────────────────────────────────────────────
 
 const LOW_BALANCE_THRESHOLD = 0.5;
-const MAX_RETRIES = 3;
-const RETRY_BASE_DELAY_MS = 3_000;
-const ERROR_COOLDOWN_MS = 15_000;
-const RESOLVE_TO_OPEN_DELAY_MS = 3_000;
-const END_BUFFER_MS = 5_000;
+const MAX_RETRIES           = 3;
+const RETRY_BASE_DELAY_MS   = 3_000;
+const ERROR_COOLDOWN_MS     = 10_000;
 
-// ── Polling interval: only 2 reads per loop (currentRoundId + getRound).
-// 15s is safe for any public RPC — well under rate limits.
-const POLL_INTERVAL_MS = 15_000;
+/**
+ * LOCK_GRACE_SECS / END_GRACE_SECS: seconds past the on-chain timestamp before we act.
+ * Using block.timestamp (not Date.now) means we only fire when the chain agrees.
+ * 2-3 seconds of grace ensures the tx will not revert on "not lockable yet".
+ */
+const LOCK_GRACE_SECS = 2n;
+const END_GRACE_SECS  = 3n;
 
-// ─── RPC Endpoints (priority order, no rate-limited Arc RPC) ────────────────
-// Thirdweb & drpc are reliable public RPCs for ARC testnet without strict limits.
+/**
+ * Between resolveRound confirming and openRound firing: wait 2s to let
+ * indexers catch up and avoid any multicall edge cases.
+ */
+const RESOLVE_TO_OPEN_DELAY_MS = 2_000;
+
+/**
+ * How frequently we poll for a new block when waiting for the next event.
+ * 2s is safe for any public RPC and equals ~1 ARC Testnet block.
+ */
+const BLOCK_POLL_MS = 2_000;
+
+/**
+ * If the next event is more than this many seconds away (by block timestamp),
+ * sleep the surplus and only then begin block-by-block polling.
+ */
+const SMART_SLEEP_THRESHOLD_SECS = 10;
+
+const GAS_LIMIT = 1_000_000n;
+
 const RPC_ENDPOINTS = [
-  "https://rpc.testnet.arc.network",     // Official RPC
-  "https://arc-testnet.drpc.org",        // Fallback 1: dRPC
+  "https://rpc.testnet.arc.network",
+  "https://arc-testnet.drpc.org",
 ];
 
-// ─── ARC Testnet Chain Definition ───────────────────────────────────────────
+// Crash-recovery state file (survives process restarts)
+const STATE_FILE = path.join(__dirname, "keeper-state.json");
+
+// ─── Chain ───────────────────────────────────────────────────────────────────
 
 const arcTestnet: Chain = {
   id: 5_042_002,
   name: "ARC Testnet",
   nativeCurrency: { name: "ETH", symbol: "ETH", decimals: 18 },
-  rpcUrls: {
-    default: { http: [RPC_ENDPOINTS[0]] },
-  },
-  blockExplorers: {
-    default: { name: "ArcScan", url: "https://testnet.arcscan.app" },
-  },
+  rpcUrls: { default: { http: [RPC_ENDPOINTS[0]] } },
+  blockExplorers: { default: { name: "ArcScan", url: "https://testnet.arcscan.app" } },
 };
 
-// ─── Round Type ─────────────────────────────────────────────────────────────
-
-interface RoundData {
-  roundId: bigint;
-  startPrice: bigint;
-  closePrice: bigint;
-  totalUpAmount: bigint;
-  totalDownAmount: bigint;
-  startTimestamp: bigint;
-  lockTimestamp: bigint;
-  endTimestamp: bigint;
-  rewardBaseCalAmount: bigint;
-  rewardAmount: bigint;
-  resolved: boolean;
-  canceled: boolean;
-}
-
-// ─── Logger ─────────────────────────────────────────────────────────────────
+// ─── Logger ──────────────────────────────────────────────────────────────────
 
 function log(emoji: string, message: string): void {
-  const ts = new Date().toISOString();
-  console.log(`[${ts}] ${emoji}  ${message}`);
+  console.log(`[${new Date().toISOString()}] ${emoji}  ${message}`);
 }
 
-// ─── Config ─────────────────────────────────────────────────────────────────
+// ─── Config ──────────────────────────────────────────────────────────────────
 
 function loadConfig() {
-  // Use Thirdweb RPC as default — no rate limits, reliable
-  const rpc = process.env.ARC_TESTNET_RPC ?? RPC_ENDPOINTS[0];
-  const privateKey = process.env.KEEPER_PRIVATE_KEY || process.env.DEPLOYER_PRIVATE_KEY;
-  const marketAddress = process.env.MARKET_ADDRESS ?? "0xA801878f362D7c0093Fd96B6616b33812c28ce8E";
+  const rpc         = process.env.ARC_TESTNET_RPC ?? RPC_ENDPOINTS[0];
+  const privateKey  = process.env.KEEPER_PRIVATE_KEY || process.env.DEPLOYER_PRIVATE_KEY;
+  const marketAddr  = process.env.MARKET_ADDRESS ?? "0xA801878f362D7c0093Fd96B6616b33812c28ce8E";
 
-  if (!privateKey) {
-    throw new Error("KEEPER_PRIVATE_KEY or DEPLOYER_PRIVATE_KEY is required. Set it in .env");
-  }
+  if (!privateKey) throw new Error("KEEPER_PRIVATE_KEY or DEPLOYER_PRIVATE_KEY required in .env");
 
   return {
     rpc,
     privateKey: (privateKey.startsWith("0x") ? privateKey : `0x${privateKey}`) as Hex,
-    marketAddress: marketAddress as Address,
+    marketAddress: marketAddr as Address,
   };
 }
 
-// ─── Helpers ────────────────────────────────────────────────────────────────
+// ─── Helpers ─────────────────────────────────────────────────────────────────
 
 function sleep(ms: number): Promise<void> {
-  return new Promise((resolve) => setTimeout(resolve, ms));
+  return new Promise((r) => setTimeout(r, ms));
 }
 
-/**
- * Retry with exponential backoff. Pauses between attempts to avoid rate limits.
- */
 async function withRetry<T>(
   label: string,
   fn: () => Promise<T>,
   maxRetries = MAX_RETRIES
 ): Promise<T> {
-  let lastError: unknown;
+  let lastErr: unknown;
   for (let attempt = 1; attempt <= maxRetries; attempt++) {
     try {
       return await fn();
     } catch (err) {
-      lastError = err;
+      lastErr = err;
       const delay = RETRY_BASE_DELAY_MS * 2 ** (attempt - 1);
-      log(
-        "⚠️",
-        `${label} failed (attempt ${attempt}/${maxRetries}): ${
-          err instanceof Error ? err.message : String(err)
-        }`
-      );
+      log("⚠️", `${label} attempt ${attempt}/${maxRetries} failed: ${err instanceof Error ? err.message : String(err)}`);
       if (attempt < maxRetries) {
-        log("⏳", `Retrying in ${delay / 1000}s...`);
+        log("⏳", `Retry in ${delay / 1000}s…`);
         await sleep(delay);
       }
     }
   }
-  throw lastError;
+  throw lastErr;
 }
 
-// ─── Price Fetching ──────────────────────────────────────────────────────────
+// ─── Crash Recovery State ────────────────────────────────────────────────────
+
+interface PersistedState {
+  lastKnownRoundId: number;
+  lastKnownPhase: string;
+  savedAt: number;
+}
+
+function loadPersistedState(): PersistedState | null {
+  try {
+    if (fs.existsSync(STATE_FILE)) {
+      const raw = fs.readFileSync(STATE_FILE, "utf8");
+      const parsed = JSON.parse(raw) as PersistedState;
+      log("💾", `Loaded persisted state: round=${parsed.lastKnownRoundId} phase=${parsed.lastKnownPhase} (saved ${Math.floor((Date.now() - parsed.savedAt) / 1000)}s ago)`);
+      return parsed;
+    }
+  } catch {
+    log("⚠️", "Could not load persisted state file; starting fresh.");
+  }
+  return null;
+}
+
+function saveState(roundId: bigint, phase: string): void {
+  try {
+    const state: PersistedState = {
+      lastKnownRoundId: Number(roundId),
+      lastKnownPhase: phase,
+      savedAt: Date.now(),
+    };
+    fs.writeFileSync(STATE_FILE, JSON.stringify(state, null, 2), "utf8");
+  } catch (err) {
+    log("⚠️", `Failed to save state: ${err instanceof Error ? err.message : String(err)}`);
+  }
+}
+
+// ─── Blockchain-Authoritative Phase Derivation ──────────────────────────────
+//
+// THIS IS THE CORE CHANGE.
+// Phase is computed exclusively from block.timestamp and on-chain round data.
+// Date.now() is NEVER used to decide what action to take.
+//
+// Phase                 Condition
+// ────────────────────  ─────────────────────────────────────────────────────────
+// GENESIS               currentRoundId === 0
+// OPEN                  startPrice === 0 AND blockTs < lockTimestamp
+// LOCKABLE              startPrice === 0 AND blockTs >= lockTimestamp + LOCK_GRACE
+// LOCKED                startPrice > 0 AND !resolved AND blockTs < endTimestamp
+// RESOLVABLE            startPrice > 0 AND !resolved AND blockTs >= endTimestamp + END_GRACE
+// RESOLVED              resolved || canceled
+// ─────────────────────────────────────────────────────────────────────────────
+
+type OnChainPhase =
+  | "GENESIS"
+  | "OPEN"
+  | "LOCKABLE"
+  | "LOCKED"
+  | "RESOLVABLE"
+  | "RESOLVED";
+
+function derivePhase(blockTimestamp: bigint, roundId: bigint, round: RoundData): OnChainPhase {
+  if (roundId === 0n) return "GENESIS";
+
+  if (round.resolved || round.canceled) return "RESOLVED";
+
+  const isLocked = round.startPrice > 0n;
+
+  if (!isLocked) {
+    if (blockTimestamp >= round.lockTimestamp + LOCK_GRACE_SECS) return "LOCKABLE";
+    return "OPEN";
+  }
+
+  // isLocked = true
+  if (blockTimestamp >= round.endTimestamp + END_GRACE_SECS) return "RESOLVABLE";
+  return "LOCKED";
+}
+
+function phaseToAction(phase: OnChainPhase): KeeperAction {
+  switch (phase) {
+    case "GENESIS":    return "OPEN_GENESIS";
+    case "LOCKABLE":   return "LOCK_ROUND";
+    case "RESOLVABLE": return "RESOLVE_AND_OPEN";
+    case "RESOLVED":   return "OPEN_AFTER_RESOLVE";
+    case "OPEN":
+    case "LOCKED":
+    default:           return "WAIT";
+  }
+}
+
+/** Seconds until the next expected action (from block timestamp) */
+function secsToNextEvent(blockTimestamp: bigint, round: RoundData): bigint {
+  const lockTarget = round.lockTimestamp + LOCK_GRACE_SECS;
+  const endTarget  = round.endTimestamp  + END_GRACE_SECS;
+
+  if (round.startPrice === 0n) {
+    return lockTarget > blockTimestamp ? lockTarget - blockTimestamp : 0n;
+  }
+  return endTarget > blockTimestamp ? endTarget - blockTimestamp : 0n;
+}
+
+// ─── Price Fetch ──────────────────────────────────────────────────────────────
 
 async function fetchPrice(pairName: string): Promise<bigint> {
-  log("🔮", `Fetching price for ${pairName}...`);
+  log("🔮", `Fetching price for ${pairName}…`);
 
-  // 1. Try Pyth Hermes API first (no cloud IP blocks, no rate limit issues)
+  // Feed IDs
+  let feedId = "e62df6c8b4a85fe1a67db44dc12de5db330f7ac66b72dc658afedf0f4a415b43";
+  const envFeed = process.env.PRICE_FEED_ID;
+  if (envFeed) {
+    feedId = envFeed.startsWith("0x") ? envFeed.substring(2) : envFeed;
+  } else {
+    const p = pairName.toUpperCase();
+    if (p === "ETH/USD") feedId = "ff61491a931112ddf1bd8147cd1b641375f79f5825126d665480874634fd0ace";
+    if (p === "SOL/USD") feedId = "ef0d8b6ffd224f8d5c02b18169902bd6f1214e3057ab65d83a1045509287ec50";
+  }
+
+  // 1. Pyth Hermes
   try {
-    let feedId = "e62df6c8b4a85fe1a67db44dc12de5db330f7ac66b72dc658afedf0f4a415b43"; // BTC/USD
-    const envFeedId = process.env.PRICE_FEED_ID;
-    if (envFeedId) {
-      feedId = envFeedId.startsWith("0x") ? envFeedId.substring(2) : envFeedId;
-    } else {
-      const pairUpper = pairName.toUpperCase();
-      if (pairUpper === "ETH/USD") {
-        feedId = "ff61491a931112ddf1bd8147cd1b641375f79f5825126d665480874634fd0ace";
-      } else if (pairUpper === "SOL/USD") {
-        feedId = "ef0d8b6ffd224f8d5c02b18169902bd6f1214e3057ab65d83a1045509287ec50";
-      }
-    }
-
     const res = await fetch(
       `https://hermes.pyth.network/v2/updates/price/latest?ids[]=${feedId}`,
-      { signal: AbortSignal.timeout(10000) }
+      { signal: AbortSignal.timeout(8_000) }
     );
-    if (!res.ok) throw new Error(`Hermes API returned status ${res.status}`);
+    if (!res.ok) throw new Error(`Hermes ${res.status}`);
     const data = await res.json() as any;
-    const priceStr = data.parsed[0].price.price;
-    const expo = data.parsed[0].price.expo;
-
-    let priceVal = BigInt(priceStr);
-    const targetDecimals = 8;
-    const currentDecimals = -expo;
-    if (currentDecimals > targetDecimals) {
-      priceVal = priceVal / BigInt(10 ** (currentDecimals - targetDecimals));
-    } else if (currentDecimals < targetDecimals) {
-      priceVal = priceVal * BigInt(10 ** (targetDecimals - currentDecimals));
-    }
-
-    log("📈", `Pyth Price: $${(Number(priceVal) / 1e8).toFixed(2)}`);
-    return priceVal;
+    const { price: priceStr, expo } = data.parsed[0].price;
+    let val = BigInt(priceStr);
+    const dec = -expo;
+    if (dec > 8)  val = val / BigInt(10 ** (dec - 8));
+    if (dec < 8)  val = val * BigInt(10 ** (8 - dec));
+    log("📈", `Pyth: $${(Number(val) / 1e8).toFixed(2)}`);
+    return val;
   } catch (err) {
-    log("⚠️", `Pyth Hermes failed: ${err instanceof Error ? err.message : String(err)}. Trying Binance...`);
+    log("⚠️", `Pyth failed: ${err instanceof Error ? err.message : String(err)}`);
   }
 
-  // 2. Fallback: Binance
-  let symbol = "BTCUSDT";
-  if (pairName.toUpperCase() === "ETH/USD") symbol = "ETHUSDT";
-  else if (pairName.toUpperCase() === "SOL/USD") symbol = "SOLUSDT";
-
+  // 2. Binance
+  const sym = pairName.toUpperCase() === "ETH/USD" ? "ETHUSDT"
+            : pairName.toUpperCase() === "SOL/USD" ? "SOLUSDT"
+            : "BTCUSDT";
   try {
-    const res = await fetch(`https://api.binance.com/api/v3/ticker/price?symbol=${symbol}`, {
-      signal: AbortSignal.timeout(10000),
-    });
-    if (!res.ok) throw new Error(`Binance API returned status ${res.status}`);
+    const res = await fetch(`https://api.binance.com/api/v3/ticker/price?symbol=${sym}`, { signal: AbortSignal.timeout(8_000) });
+    if (!res.ok) throw new Error(`Binance ${res.status}`);
     const data = await res.json() as { price: string };
-    const priceVal = BigInt(Math.round(parseFloat(data.price) * 1e8));
-    log("📈", `Binance Price: $${(Number(priceVal) / 1e8).toFixed(2)}`);
-    return priceVal;
+    const val = BigInt(Math.round(parseFloat(data.price) * 1e8));
+    log("📈", `Binance: $${(Number(val) / 1e8).toFixed(2)}`);
+    return val;
   } catch (err) {
-    log("⚠️", `Binance failed: ${err instanceof Error ? err.message : String(err)}. Trying CoinGecko...`);
+    log("⚠️", `Binance failed: ${err instanceof Error ? err.message : String(err)}`);
   }
 
-  // 3. Last resort: CoinGecko
-  let cgId = "bitcoin";
-  if (pairName.toUpperCase() === "ETH/USD") cgId = "ethereum";
-  else if (pairName.toUpperCase() === "SOL/USD") cgId = "solana";
-
-  const res = await fetch(
-    `https://api.coingecko.com/api/v3/simple/price?ids=${cgId}&vs_currencies=usd`,
-    { signal: AbortSignal.timeout(10000) }
-  );
-  if (!res.ok) throw new Error(`CoinGecko API returned status ${res.status}`);
+  // 3. CoinGecko
+  const cgId = pairName.toUpperCase() === "ETH/USD" ? "ethereum"
+             : pairName.toUpperCase() === "SOL/USD" ? "solana"
+             : "bitcoin";
+  const res = await fetch(`https://api.coingecko.com/api/v3/simple/price?ids=${cgId}&vs_currencies=usd`, { signal: AbortSignal.timeout(8_000) });
+  if (!res.ok) throw new Error(`CoinGecko ${res.status}`);
   const data = await res.json() as any;
-  const priceVal = BigInt(Math.round(data[cgId].usd * 1e8));
-  log("📈", `CoinGecko Price: $${(Number(priceVal) / 1e8).toFixed(2)}`);
-  return priceVal;
+  const val = BigInt(Math.round(data[cgId].usd * 1e8));
+  log("📈", `CoinGecko: $${(Number(val) / 1e8).toFixed(2)}`);
+  return val;
 }
 
-// ─── Keeper State ────────────────────────────────────────────────────────────
+// ─── Block-Aware Sleep ────────────────────────────────────────────────────────
+//
+// When we have time to kill before the next event:
+//   1. If > SMART_SLEEP_THRESHOLD_SECS away → sleep most of the time
+//   2. Then poll for new blocks every BLOCK_POLL_MS until block.timestamp advances
+//
+// This avoids hammering the RPC with getBlock() every 2s for a 50s wait, while
+// still reacting to the chain quickly when the event window approaches.
+
+async function waitUntilEvent(
+  publicClient: ReturnType<typeof createPublicClient>,
+  marketAddress: Address,
+  targetBlockTs: bigint,
+  label: string
+): Promise<void> {
+  const blockNow = await withRetry("getBlock(wait)", () => publicClient.getBlock({ blockTag: "latest" }));
+  const tsNow    = blockNow.timestamp;
+
+  const secsLeft = Number(targetBlockTs > tsNow ? targetBlockTs - tsNow : 0n);
+
+  if (secsLeft > SMART_SLEEP_THRESHOLD_SECS) {
+    const bulkSleepMs = (secsLeft - SMART_SLEEP_THRESHOLD_SECS + 1) * 1000;
+    log("💤", `${label} in ~${secsLeft}s. Sleeping ${Math.round(bulkSleepMs / 1000)}s then polling blocks…`);
+    await sleep(bulkSleepMs);
+  }
+
+  // Block-by-block polling for the final window
+  let lastBlockNum = blockNow.number;
+  let iterations   = 0;
+  while (true) {
+    await sleep(BLOCK_POLL_MS);
+    try {
+      const block = await publicClient.getBlock({ blockTag: "latest" });
+      if (block.number > lastBlockNum) {
+        lastBlockNum = block.number;
+        iterations++;
+        if (block.timestamp >= targetBlockTs) {
+          log("🔔", `${label} — block ${block.number} has timestamp ${block.timestamp} >= target ${targetBlockTs}. Acting.`);
+          return;
+        }
+        const remaining = Number(targetBlockTs - block.timestamp);
+        if (iterations % 5 === 0) {
+          log("⏱️", `Waiting for ${label}… ${remaining}s remaining (block ${block.number})`);
+        }
+      }
+    } catch (err) {
+      log("⚠️", `getBlock() during wait failed: ${err instanceof Error ? err.message : String(err)}`);
+    }
+  }
+}
+
+/** Wait for the block number to advance by at least 1 after a tx */
+async function waitForNextBlock(
+  publicClient: ReturnType<typeof createPublicClient>,
+  currentBlockNumber: bigint,
+  timeoutMs = 30_000
+): Promise<void> {
+  const deadline = Date.now() + timeoutMs;
+  while (Date.now() < deadline) {
+    await sleep(BLOCK_POLL_MS);
+    try {
+      const bn = await publicClient.getBlockNumber();
+      if (bn > currentBlockNumber) return;
+    } catch { /* ignore transient errors */ }
+  }
+  log("⚠️", "waitForNextBlock timed out — continuing anyway");
+}
+
+// ─── Idempotency-Guarded Actions ─────────────────────────────────────────────
+//
+// Every write function re-reads chain state immediately before sending
+// the transaction. If the action is no longer needed, it is skipped.
+// This prevents double-execution on retry and after keeper restarts.
+
+async function doLockRound(
+  publicClient:  ReturnType<typeof createPublicClient>,
+  walletClient:  ReturnType<typeof createWalletClient>,
+  account:       ReturnType<typeof privateKeyToAccount>,
+  marketAddress: Address,
+  roundId:       bigint,
+  pair:          string
+): Promise<void> {
+  // ── IDEMPOTENCY GUARD ──
+  const block = await withRetry("getBlock(lock-guard)", () => publicClient.getBlock({ blockTag: "latest" }));
+  const fresh = await withRetry("getRound(lock-guard)", () =>
+    publicClient.readContract({ address: marketAddress, abi: ROUND_MARKET_ABI, functionName: "getRound", args: [roundId] })
+  ) as unknown as RoundData;
+
+  if (fresh.startPrice !== 0n) {
+    log("✅", `Round #${roundId} already locked (startPrice=${fresh.startPrice}). Skipping.`);
+    return;
+  }
+  if (block.timestamp < fresh.lockTimestamp) {
+    log("⚠️", `lockRound guard: block.timestamp ${block.timestamp} < lockTimestamp ${fresh.lockTimestamp}. Too early.`);
+    throw new Error("lockRound: block not past lockTimestamp yet");
+  }
+
+  const price = await fetchPrice(pair);
+  log("🔒", `Locking round #${roundId} at price $${(Number(price) / 1e8).toFixed(2)}…`);
+
+  const hash = await walletClient.writeContract({
+    address:      marketAddress,
+    abi:          ROUND_MARKET_ABI,
+    functionName: "lockRound",
+    args:         [roundId, price],
+    gas:          GAS_LIMIT,
+    chain:        arcTestnet,
+    account:      account,
+  });
+  log("📤", `lockRound tx: ${hash}`);
+  const receipt = await publicClient.waitForTransactionReceipt({ hash, timeout: 60_000 });
+  log("✅", `Round #${roundId} locked! Gas: ${receipt.gasUsed} Block: ${receipt.blockNumber}`);
+  recordTxSuccess();
+  logEvent("BET_CLOSED", `Round #${roundId} locked at $${(Number(price) / 1e8).toFixed(2)}`, "healthy");
+}
+
+async function doResolveRound(
+  publicClient:  ReturnType<typeof createPublicClient>,
+  walletClient:  ReturnType<typeof createWalletClient>,
+  account:       ReturnType<typeof privateKeyToAccount>,
+  marketAddress: Address,
+  roundId:       bigint,
+  pair:          string
+): Promise<void> {
+  // ── IDEMPOTENCY GUARD ──
+  const block = await withRetry("getBlock(resolve-guard)", () => publicClient.getBlock({ blockTag: "latest" }));
+  const fresh = await withRetry("getRound(resolve-guard)", () =>
+    publicClient.readContract({ address: marketAddress, abi: ROUND_MARKET_ABI, functionName: "getRound", args: [roundId] })
+  ) as unknown as RoundData;
+
+  if (fresh.resolved || fresh.canceled) {
+    log("✅", `Round #${roundId} already settled. Skipping resolveRound.`);
+    return;
+  }
+  if (fresh.startPrice === 0n) {
+    log("⚠️", `resolveRound guard: round #${roundId} not locked yet (startPrice=0). Cannot resolve.`);
+    throw new Error("resolveRound: round not locked");
+  }
+  if (block.timestamp < fresh.endTimestamp) {
+    log("⚠️", `resolveRound guard: block.timestamp ${block.timestamp} < endTimestamp ${fresh.endTimestamp}. Too early.`);
+    throw new Error("resolveRound: block not past endTimestamp yet");
+  }
+
+  const price = await fetchPrice(pair);
+  log("⏰", `Resolving round #${roundId} at price $${(Number(price) / 1e8).toFixed(2)}…`);
+
+  const hash = await walletClient.writeContract({
+    address:      marketAddress,
+    abi:          ROUND_MARKET_ABI,
+    functionName: "resolveRound",
+    args:         [roundId, price],
+    gas:          GAS_LIMIT,
+    chain:        arcTestnet,
+    account:      account,
+  });
+  log("📤", `resolveRound tx: ${hash}`);
+  const receipt = await publicClient.waitForTransactionReceipt({ hash, timeout: 60_000 });
+  log("✅", `Round #${roundId} resolved! Gas: ${receipt.gasUsed} Block: ${receipt.blockNumber}`);
+  recordTxSuccess();
+  recordSettlement();
+  logEvent("SETTLEMENT_COMPLETE", `Round #${roundId} resolved at $${(Number(price) / 1e8).toFixed(2)}`, "healthy");
+}
+
+async function doOpenRound(
+  publicClient:  ReturnType<typeof createPublicClient>,
+  walletClient:  ReturnType<typeof createWalletClient>,
+  account:       ReturnType<typeof privateKeyToAccount>,
+  marketAddress: Address,
+  currentRoundId: bigint,
+  label: string
+): Promise<void> {
+  // ── IDEMPOTENCY GUARD ──
+  // Verify the current round is truly resolved before opening next
+  if (currentRoundId > 0n) {
+    const fresh = await withRetry("getRound(open-guard)", () =>
+      publicClient.readContract({ address: marketAddress, abi: ROUND_MARKET_ABI, functionName: "getRound", args: [currentRoundId] })
+    ) as unknown as RoundData;
+    if (!fresh.resolved && !fresh.canceled) {
+      log("⚠️", `openRound guard: round #${currentRoundId} not yet resolved. Skipping.`);
+      throw new Error("openRound: current round not resolved");
+    }
+  }
+
+  log("🆕", `Opening new round (${label})…`);
+  const hash = await walletClient.writeContract({
+    address:      marketAddress,
+    abi:          ROUND_MARKET_ABI,
+    functionName: "openRound",
+    gas:          GAS_LIMIT,
+    chain:        arcTestnet,
+    account:      account,
+  });
+  log("📤", `openRound tx: ${hash}`);
+  const receipt = await publicClient.waitForTransactionReceipt({ hash, timeout: 60_000 });
+  log("✅", `New round opened! Gas: ${receipt.gasUsed} Block: ${receipt.blockNumber}`);
+  recordTxSuccess();
+  logEvent("MARKET_CREATED", `New round opened (${label})`, "healthy");
+}
+
+// ─── Main Loop ────────────────────────────────────────────────────────────────
 
 let isRunning = true;
 
-// Track which previous round IDs we've already scanned to avoid redundant calls
-const resolvedRoundCache = new Set<string>();
-
 async function main() {
-  log("🚀", "dotMarket Keeper Bot starting...");
+  log("🚀", "DotMarket Keeper starting (block-authoritative engine)…");
 
-  const config = loadConfig();
-  log("⚙️", `RPC: ${config.rpc}`);
-  log("⚙️", `Market: ${config.marketAddress}`);
+  const config  = loadConfig();
+  const account = privateKeyToAccount(config.privateKey);
 
-  // Initialize guardian state with config
+  log("⚙️",  `RPC:     ${config.rpc}`);
+  log("⚙️",  `Market:  ${config.marketAddress}`);
+  log("🔑",  `Keeper:  ${account.address}`);
+
   guardianState.rpcEndpoint = config.rpc;
 
-  const account = privateKeyToAccount(config.privateKey);
-  log("🔑", `Keeper address: ${account.address}`);
+  // ── Viem Clients ──
+  const transport = http(config.rpc, { timeout: 20_000, retryCount: 2, retryDelay: 2_000 });
 
-  // ── Build client with primary RPC; falls back to drpc on transport error ──
-  const publicClient = createPublicClient({
-    chain: arcTestnet,
-    transport: http(config.rpc, {
-      timeout: 20_000,
-      retryCount: 2,
-      retryDelay: 2_000,
-    }),
-  });
+  const publicClient = createPublicClient({ chain: arcTestnet, transport });
+  const walletClient = createWalletClient({ account, chain: arcTestnet, transport });
 
-  const walletClient = createWalletClient({
-    account,
-    chain: arcTestnet,
-    transport: http(config.rpc, {
-      timeout: 20_000,
-      retryCount: 2,
-      retryDelay: 2_000,
-    }),
-  });
-
-  // ── Check balance ──
-  const balance = await withRetry("Initial getBalance", () =>
-    publicClient.getBalance({ address: account.address })
-  );
-  log("💎", `Keeper balance: ${formatEther(balance)} ETH`);
+  // ── Startup: read balance ──
+  const balance = await withRetry("getBalance", () => publicClient.getBalance({ address: account.address }));
+  log("💎", `Balance: ${formatEther(balance)} ETH`);
   guardianState.keeperBalance = formatEther(balance);
   if (parseFloat(formatEther(balance)) < LOW_BALANCE_THRESHOLD) {
-    log("🚨", `WARNING: Balance below ${LOW_BALANCE_THRESHOLD} ETH! Fund the keeper wallet.`);
+    log("🚨", `WARNING: Balance below ${LOW_BALANCE_THRESHOLD} ETH!`);
   }
 
-  // ── Read contract params once at startup ──
-  // ── Read contract params once at startup ──
-  const pair = await withRetry("Read pair", () => publicClient.readContract({
-    address: config.marketAddress, abi: ROUND_MARKET_ABI, functionName: "pair",
-  }));
-  const roundDuration = await withRetry("Read roundDuration", () => publicClient.readContract({
-    address: config.marketAddress, abi: ROUND_MARKET_ABI, functionName: "roundDuration",
-  }));
-  const lockBuffer = await withRetry("Read lockBuffer", () => publicClient.readContract({
-    address: config.marketAddress, abi: ROUND_MARKET_ABI, functionName: "lockBuffer",
-  }));
-
-  log("💱", `Pair: ${pair} | Round: ${roundDuration}s | LockBuffer: ${lockBuffer}s`);
-  log("✅", `Keeper initialized. Polling every ${POLL_INTERVAL_MS / 1000}s.\n`);
+  // ── Startup: read contract params ──
+  const [pair, roundDuration, lockBuffer] = await Promise.all([
+    withRetry("pair",          () => publicClient.readContract({ address: config.marketAddress, abi: ROUND_MARKET_ABI, functionName: "pair" })),
+    withRetry("roundDuration", () => publicClient.readContract({ address: config.marketAddress, abi: ROUND_MARKET_ABI, functionName: "roundDuration" })),
+    withRetry("lockBuffer",    () => publicClient.readContract({ address: config.marketAddress, abi: ROUND_MARKET_ABI, functionName: "lockBuffer" })),
+  ]);
+  log("💱", `Pair: ${pair} | Duration: ${roundDuration}s | LockBuffer: ${lockBuffer}s`);
   guardianState.pair = pair;
-  logEvent('SYSTEM', `Keeper initialized — ${pair} | Round: ${roundDuration}s`, 'healthy');
+  logEvent("SYSTEM", `Keeper initialized — ${pair} ${roundDuration}s rounds`, "healthy");
 
-  // ─── Main Loop ─────────────────────────────────────────────────────────────
-  // Each iteration makes exactly 2 RPC reads (currentRoundId + getRound).
-  // Previous round scan only reads 1 round (currentId - 1), not 10.
-  // This keeps RPC calls to ~2-3 per 15 seconds — well under any rate limit.
-  // ──────────────────────────────────────────────────────────────────────────
+  // ── Startup: crash recovery ──
+  const persisted = loadPersistedState();
+  if (persisted) {
+    log("🔄", `Crash recovery: last known round=${persisted.lastKnownRoundId}, phase=${persisted.lastKnownPhase}`);
+    // We do NOT restore in-memory state from this — we read fresh from chain below.
+    // The persisted state is purely for logging/diagnostics.
+  }
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // MAIN LOOP
+  //
+  // Each iteration:
+  //   1. Read latest block (authoritative timestamp)
+  //   2. Read current round atomically alongside roundId
+  //   3. Derive phase from block.timestamp + on-chain data
+  //   4. Execute exactly one required transition (with idempotency guard)
+  //   5. Sleep until near the next event OR wait for next block after a tx
+  //
+  // NEVER uses Date.now() to decide when to fire transactions.
+  // ─────────────────────────────────────────────────────────────────────────
 
   while (isRunning) {
-    const loopStart = Date.now();
-
-    // Guardian: skip actions if simulated crash
     if (guardianState.keeperCrashed) {
-      await sleep(POLL_INTERVAL_MS);
+      await sleep(5_000);
       continue;
     }
 
-    // Guardian: heartbeat at start of each loop
     heartbeat();
 
     try {
-      // READ 1: currentRoundId
-      const currentRoundId = await withRetry("Read currentRoundId", () =>
-        publicClient.readContract({
-          address: config.marketAddress,
-          abi: ROUND_MARKET_ABI,
-          functionName: "currentRoundId",
-        })
+      // ── Step 1: Get latest block (authoritative timestamp) ──────────────
+      const block = await withRetry("getBlock", () => publicClient.getBlock({ blockTag: "latest" }));
+      const blockTs  = block.timestamp;    // BigInt, seconds
+      const blockNum = block.number;
+
+      // ── Step 2: Read roundId + round data in one atomic read ────────────
+      const currentRoundId = await withRetry("currentRoundId", () =>
+        publicClient.readContract({ address: config.marketAddress, abi: ROUND_MARKET_ABI, functionName: "currentRoundId" })
       );
 
-      log("📊", `Current round ID: ${currentRoundId}`);
-      let nowSec = BigInt(Math.floor(Date.now() / 1000));
+      log("📊", `Block #${blockNum} ts=${blockTs} | Round #${currentRoundId}`);
 
-      // ── Genesis: no rounds exist yet ──────────────────────────────────────
-      if (currentRoundId === 0n) {
-        log("🆕", "No active round. Opening genesis round...");
-        await withRetry("openRound (genesis)", async () => {
-          const hash = await walletClient.writeContract({
-            address: config.marketAddress,
-            abi: ROUND_MARKET_ABI,
-            functionName: "openRound",
-            gas: 1_000_000n,
-          });
-          log("📤", `openRound tx: ${hash}`);
-          const receipt = await publicClient.waitForTransactionReceipt({ hash, timeout: 60_000 });
-          log("✅", `Genesis round opened! Gas: ${receipt.gasUsed} | Block: ${receipt.blockNumber}`);
-          recordTxSuccess();
-          logEvent('MARKET_CREATED', `Genesis round opened — Block: ${receipt.blockNumber}`, 'healthy');
-        });
-        await sleep(POLL_INTERVAL_MS);
-        continue;
+      let round: RoundData | null = null;
+      if (currentRoundId > 0n) {
+        round = await withRetry(`getRound(${currentRoundId})`, () =>
+          publicClient.readContract({ address: config.marketAddress, abi: ROUND_MARKET_ABI, functionName: "getRound", args: [currentRoundId] })
+        ) as unknown as RoundData;
       }
 
-      // READ 2: current round data
-      const currentRound = await withRetry(`Fetch round #${currentRoundId}`, () =>
-        publicClient.readContract({
-          address: config.marketAddress,
-          abi: ROUND_MARKET_ABI,
-          functionName: "getRound",
-          args: [currentRoundId],
-        })
-      ) as unknown as RoundData;
-
-      nowSec = BigInt(Math.floor(Date.now() / 1000));
-
-      // Guardian: update round state
-      updateRoundState({
-        roundId: Number(currentRound.roundId),
-        startPrice: currentRound.startPrice,
-        lockTimestamp: Number(currentRound.lockTimestamp),
-        endTimestamp: Number(currentRound.endTimestamp),
-        startTimestamp: Number(currentRound.startTimestamp),
-        resolved: currentRound.resolved,
-        canceled: currentRound.canceled,
+      // ── Step 3: Derive phase (blockchain-only, never Date.now) ──────────
+      const phase  = derivePhase(blockTs, currentRoundId, round ?? {
+        roundId: 0n, startPrice: 0n, closePrice: 0n, totalUpAmount: 0n, totalDownAmount: 0n,
+        startTimestamp: 0n, lockTimestamp: 0n, endTimestamp: 0n,
+        rewardBaseCalAmount: 0n, rewardAmount: 0n, resolved: false, canceled: false,
       });
+      const action = phaseToAction(phase);
 
-      log(
-        "📋",
-        `Round #${currentRound.roundId} | locked=${currentRound.startPrice > 0n} | resolved=${currentRound.resolved} | canceled=${currentRound.canceled} | lockAt=${currentRound.lockTimestamp} | endAt=${currentRound.endTimestamp} | now=${nowSec}`
-      );
+      log("📋", `Phase: ${phase} | Action: ${action} | startPrice=${round?.startPrice ?? 0n}`);
 
-      // ── Already settled → open next immediately ───────────────────────────
-      if (currentRound.resolved || currentRound.canceled) {
-        log("🔄", `Round #${currentRoundId} already settled. Opening next round...`);
-        resolvedRoundCache.add(currentRoundId.toString());
-        await withRetry("openRound (after settle)", async () => {
-          const hash = await walletClient.writeContract({
-            address: config.marketAddress,
-            abi: ROUND_MARKET_ABI,
-            functionName: "openRound",
-            gas: 1_000_000n,
-          });
-          log("📤", `openRound tx: ${hash}`);
-          const receipt = await publicClient.waitForTransactionReceipt({ hash, timeout: 60_000 });
-          log("✅", `New round opened! Gas: ${receipt.gasUsed} | Block: ${receipt.blockNumber}`);
+      // ── Guardian state update ────────────────────────────────────────────
+      if (round) {
+        updateRoundState({
+          roundId: Number(round.roundId),
+          startPrice: round.startPrice,
+          lockTimestamp: Number(round.lockTimestamp),
+          endTimestamp: Number(round.endTimestamp),
+          startTimestamp: Number(round.startTimestamp),
+          resolved: round.resolved,
+          canceled: round.canceled,
         });
-        await sleep(POLL_INTERVAL_MS);
-        continue;
       }
 
-      // ── STEP A: Open round -> Lock round ──────────────────────────────────
-      if (
-        currentRound.startPrice === 0n &&
-        nowSec >= currentRound.lockTimestamp + 4n
-      ) {
-        log("🔒", `Round #${currentRoundId} at lock time. Locking round...`);
-        const lockPrice = await fetchPrice(pair);
-        await withRetry(`lockRound #${currentRoundId}`, async () => {
-          const hash = await walletClient.writeContract({
-            address: config.marketAddress,
-            abi: ROUND_MARKET_ABI,
-            functionName: "lockRound",
-            args: [currentRoundId, lockPrice],
-            gas: 1_000_000n,
-          });
-          log("📤", `lockRound tx: ${hash}`);
-          const receipt = await publicClient.waitForTransactionReceipt({ hash, timeout: 60_000 });
-          log("✅", `Round #${currentRoundId} locked! Gas: ${receipt.gasUsed}`);
-          recordTxSuccess();
-          logEvent('BET_CLOSED', `Round #${currentRoundId} locked`, 'healthy');
+      // ── Phase snapshot for /api/market-phase ────────────────────────────
+      if (round) {
+        const secsLeft = secsToNextEvent(blockTs, round);
+        updatePhaseSnapshot({
+          roundId:        Number(currentRoundId),
+          phase:          phase === 'LOCKABLE' || phase === 'RESOLVABLE' ? 'SETTLING' : phase,
+          secondsRemaining: Number(secsLeft),
+          lockTimestamp:  Number(round.lockTimestamp),
+          endTimestamp:   Number(round.endTimestamp),
+          blockTimestamp: Number(blockTs),
+          startPrice:     round.startPrice.toString(),
+          upPool:         formatEther(round.totalUpAmount),
+          downPool:       formatEther(round.totalDownAmount),
         });
-        nowSec = BigInt(Math.floor(Date.now() / 1000));
-        await sleep(POLL_INTERVAL_MS);
-        continue;
       }
 
-      // ── STEP B: Locked round -> Resolve + Open next ───────────────────────
-      if (
-        currentRound.startPrice > 0n &&
-        !currentRound.resolved &&
-        !currentRound.canceled &&
-        nowSec >= currentRound.endTimestamp + BigInt(END_BUFFER_MS / 1000)
-      ) {
-        log("⏰", `Round #${currentRoundId} ended. Resolving and opening next round...`);
-        const resolvePrice = await fetchPrice(pair);
-        
-        // 1. Resolve current round
-        await withRetry(`resolveRound #${currentRoundId}`, async () => {
-          const hash = await walletClient.writeContract({
-            address: config.marketAddress,
-            abi: ROUND_MARKET_ABI,
-            functionName: "resolveRound",
-            args: [currentRoundId, resolvePrice],
-            gas: 1_000_000n,
-          });
-          log("📤", `resolveRound tx: ${hash}`);
-          const receipt = await publicClient.waitForTransactionReceipt({ hash, timeout: 60_000 });
-          log("✅", `Round #${currentRoundId} resolved! Gas: ${receipt.gasUsed}`);
-          recordTxSuccess();
-          recordSettlement();
-          logEvent('SETTLEMENT_COMPLETE', `Round #${currentRoundId} resolved`, 'healthy');
-        });
-        resolvedRoundCache.add(currentRoundId.toString());
-        nowSec = BigInt(Math.floor(Date.now() / 1000));
-        
-        await sleep(RESOLVE_TO_OPEN_DELAY_MS);
+      saveState(currentRoundId, phase);
 
-        // 2. Open the next round sequentially
-        await withRetry("openRound (after resolve)", async () => {
-          const hash = await walletClient.writeContract({
-            address: config.marketAddress,
-            abi: ROUND_MARKET_ABI,
-            functionName: "openRound",
-            gas: 1_000_000n,
-          });
-          log("📤", `openRound tx: ${hash}`);
-          const receipt = await publicClient.waitForTransactionReceipt({ hash, timeout: 60_000 });
-          log("✅", `New round opened! Gas: ${receipt.gasUsed}`);
-          recordTxSuccess();
-          logEvent('MARKET_CREATED', `New round opened after resolve`, 'healthy');
-        });
-        await sleep(POLL_INTERVAL_MS);
-        continue;
+      // ── Step 4: Execute the required action ─────────────────────────────
+      switch (action) {
+
+        case "OPEN_GENESIS": {
+          log("🆕", "Genesis: opening first round…");
+          await withRetry("openRound(genesis)", () =>
+            doOpenRound(publicClient, walletClient, account, config.marketAddress, 0n, "genesis")
+          );
+          await waitForNextBlock(publicClient, blockNum);
+          break;
+        }
+
+        case "LOCK_ROUND": {
+          await withRetry(`lockRound(${currentRoundId})`, () =>
+            doLockRound(publicClient, walletClient, account, config.marketAddress, currentRoundId, pair)
+          );
+          await waitForNextBlock(publicClient, blockNum);
+          break;
+        }
+
+        case "RESOLVE_AND_OPEN": {
+          // Resolve current round
+          await withRetry(`resolveRound(${currentRoundId})`, () =>
+            doResolveRound(publicClient, walletClient, account, config.marketAddress, currentRoundId, pair)
+          );
+          // Wait for confirmation block
+          await waitForNextBlock(publicClient, blockNum);
+          // Small delay for indexers
+          await sleep(RESOLVE_TO_OPEN_DELAY_MS);
+          // Open next round
+          await withRetry("openRound(after-resolve)", () =>
+            doOpenRound(publicClient, walletClient, account, config.marketAddress, currentRoundId, "after-resolve")
+          );
+          const postBlock = await withRetry("getBlock(post-open)", () => publicClient.getBlock({ blockTag: "latest" }));
+          await waitForNextBlock(publicClient, postBlock.number);
+          break;
+        }
+
+        case "OPEN_AFTER_RESOLVE": {
+          // Current round resolved but next wasn't opened (restart scenario)
+          log("🔄", `Round #${currentRoundId} already resolved. Opening next round…`);
+          await withRetry("openRound(restart-recovery)", () =>
+            doOpenRound(publicClient, walletClient, account, config.marketAddress, currentRoundId, "restart-recovery")
+          );
+          await waitForNextBlock(publicClient, blockNum);
+          break;
+        }
+
+        case "WAIT": {
+          // No action needed — sleep until near the next event
+          const secsLeft = round ? secsToNextEvent(blockTs, round) : 10n;
+          const nextEventLabel = round?.startPrice === 0n ? "LOCK" : "RESOLVE";
+          await waitUntilEvent(publicClient, config.marketAddress, 
+            round?.startPrice === 0n 
+              ? (round?.lockTimestamp ?? 0n) + LOCK_GRACE_SECS
+              : (round?.endTimestamp ?? 0n) + END_GRACE_SECS,
+            nextEventLabel
+          );
+          break;
+        }
       }
-
-      // ── STEP C: Calculate smart sleep until next event ────────────────────
-      nowSec = BigInt(Math.floor(Date.now() / 1000));
-      const secsToLock = Number(currentRound.lockTimestamp) - Number(nowSec);
-      const secsToEnd = Number(currentRound.endTimestamp) - Number(nowSec);
-      const msToLock = secsToLock > 0 ? secsToLock * 1000 : Infinity;
-      const msToEnd = secsToEnd > 0 ? secsToEnd * 1000 : Infinity;
-      
-      const nextEventMs = Math.min(msToLock, msToEnd);
-      const sleepMs = Math.max(5_000, Math.min(POLL_INTERVAL_MS, nextEventMs - 2_000));
-
-      log("💤", `Nothing to do. Sleeping ${Math.round(sleepMs / 1000)}s (next event in ~${Math.round(nextEventMs / 1000)}s)`);
-      await sleep(sleepMs);
 
     } catch (err) {
-      log("❌", `Main loop error: ${err instanceof Error ? err.message : String(err)}`);
+      const msg = err instanceof Error ? err.message : String(err);
+      log("❌", `Loop error: ${msg}`);
       if (err instanceof Error && err.stack) console.error(err.stack);
-      recordError(err instanceof Error ? err.message : String(err));
-      logEvent('KEEPER_ERROR', `Main loop error: ${err instanceof Error ? err.message : String(err)}`, 'critical');
-      log("⏳", `Cooling down ${ERROR_COOLDOWN_MS / 1000}s...`);
+      recordError(msg);
+      logEvent("KEEPER_ERROR", `Loop error: ${msg}`, "critical");
+      log("⏳", `Cooling down ${ERROR_COOLDOWN_MS / 1000}s…`);
       await sleep(ERROR_COOLDOWN_MS);
     }
   }
 
-  log("👋", "Keeper bot shut down gracefully.");
+  log("👋", "Keeper shut down.");
 }
 
-// ─── Health-check HTTP Server ────────────────────────────────────────────────
-const PORT = process.env.PORT || 10000;
-const server = httpModule.createServer(async (req, res) => {
-  // CORS headers for Guardian dashboard
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+// ─── HTTP Server ─────────────────────────────────────────────────────────────
 
-  if (req.method === 'OPTIONS') {
-    res.writeHead(204);
-    res.end();
+const PORT = Number(process.env.PORT) || 10000;
+
+const server = httpModule.createServer(async (req, res) => {
+  res.setHeader("Access-Control-Allow-Origin",  "*");
+  res.setHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
+  res.setHeader("Access-Control-Allow-Headers", "Content-Type");
+
+  if (req.method === "OPTIONS") { res.writeHead(204); res.end(); return; }
+
+  // ── /api/market-phase — authoritative phase for the frontend ──
+  if (req.url === "/api/market-phase" && req.method === "GET") {
+    const snap = guardianState.phaseSnapshot;
+    if (snap) {
+      res.writeHead(200, { "Content-Type": "application/json", "Cache-Control": "no-cache" });
+      res.end(JSON.stringify(snap));
+    } else {
+      res.writeHead(503, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ error: "phase not yet computed" }));
+    }
     return;
   }
 
   // Guardian API routes
-  if (req.url?.startsWith('/guardian/')) {
+  if (req.url?.startsWith("/guardian/")) {
     await handleGuardianRequest(req, res);
     return;
   }
 
-  // Default health check
-  res.writeHead(200, { "Content-Type": "text/plain" });
-  res.end("Keeper is healthy and running\n");
-});
-server.listen(Number(PORT), "0.0.0.0", () => {
-  log("🌐", `Health-check + Guardian API on port ${PORT}`);
-  // Start Guardian monitoring loop
-  startGuardianMonitor();
-  logEvent('SYSTEM', 'Protocol Guardian activated', 'healthy');
+  // Health check
+  res.writeHead(200, { "Content-Type": "application/json" });
+  res.end(JSON.stringify({
+    status: "healthy",
+    uptime: Math.floor((Date.now() - guardianState.keeperStartTime) / 1000),
+    round:  guardianState.currentRoundId,
+    phase:  guardianState.marketPhase,
+    balance: guardianState.keeperBalance,
+  }));
 });
 
-// ─── Graceful Shutdown ──────────────────────────────────────────────────────
+server.listen(PORT, "0.0.0.0", () => {
+  log("🌐", `HTTP server on :${PORT}`);
+  startGuardianMonitor();
+  logEvent("SYSTEM", "Protocol Guardian activated", "healthy");
+});
+
+// ─── Graceful Shutdown ───────────────────────────────────────────────────────
+
 function shutdown(signal: string) {
-  log("🛑", `Received ${signal}. Shutting down...`);
+  log("🛑", `${signal} received — shutting down…`);
   isRunning = false;
-  server.close(() => log("🌐", "Health-check server closed."));
+  server.close(() => log("🌐", "HTTP server closed."));
 }
 
-process.on("SIGINT", () => shutdown("SIGINT"));
+process.on("SIGINT",  () => shutdown("SIGINT"));
 process.on("SIGTERM", () => shutdown("SIGTERM"));
 
-// ─── Entrypoint ─────────────────────────────────────────────────────────────
+// ─── Entrypoint ──────────────────────────────────────────────────────────────
+
 main().catch((err) => {
-  log("💀", `Fatal error: ${err instanceof Error ? err.message : String(err)}`);
+  log("💀", `Fatal: ${err instanceof Error ? err.message : String(err)}`);
   if (err instanceof Error && err.stack) console.error(err.stack);
   process.exit(1);
 });
