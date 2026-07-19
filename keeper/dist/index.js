@@ -85,6 +85,11 @@ const ROUND_MARKET_ABI = [
         outputs: [], stateMutability: "nonpayable",
     },
     {
+        type: "function", name: "lockAndOpenRound",
+        inputs: [{ name: "roundToLock", type: "uint256" }, { name: "lockPrice", type: "int256" }],
+        outputs: [], stateMutability: "nonpayable",
+    },
+    {
         type: "function", name: "resolveRound",
         inputs: [{ name: "roundId", type: "uint256" }, { name: "closePrice", type: "int256" }],
         outputs: [], stateMutability: "nonpayable",
@@ -153,6 +158,34 @@ function loadConfig() {
 function sleep(ms) {
     return new Promise((r) => setTimeout(r, ms));
 }
+class DeterministicRevertError extends Error {
+    constructor(reason, message) {
+        super(message);
+        this.reason = reason;
+        this.name = "DeterministicRevertError";
+    }
+}
+function parseRevertReason(err) {
+    if (!err)
+        return null;
+    const errMsg = err instanceof Error ? err.message : String(err);
+    if (errMsg.includes("execution reverted")) {
+        const match = errMsg.match(/execution reverted:\s*([^\n\r]+)/i);
+        if (match)
+            return match[1].trim();
+    }
+    if (errMsg.includes("reverted with the following reason")) {
+        const match = errMsg.match(/reverted with the following reason:\s*([^\n\r]+)/i);
+        if (match)
+            return match[1].trim();
+    }
+    if (errMsg.includes("revert")) {
+        const match = errMsg.match(/revert\s*([^\n\r]+)/i);
+        if (match)
+            return match[1].trim();
+    }
+    return null;
+}
 async function withRetry(label, fn, maxRetries = MAX_RETRIES) {
     let lastErr;
     for (let attempt = 1; attempt <= maxRetries; attempt++) {
@@ -160,6 +193,11 @@ async function withRetry(label, fn, maxRetries = MAX_RETRIES) {
             return await fn();
         }
         catch (err) {
+            const revertReason = parseRevertReason(err);
+            if (revertReason) {
+                log("❌", `${label} aborted: deterministic revert detected: "${revertReason}"`);
+                throw new DeterministicRevertError(revertReason, `${label} failed with deterministic revert: ${revertReason}`);
+            }
             lastErr = err;
             const delay = RETRY_BASE_DELAY_MS * 2 ** (attempt - 1);
             log("⚠️", `${label} attempt ${attempt}/${maxRetries} failed: ${err instanceof Error ? err.message : String(err)}`);
@@ -217,9 +255,9 @@ function derivePhase(blockTimestamp, roundId, round) {
 function phaseToAction(phase) {
     switch (phase) {
         case "GENESIS": return "OPEN_GENESIS";
-        case "LOCKABLE": return "LOCK_ROUND";
-        case "RESOLVABLE": return "RESOLVE_AND_OPEN";
-        case "RESOLVED": return "OPEN_AFTER_RESOLVE";
+        case "LOCKABLE": return "LOCK_AND_OPEN_ROUND";
+        case "RESOLVABLE": return "RESOLVE_ROUND";
+        case "RESOLVED": return "OPEN_NEXT_ROUND";
         case "OPEN":
         case "LOCKED":
         default: return "WAIT";
@@ -366,34 +404,39 @@ async function waitForNextBlock(publicClient, currentBlockNumber, timeoutMs = 30
 // Every write function re-reads chain state immediately before sending
 // the transaction. If the action is no longer needed, it is skipped.
 // This prevents double-execution on retry and after keeper restarts.
-async function doLockRound(publicClient, walletClient, account, marketAddress, roundId, pair) {
+async function doLockAndOpenRound(publicClient, walletClient, account, marketAddress, roundId, pair) {
     // ── IDEMPOTENCY GUARD ──
-    const block = await withRetry("getBlock(lock-guard)", () => publicClient.getBlock({ blockTag: "latest" }));
-    const fresh = await withRetry("getRound(lock-guard)", () => publicClient.readContract({ address: marketAddress, abi: ROUND_MARKET_ABI, functionName: "getRound", args: [roundId] }));
+    const block = await withRetry("getBlock(lock-open-guard)", () => publicClient.getBlock({ blockTag: "latest" }));
+    const fresh = await withRetry("getRound(lock-open-guard)", () => publicClient.readContract({ address: marketAddress, abi: ROUND_MARKET_ABI, functionName: "getRound", args: [roundId] }));
+    const currentId = await withRetry("currentRoundId(lock-open-guard)", () => publicClient.readContract({ address: marketAddress, abi: ROUND_MARKET_ABI, functionName: "currentRoundId" }));
+    if (currentId > roundId) {
+        log("✅", `lockAndOpenRound target round #${roundId} already locked and next opened (currentRoundId=${currentId}). Skipping.`);
+        return;
+    }
     if (fresh.startPrice !== 0n) {
         log("✅", `Round #${roundId} already locked (startPrice=${fresh.startPrice}). Skipping.`);
         return;
     }
     if (block.timestamp < fresh.lockTimestamp) {
-        log("⚠️", `lockRound guard: block.timestamp ${block.timestamp} < lockTimestamp ${fresh.lockTimestamp}. Too early.`);
-        throw new Error("lockRound: block not past lockTimestamp yet");
+        log("⚠️", `lockAndOpenRound guard: block.timestamp ${block.timestamp} < lockTimestamp ${fresh.lockTimestamp}. Too early.`);
+        throw new Error("lockAndOpenRound: block not past lockTimestamp yet");
     }
     const price = await fetchPrice(pair);
-    log("🔒", `Locking round #${roundId} at price $${(Number(price) / 1e8).toFixed(2)}…`);
+    log("🔒", `Locking round #${roundId} and opening next at price $${(Number(price) / 1e8).toFixed(2)}…`);
     const hash = await walletClient.writeContract({
         address: marketAddress,
         abi: ROUND_MARKET_ABI,
-        functionName: "lockRound",
+        functionName: "lockAndOpenRound",
         args: [roundId, price],
         gas: GAS_LIMIT,
         chain: arcTestnet,
         account: account,
     });
-    log("📤", `lockRound tx: ${hash}`);
+    log("📤", `lockAndOpenRound tx: ${hash}`);
     const receipt = await publicClient.waitForTransactionReceipt({ hash, timeout: 60000 });
-    log("✅", `Round #${roundId} locked! Gas: ${receipt.gasUsed} Block: ${receipt.blockNumber}`);
+    log("✅", `Round #${roundId} locked & next opened! Gas: ${receipt.gasUsed} Block: ${receipt.blockNumber}`);
     (0, state_1.recordTxSuccess)();
-    (0, logger_1.logEvent)("BET_CLOSED", `Round #${roundId} locked at $${(Number(price) / 1e8).toFixed(2)}`, "healthy");
+    (0, logger_1.logEvent)("BET_CLOSED", `Round #${roundId} locked and next opened at $${(Number(price) / 1e8).toFixed(2)}`, "healthy");
 }
 async function doResolveRound(publicClient, walletClient, account, marketAddress, roundId, pair) {
     // ── IDEMPOTENCY GUARD ──
@@ -521,14 +564,33 @@ async function main() {
             if (currentRoundId > 0n) {
                 round = await withRetry(`getRound(${currentRoundId})`, () => publicClient.readContract({ address: config.marketAddress, abi: ROUND_MARKET_ABI, functionName: "getRound", args: [currentRoundId] }));
             }
-            // ── Step 3: Derive phase (blockchain-only, never Date.now) ──────────
-            const phase = derivePhase(blockTs, currentRoundId, round ?? {
-                roundId: 0n, startPrice: 0n, closePrice: 0n, totalUpAmount: 0n, totalDownAmount: 0n,
-                startTimestamp: 0n, lockTimestamp: 0n, endTimestamp: 0n,
-                rewardBaseCalAmount: 0n, rewardAmount: 0n, resolved: false, canceled: false,
-            });
-            const action = phaseToAction(phase);
-            log("📋", `Phase: ${phase} | Action: ${action} | startPrice=${round?.startPrice ?? 0n}`);
+            // ── Step 3: Scan for previous unresolved round to resolve first ─────
+            let action = "WAIT";
+            let targetRoundId = currentRoundId;
+            let prevRoundToResolve = null;
+            if (currentRoundId > 1n) {
+                const prevRoundId = currentRoundId - 1n;
+                const prev = await withRetry(`getRound(${prevRoundId})`, () => publicClient.readContract({ address: config.marketAddress, abi: ROUND_MARKET_ABI, functionName: "getRound", args: [prevRoundId] }));
+                if (!prev.resolved && !prev.canceled && blockTs >= prev.endTimestamp + END_GRACE_SECS) {
+                    prevRoundToResolve = prev;
+                    action = "RESOLVE_ROUND";
+                    targetRoundId = prevRoundId;
+                }
+            }
+            let phase = "OPEN";
+            if (action !== "RESOLVE_ROUND") {
+                phase = derivePhase(blockTs, currentRoundId, round ?? {
+                    roundId: 0n, startPrice: 0n, closePrice: 0n, totalUpAmount: 0n, totalDownAmount: 0n,
+                    startTimestamp: 0n, lockTimestamp: 0n, endTimestamp: 0n,
+                    rewardBaseCalAmount: 0n, rewardAmount: 0n, resolved: false, canceled: false,
+                });
+                action = phaseToAction(phase);
+                targetRoundId = currentRoundId;
+            }
+            else {
+                phase = "RESOLVABLE";
+            }
+            log("📋", `Target Round: #${targetRoundId} | Action: ${action} | Phase: ${phase}`);
             // ── Guardian state update ────────────────────────────────────────────
             if (round) {
                 (0, state_1.updateRoundState)({
@@ -543,11 +605,18 @@ async function main() {
             }
             // ── Phase snapshot for /api/market-phase ────────────────────────────
             if (round) {
-                const secsLeft = secsToNextEvent(blockTs, round);
+                let secondsRemaining = 0;
+                if (action === "RESOLVE_ROUND" && prevRoundToResolve) {
+                    const endTarget = prevRoundToResolve.endTimestamp + END_GRACE_SECS;
+                    secondsRemaining = Number(endTarget > blockTs ? endTarget - blockTs : 0n);
+                }
+                else {
+                    secondsRemaining = Number(secsToNextEvent(blockTs, round));
+                }
                 (0, state_1.updatePhaseSnapshot)({
                     roundId: Number(currentRoundId),
                     phase: phase === 'LOCKABLE' || phase === 'RESOLVABLE' ? 'SETTLING' : phase,
-                    secondsRemaining: Number(secsLeft),
+                    secondsRemaining,
                     lockTimestamp: Number(round.lockTimestamp),
                     endTimestamp: Number(round.endTimestamp),
                     blockTimestamp: Number(blockTs),
@@ -565,43 +634,56 @@ async function main() {
                     await waitForNextBlock(publicClient, blockNum);
                     break;
                 }
-                case "LOCK_ROUND": {
-                    await withRetry(`lockRound(${currentRoundId})`, () => doLockRound(publicClient, walletClient, account, config.marketAddress, currentRoundId, pair));
+                case "LOCK_AND_OPEN_ROUND": {
+                    await withRetry(`lockAndOpenRound(${targetRoundId})`, () => doLockAndOpenRound(publicClient, walletClient, account, config.marketAddress, targetRoundId, pair));
                     await waitForNextBlock(publicClient, blockNum);
                     break;
                 }
-                case "RESOLVE_AND_OPEN": {
-                    // Resolve current round
-                    await withRetry(`resolveRound(${currentRoundId})`, () => doResolveRound(publicClient, walletClient, account, config.marketAddress, currentRoundId, pair));
-                    // Wait for confirmation block
+                case "RESOLVE_ROUND": {
+                    await withRetry(`resolveRound(${targetRoundId})`, () => doResolveRound(publicClient, walletClient, account, config.marketAddress, targetRoundId, pair));
                     await waitForNextBlock(publicClient, blockNum);
-                    // Small delay for indexers
-                    await sleep(RESOLVE_TO_OPEN_DELAY_MS);
-                    // Open next round
-                    await withRetry("openRound(after-resolve)", () => doOpenRound(publicClient, walletClient, account, config.marketAddress, currentRoundId, "after-resolve"));
-                    const postBlock = await withRetry("getBlock(post-open)", () => publicClient.getBlock({ blockTag: "latest" }));
-                    await waitForNextBlock(publicClient, postBlock.number);
                     break;
                 }
-                case "OPEN_AFTER_RESOLVE": {
-                    // Current round resolved but next wasn't opened (restart scenario)
-                    log("🔄", `Round #${currentRoundId} already resolved. Opening next round…`);
-                    await withRetry("openRound(restart-recovery)", () => doOpenRound(publicClient, walletClient, account, config.marketAddress, currentRoundId, "restart-recovery"));
+                case "OPEN_NEXT_ROUND": {
+                    // Current round resolved but next wasn't opened (restart/fallback scenario)
+                    log("🔄", `Round #${targetRoundId} already resolved. Opening next round…`);
+                    await withRetry("openRound(restart-recovery)", () => doOpenRound(publicClient, walletClient, account, config.marketAddress, targetRoundId, "restart-recovery"));
                     await waitForNextBlock(publicClient, blockNum);
                     break;
                 }
                 case "WAIT": {
                     // No action needed — sleep until near the next event
-                    const secsLeft = round ? secsToNextEvent(blockTs, round) : 10n;
-                    const nextEventLabel = round?.startPrice === 0n ? "LOCK" : "RESOLVE";
-                    await waitUntilEvent(publicClient, config.marketAddress, round?.startPrice === 0n
-                        ? (round?.lockTimestamp ?? 0n) + LOCK_GRACE_SECS
-                        : (round?.endTimestamp ?? 0n) + END_GRACE_SECS, nextEventLabel);
+                    let secsLeft = 10n;
+                    let nextEventLabel = "EVENT";
+                    let nextTargetTs = blockTs + 10n;
+                    if (round) {
+                        const lockTarget = round.lockTimestamp + LOCK_GRACE_SECS;
+                        nextTargetTs = lockTarget;
+                        nextEventLabel = "LOCK";
+                        if (currentRoundId > 1n) {
+                            const prevRoundId = currentRoundId - 1n;
+                            const prev = await withRetry(`getRound(wait-calc-${prevRoundId})`, () => publicClient.readContract({ address: config.marketAddress, abi: ROUND_MARKET_ABI, functionName: "getRound", args: [prevRoundId] }));
+                            if (!prev.resolved && !prev.canceled) {
+                                const endTarget = prev.endTimestamp + END_GRACE_SECS;
+                                if (endTarget < nextTargetTs) {
+                                    nextTargetTs = endTarget;
+                                    nextEventLabel = "RESOLVE";
+                                }
+                            }
+                        }
+                        secsLeft = nextTargetTs > blockTs ? nextTargetTs - blockTs : 0n;
+                    }
+                    await waitUntilEvent(publicClient, config.marketAddress, nextTargetTs, nextEventLabel);
                     break;
                 }
             }
         }
         catch (err) {
+            if (err instanceof DeterministicRevertError) {
+                log("🔄", `Deterministic revert skipped: ${err.reason}. Re-polling chain state…`);
+                await sleep(BLOCK_POLL_MS);
+                continue;
+            }
             const msg = err instanceof Error ? err.message : String(err);
             log("❌", `Loop error: ${msg}`);
             if (err instanceof Error && err.stack)
